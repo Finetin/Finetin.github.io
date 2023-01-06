@@ -1,0 +1,98 @@
+a { text-decoration: none;}
+
+body {
+    margin: 0;
+    height: 100%;
+    width: 100%;
+    background-color: rgb(241, 243, 244);;
+}
+html {
+    height: 100%;
+    width: 100%;
+    min-width: 950px;
+    min-height: 400px;
+}
+
+
+.leftnav {
+    width: 250px;
+    height: 100%;
+    min-height: 100%;
+    background-color: rgb(0, 21, 41);
+    float: left;
+
+    position: fixed;
+    left: 0;
+    /* padding-top: 30px; */
+}
+
+.zhanwei {
+    height: 30px;
+}
+
+.leftnav .logo {
+    text-align: center;
+    margin-left: 88px;
+    margin-right: 88px;
+    margin-top: 30px;
+    padding-bottom: 30px;
+    padding-top: 30px;
+    height: 124px;
+    width: 73px;
+}
+
+.selections {
+    padding-top: 30px;
+    padding-bottom: 30px;
+}
+
+.myinfo, .msg, .mimet, .workgroup {
+    height: 20px;
+    width: 200px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    margin-top: 10px;
+    margin-bottom: 20px;
+    margin-left: auto;
+    margin-right: auto;
+    /* background-color: #fff; */
+    color: #fff;
+    background-color: rgb(0, 21, 41);
+    border-radius: 10px;
+    font-size: 16px;
+
+    padding-left: 10px;
+    text-align: left;
+    vertical-align: middle;
+    filter: brightness(1.1);
+
+    display: block;
+}
+
+.myinfo:hover,
+.msg:hover,
+.mimet:hover,
+.workgroup:hover {
+    filter: brightness(1.8);
+}
+
+.myinfo img,
+.msg img,
+.mimet img,
+.workgroup img {
+    filter: invert(100%);
+}
+
+.myinfo span,
+.msg span,
+.mimet span,
+.workgroup span {
+    vertical-align: top;
+    margin-left: 5px;
+}
+
+.choseslct {
+    background-color: rgb(100, 121, 141);
+    color: #fff;
+}
+

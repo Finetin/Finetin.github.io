@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面面：新建面试组</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-min.js"></script>
+    <script src="../account/web_prepare01.js"></script>
+    <script>
+        // 初始化leancloud
+        const { Query, User } = AV;
+        AV.init({
+            appId: "QINFwm0ds2NuLyRCmbpmUltw-gzGzoHsz",
+            appKey: "16T8fLd7241TyCxCkCvAYPif",
+            serverURL: "https://qinfwm0d.lc-cn-n1-shared.com"
+        });
+
+        var account_id = "";
+
+        // 初始化加载
+        window.onload = function () {
+            // 检查登录状态
+            const loginQuery = new AV.Query('LoginState');
+            let client_id = cans();
+            loginQuery.equalTo('client_id', client_id);
+            loginQuery.find().then((loginStates) => {
+                if (loginStates.length > 0) {
+                    // 判断是否过期
+                    let nowdate = new Date();
+                    if ((nowdate.getTime() - loginStates[0].get('createdAt').getTime()) / 1000 > 3600)
+                        location.assign("../account/login.html");
+                    else {
+                        account_id = loginStates[0].get("account_id");
+                    } // 成功登录 
+                } else location.assign("../account/login.html");
+            });
+        };
+
+        // 头像
+        function person_head() {
+                window.location.href = "../usercenter/personal_information.html";
+            return;
+        }
+        // 消息中心
+        function msg_center() {
+                window.location.href = "../msgcenter/systemmsg.html";
+        }
+
+        // 检查组是否合法
+        function checkGroupValid() {
+            let group_id = document.getElementById("group_id").value,
+                company = document.getElementById("company").value,
+                qqemail = document.getElementById("email_address").value,
+                emailconf = document.getElementById("qqemailconf").value,
+                telnum = document.getElementById("telnum").value;
+
+            if (qqemail == null || qqemail == "") {
+                alert("面试组的邮箱地址为空。");
+                return;
+            } else if (company == null || company == "") {
+                alert("面试组所属的企业为空。");
+                return;
+            } else if (emailconf == null || emailconf == "") {
+                alert("面试组的招聘岗位为空。");
+                return;
+            } else if (telnum == null) {
+                alert("面试组的联系方式为空");
+                return;
+            }
+            // 工作组名是否重复
+            const groupQuery = new AV.Query('WorkGroup');
+            groupQuery.equalTo('group_name', group_id);
+            groupQuery.find().then((groups) => {
+                if (groups.length > 0) {
+                    alert("该面试组名已被注册，请重新输入未被注册的用户组名。");
+                    document.getElementById("group_id").value = "";
+                } else {
+                    console.log("通过校验");
+                    let TmpGroup = AV.Object.extend('WorkGroup');
+
+                    const accountQuery = new AV.Query('Account');
+                    accountQuery.get(account_id).then((now_account) => {
+                        let tmpGroup = new TmpGroup();
+                        let tmpArray1 = new Array(), tmpArray2 = new Array();
+                        tmpArray1.push(account_id);
+
+                        tmpGroup.set("admin", tmpArray1);
+                        tmpGroup.set('company', company);
+                        tmpGroup.set("email", qqemail);
+                        tmpGroup.set('email_conf', emailconf);
+                        tmpGroup.set('group_name', group_id);
+                        tmpGroup.set('tel', telnum);
+                        tmpArray2.push(now_account.get("account_id"));
+                        tmpGroup.set('mem_names', tmpArray2);
+
+                        // 在账户信息中记录
+                        const tmp_account = AV.Object.createWithoutData('Account', now_account.get("objectId"));
+                        let work_group_list = now_account.get("work_group_list");
+                        work_group_list.push(group_id);
+                        tmp_account.set("work_group_list", work_group_list);
+                        tmp_account.save();
+
+                        // 保存组
+                        tmpGroup.save();
+
+                        alert("新建工作组成功");
+
+                        document.getElementById("group_id").value = "",
+                        document.getElementById("company").value = "",
+                        document.getElementById("email_address").value = "",
+                        document.getElementById("qqemailconf").value = "",
+                        document.getElementById("telnum").value = "";
+                    });
+                }
+            });
+
+            // alert("工作组添加成功");
+            location.assign("../usercenter/workspace.html");
+        }
+    </script>
+    <style>
+        html {
+            height: 100%;
+        }
+        body {
+            height: 100%;
+            text-decoration: none;
+            background-image: url("../source/pic/bgi004.jpg");
+            background-size: cover;
+        }
+        input {
+            text-indent: 5px;
+        }
+
+        .mainshell {
+            float: left;
+            height: calc(100% - 90px);
+            
+            min-height: 700px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .mainpage {
+            width: 1000px;
+            height: 100%;
+            min-height: 700px;
+            /* height: 1000px; */
+
+            margin-right: auto;
+            margin-left: auto;
+            opacity: 0.9;
+            background-color: white;
+        }
+
+        .maintitle {
+            text-align: center;
+            font-size: 38px;
+            padding-top: 30px;
+            padding-bottom: 30px;
+        }
+        .maintitle a {
+            font-size: 15px;
+        }
+
+        .attribt_pair {
+            margin-left: 100px;
+            margin-right: 100px;
+            padding-top: 10px;
+            padding-bottom: 20px;
+            /* background-color: greenyellow; */
+
+        }
+
+        .attribt_key {
+            font-size: 15px;
+            font-weight: 600;
+            width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left;
+            /* background-color: teal; */
+        }
+
+        .attribt_val {
+            font-size: 28px;
+            width: 400px;
+            height: 35px;
+            margin-left: auto;
+            margin-right: auto;
+            /* background-color: aquamarine; */
+        }
+
+        .attribt_val .inputtxt {
+            font-size: 20px;
+            font-family: 'Times New Roman', Times, serif;
+            width: 396px;
+            height: 30px;
+            border: 1;
+            padding: 0;
+        }
+
+        #email_address {
+            display: inline-block;
+            font-size: 20px;
+            font-family: 'Times New Roman', Times, serif;
+            width: 306px;
+            height: 30px;
+            border: 1;
+            padding: 0;
+        }
+        .qqemail {
+            height: 30px;
+            display: inline-block;
+            font-size: 20px;
+            font-family: 'Times New Roman', Times, serif;
+            user-select: none;
+        }
+
+        /* 添加信息 */
+        .attribt_key .add,
+        .attribt_key .del {
+            display: inline-block;
+            float: right;
+            margin-right: 5px;
+        }
+
+        .attribt_key .add:hover,
+        .attribt_key .del:hover {
+            filter: invert(50%);
+        }
+
+
+
+        /* 杂项 */
+        .zhanwei2 {
+            height: 20px;
+        }
+
+        /* 提交按钮 */
+        #new_group_btn {
+            display: inline-block;
+            height: 26px;
+            font-size: 18px;
+            border-radius: 15px;
+            padding: 3px;
+            padding-left: 15px;
+            padding-right: 15px;
+            vertical-align: middle;
+            margin-top: 20px;
+            margin-left: auto;
+            margin-right: auto;
+            background-color: #fff;
+            text-align: center;
+
+            user-select: none;
+            box-shadow: 0 0 2px 1px rgb(86, 108, 115);
+        }
+
+        #new_group_btn:hover {
+            filter: invert(100%);
+            cursor: pointer;
+        }
+
+        #help_qqemail_pw {
+            font-size: 13px;
+            text-align-last: left;
+            margin-left: 5px;
+            padding-bottom: 13px;
+        }
+    </style>
+    <link rel="stylesheet" href="../css/index.css">
+</head>
+
+<body>
+    <!-- 头部 -->
+    <div class="header">
+        <div class="headerzhanwei"></div>
+        <div class="head_content">
+            <!-- logo -->
+            <a href="../index.html" class="logo">
+                <img src="../source/pic/logo0.png" width="73" height="64">
+            </a>
+    
+            <!-- 导航 -->
+            <div class="nav">
+                <ul>
+                    <li><a href="../index.html" class="navpos">首页</a></li>
+                    <li><a href="../work/searchgroup.html">加入面试</a></li>
+                    <li><a href="../work/newgroup.html">发起面试</a></li>
+                    <li><a href="../account/store.html">定价与购买</a></li>
+                    <li><a href="../help/help_home.html">帮助中心</a></li>
+                </ul>
+            </div>
+    
+            <!-- 用户 -->
+            <div class="user">
+                <div></div>
+                <!-- <a href="" > -->
+                <span onclick="msg_center()">
+                    <img class="img1" src="../source/pic/user0.png" alt="" width="17" height="22">
+                </span>
+                <!-- </a> -->
+                <!-- <a href="" > -->
+                <span onclick="person_head()">
+                    <img class="img2" src="../source/pic/user1.png" alt="" height="50" width="50">
+                </span>
+                <!-- </a> -->
+                <!-- <a href="../account/login.html" id="login_btn">
+                    <span>登录</span>
+                </a> -->
+            </div>
+    
+        </div>
+    
+    </div>
+
+    <span class="mainshell">
+        <div class="mainpage">
+            <div class="maintitle">
+                新建面试组
+                <div class="searchgroup">
+                    <a href="searchgroup.html">加入已有面试组 ></a>
+                </div>
+            </div>
+            <!-- 面试组名称 -->
+            <div class="attribt_pair" title="面试组名称只能由数字、字母、英文句号组成">
+                <div class="attribt_key">面试组名称</div>
+                <div class="attribt_val">
+                    <input class="inputtxt" type="text" placeholder="请输入面试组组名"
+                        onkeyup="value=value.replace(/[^\w\.\/]/ig,'')" id="group_id"
+                        maxlength="20">
+                </div>
+            </div>
+            <!-- 面试组企业 -->
+            <div class="attribt_pair">
+                <div class="attribt_key">面试组企业</div>
+                <div class="attribt_val">
+                    <input class="inputtxt" type="text" placeholder="请输入面试组所属企业"
+                        id="company" maxlength="20" onkeyup="value.replace(',','');">
+                </div>
+            </div>
+            <!-- 电话 -->
+            <div class="attribt_pair">
+                <div class="attribt_key">邮箱</div>
+                <div class="attribt_val">
+                    <input id="email_address" type="text" placeholder="请输入面试组的QQ邮箱地址"
+                        maxlength="15" onkeyup="value.replace(',','');">
+                    <span class="qqemail">@qq.com</span>
+                </div>
+            </div>
+            <!-- 邮箱授权码 -->
+            <div class="attribt_pair">
+                <div class="attribt_key">招聘岗位</div>
+                <div class="attribt_val">
+                    <input class="inputtxt" type="text" placeholder="请输入所需招新的岗位"
+                        id="qqemailconf" maxlength="20">
+                    <!-- <div id="help_qqemail_pw"><a href="../help/emailservice.html">如何获得授权码 ></a></div> -->
+                </div>
+            </div>
+            <!-- 电话 -->
+            <div class="attribt_pair">
+                <div class="attribt_key">电话</div>
+                <div class="attribt_val">
+                    <input class="inputtxt" type="text" placeholder="请输入面试组的联系方式"
+                        onkeyup="value=value.replace(/[\W]/g,''); value.replace(',','');"
+                        id="telnum" maxlength="20">
+                </div>
+            </div>
+
+            <!-- 提交键 -->
+            <div id="new_group_btn" onclick="checkGroupValid()">
+                确定
+            </div>
+
+            <div class="zhanwei2"></div>
+        </div>
+    </span>
+
+</body>
+
+</html>

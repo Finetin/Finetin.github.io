@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面面：加入工作组</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-min.js"></script>
+    <script src="../account/web_prepare01.js"></script>
+    <script>
+        // 初始化leancloud
+        const { Query, User } = AV;
+        AV.init({
+            appId: "QINFwm0ds2NuLyRCmbpmUltw-gzGzoHsz",
+            appKey: "16T8fLd7241TyCxCkCvAYPif",
+            serverURL: "https://qinfwm0d.lc-cn-n1-shared.com"
+        });
+        
+        function search_group() {
+            
+        }
+    </script>
+    <style>
+        html {
+            height: 100%;
+        }
+
+        body {
+            text-decoration: none;
+            background-image: url("../source/pic/bgi004.jpg");
+            background-size: cover;
+            height: 100%;
+        }
+
+        .mainshell {
+            float: left;
+            height: calc(100% - 90px);
+            /* height: 100%; */
+            width: 100%;
+            text-align: center;
+        }
+
+        .mainpage {
+            width: 1000px;
+            min-height: 100%;
+            margin-right: auto;
+            margin-left: auto;
+            padding-bottom: 20px;
+            opacity: 0.9;
+            background-color: white;
+        }
+
+        .maintitle {
+            text-align: center;
+            font-size: 35px;
+            padding-top: 30px;
+            padding-bottom: 30px;
+        }
+
+        .search_ipt {
+            width: 350px;
+            border-radius: 15px;
+            height: 30px;
+            text-indent: 10px;
+            font-size: 15px;
+        }
+        .search_btn {
+            height: 30px;
+            width: 80px;
+            font-size: 20px;
+            background-color: #fff;
+            text-align: center;
+            vertical-align: middle;
+            border-radius: 15px;
+            padding: 2px;
+            display: inline-block;
+            user-select: none;
+            box-shadow: 0 0 2px 2px #555;
+        }
+        .search_btn:hover {
+            filter: invert(100%);
+        }
+
+        /* 新建工作组链接 */
+        .end_line {
+            padding-top: 30px;
+            padding-bottom: 30px;
+            font-size: 15px;
+        }
+
+        /* 搜索结果 */
+        .res_groups {
+            width: 700px;
+            padding-top: 20px;
+            padding-bottom: 20px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 搜索结果群组 */
+        .res_group {
+            width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            padding-top: 15px;
+            padding-bottom: 20px;
+            padding-left: 20px;
+            padding-right: 20px;
+
+            border-radius: 10px;
+            box-shadow: 0 0 2px 2px #eef;
+        }
+        .res_group:hover {
+            background-color: #eee;
+        }
+        .group_val_pair {
+            padding-left: 10px;
+            padding-right: 10px;
+            /* background-color: lightblue; */
+            text-align-last: left;
+        }
+        .group_val_title {
+            font-size: 15px;
+            font-weight: 600;
+            text-align: left;
+        }
+        .group_val_val {
+            font-size: 20px;
+            text-align: left;
+            font-family: 'Times New Roman', 'SimSun';
+        }
+        /* 加入按钮 */
+        .joinin_btn {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 17px;
+            padding-top: 5px;
+            padding-bottom: 5px;
+            border-radius: 15px;
+            background-color: #fff;
+            box-shadow: 0 0 2px 2px black;
+            user-select: none;
+        }
+        .joinin_btn:hover {
+            filter: invert(100%);
+        }
+    </style>
+    <link rel="stylesheet" href="../css/index.css">
+</head>
+
+<body>
+    <!-- 头部 -->
+    <div class="header">
+        <div class="headerzhanwei"></div>
+        <div class="head_content">
+            <!-- logo -->
+            <a href="../index.html" class="logo">
+                <img src="../source/pic/logo0.png" width="73" height="64">
+            </a>
+
+            <!-- 导航 -->
+            <div class="nav">
+                <ul>
+                    <li><a href="../index.html" class="navpos">首页</a></li>
+                    <li><a href="">加入面试</a></li>
+                    <li><a href="newgroup.html">发起面试</a></li>
+                    <li><a href="../account/store.html">定价与购买</a></li>
+                    <li><a href="../help/help_home.html">帮助中心</a></li>
+                </ul>
+            </div>
+
+            <!-- 用户 -->
+            <div class="user">
+                <div></div>
+                <a href="../msgcenter/systemmsg.html">
+                    <img class="img1" src="../source/pic/user0.png" alt="" width="17" height="22">
+                </a>
+                <a href="../usercenter/personal_information.html">
+                    <img class="img2" src="../source/pic/user1.png" alt="" height="50" width="50">
+                </a>
+                <!-- <a href="../account/login.html">
+                    <span>登录</span>
+                </a> -->
+            </div>
+
+        </div>
+
+    </div>
+
+    <span class="mainshell">
+        <div class="mainpage">
+            <div class="maintitle">
+                加入面试组
+            </div>
+            <div class="search">
+                <span>
+                    <input class="search_ipt" type="text" placeholder="请输入面试工作组组名" maxlength="10">
+                </span>
+                <span class="search_btn">搜索</span>
+            </div>
+            <div class="res_groups">
+                <div class="res_group" style="display: none;">
+                    <div class="group_val_pair">
+                        <div class="group_val_title">组名</div>
+                        <div class="group_val_val" id="group_name_show"></div>
+                    </div>
+                    <div class="group_val_pair">
+                        <div class="group_val_title">邮箱</div>
+                        <div class="group_val_val" id="group_email_show"></div>
+                    </div>
+                    <div class="group_val_pair">
+                        <div class="group_val_title">企业</div>
+                        <div class="group_val_val" id="group_comp_show"></div>
+                    </div>
+                    <div class="group_val_pair">
+                        <span class="joinin_btn">加入群组</span>
+                    </div>
+                </div>
+            </div>
+            <div class="end_line">
+                <a href="newgroup.html">新建工作组 ></a>
+            </div>
+        </div>
+    </span>
+
+
+</body>
+
+</html>

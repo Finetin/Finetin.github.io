@@ -1,0 +1,179 @@
+a {
+    text-decoration: none;
+}
+
+.leftnav {
+    background-color: rgb(255, 254, 247);
+    width: 200px;
+    height: 100%;
+    min-height: 250px;
+    margin-left: 10%;
+    float: left;
+    opacity: 0.9;
+}
+
+.rightcontent {
+    float: right;
+    height: 100%;
+    min-height: 250px;
+    overflow-y: scroll;
+    margin-right: 10%;
+    width: calc(80% - 200px);
+
+    opacity: 0.8;
+    background-color: rgb(255, 253, 242);
+}
+
+.title {
+    margin-top: 30px;
+    margin-left: 50px;
+    /* margin-bottom: 20px; */
+    height: 30px;
+    vertical-align: middle;
+}
+
+.title span {
+    height: 20px;
+    margin-left: 10px;
+    vertical-align: top;
+    font-size: 20pxs;
+    font-weight: 600;
+    padding-bottom: 5px;
+}
+
+/* 导航栏 */
+.selections {
+    padding-top: 10px;
+    padding-bottom: 30px;
+}
+
+.systemmsg,
+.personmsg,
+.groupmsg {
+    height: 20px;
+    width: 150px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    margin-top: 10px;
+    margin-bottom: 20px;
+    margin-left: auto;
+    margin-right: auto;
+    /* background-color: #fff; */
+
+    color: rgb(0, 21, 41);
+    /* background-color: rgb(255, 254, 247); */
+    border-radius: 10px;
+    font-size: 16px;
+
+    padding-left: 10px;
+    text-align: left;
+    vertical-align: middle;
+    filter: brightness(1.1);
+
+    display: block;
+}
+
+.systemmsg:hover,
+.personmsg:hover,
+.groupmsg:hover {
+    filter: brightness(0.8);
+}
+
+.systemmsg img,
+.personmsg img,
+.groupmsg img {
+    /* filter: invert(100%); */
+    margin-left: 18px;
+}
+
+.systemmsg span,
+.personmsg span,
+.groupmsg span {
+    vertical-align: top;
+    text-align: center;
+    margin-left: 5px;
+}
+
+.choseslct {
+    background-color: rgb(222, 221, 213);
+    color: rgb(0, 21, 41);
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    min-width: 1120px;
+}
+
+body {
+    background-image: url("../source/pic/bgi003.png");
+    background-size: cover;
+}
+
+#downcontent {
+    width: 100%;
+    float: left;
+    height: calc(100% - 90px);
+}
+
+/* 具体信息栏目 */
+.msg_case {
+    width: calc(80% - 70px);
+    margin-left: 10%;
+    margin-right: 10%;
+
+    margin-top: 38px;
+    margin-bottom: 38px;
+
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-top: 20px;
+    padding-bottom: 20px;
+
+    border-radius: 15px;
+    background-color: rgb(237, 236, 226);
+
+}
+
+.msg_case_title {
+    margin-left: 30px;
+    margin-top: 20px;
+
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.msg_case_time,
+.msg_case_sender_box {
+    margin-left: 35px;
+    margin-right: 20px;
+    padding-top: 1px;
+    margin-bottom: 1px;
+
+    font-size: 13px;
+    color: #555;
+}
+
+.msg_case_content {
+    margin-left: 35px;
+    margin-right: 35px;
+    margin-bottom: 20px;
+}
+
+/* 图标样式 */
+.msg_case_reply, .msg_case_detail {
+    float: right;
+    margin-left: 10px;
+}
+
+.msg_case_reply:hover,
+.msg_case_detail:hover {
+    filter: invert(50%);
+    cursor: pointer;
+}
+
+.msg_case_model {
+    display: none;
+}

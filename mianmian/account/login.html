@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面面登陆方式</title>
+    <style>
+        body {
+            
+            background-image: url("../source/pic/bgi002.jpg");
+            background-size: cover;
+            min-width: 1120px;
+            /* background-blend-mode: soft-light; */
+        }
+        input {
+            text-indent: 10px;
+        }
+        .content {
+            float: left;
+            width: 100%;
+            height: 100%;
+            /* background-image: url("../source/pic/bgi001.png");
+            background-size: cover;
+            background-blend-mode: soft-light; */
+        }
+
+        .dialog {
+            height: 380px;
+            width: 400px;
+            /* background-color: gray; */
+            /* background-color: #fff; */
+            /* filter: brightness(120%); */
+            filter: drop-shadow(8px 8px 10px white);
+            margin: auto;
+            margin-top: 30px;
+        }
+        .nav {
+            /* background-color: #ff4; */
+        }
+        .zhanwei1 { height: 20px;}
+        .title {
+            height: 60px;
+            font-size: 35px;
+            /* font-weight: bold; */
+            margin: auto;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .button2 {
+            font-size: 15px;
+            color: rgb(228,228,228);
+            height: 20px;
+            margin-top: 7px;
+            display: block;
+            filter: brightness(50%);
+        }
+        .button2:hover{
+            filter: brightness(20%);
+        }
+
+        form {
+            /* background-color: yellowgreen; */
+            margin: auto;
+            width: 350px;
+        }
+
+        .emailtitle, .pwtitle {
+            font-size: 15px;
+            font-weight: bold;
+        }
+        #email, #password {
+            margin-top: 3px;
+            height: 30px;
+            width: 350px;
+
+            border-radius: 8px;
+            
+            border: 2px solid rgba(177, 185, 194, 0.9);
+            
+            font-size: 17px;
+        }
+        #email:hover, #password:hover {
+            border-color: rgba(100, 100, 100, 0.8);
+            /* border-color: rgb(138,138,138); */
+        }
+        .btnbox {
+            width: 100%;
+            text-align: center;
+        }
+        .button {
+            display: inline-block;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            margin-left: 139px;
+            margin-right: auto;
+            padding: 3px;
+            padding-left: 20px;
+            padding-right: 20px;
+
+            border-radius: 12px;
+            box-shadow: 0 0 1px 2px black;
+            text-align: center;
+            background-color: #fff;
+            user-select: none;
+        }
+        .button:hover {
+            filter: brightness(70%);
+            cursor: pointer;
+        }
+        .wangji {
+            /* margin-left: auto; */
+            /* margin-right: auto; */
+            margin-left: 95px;
+            font-size: 10px;
+            color: #006EFF;
+        }
+    </style>
+    <link rel="stylesheet" href="../css/index.css">
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-min.js"></script>
+    <script src="web_prepare01.js"></script>
+    <script>
+        // 初始化leancloud
+        const { Query, User } = AV;
+        AV.init({
+            appId: "QINFwm0ds2NuLyRCmbpmUltw-gzGzoHsz",
+            appKey: "16T8fLd7241TyCxCkCvAYPif",
+            serverURL: "https://qinfwm0d.lc-cn-n1-shared.com"
+        });
+
+        function login() {
+            // 账号数组
+            let email = document.getElementById("email").value;
+            let password = document.getElementById("password").value;
+            if (email == "") alert("您的邮箱地址为空，请输入正确的邮箱地址。");
+            else if (password == "") alert("您的密码为空，请输入您的账户密码。");
+            else {
+                // 检查邮箱
+                // 邮箱查询
+                const emailQuery = new AV.Query('Account');
+                emailQuery.equalTo('email', email);
+                emailQuery.find().then((accounts) => {
+                    if (accounts.length == 0) {
+                        alert("您的密码错误，请重新输入。");
+                        document.getElementById("password").value = "";
+                        return;
+                    } else if (accounts[0].get('password') != password) {
+                        alert("您的密码错误，请重新输入。");
+                    } else {
+                        // alert("登陆成功");
+                        // 登陆操作
+                        let client_id = cans();
+                        let account_id = accounts[0].get("objectId");
+                        // alert("client_id:" + client_id);
+
+                        // 查询是否登录了其他账户
+                        const loginQuery = new AV.Query('LoginState');
+                        loginQuery.equalTo('client_id', client_id);
+                        loginQuery.find().then((loginStates) => {
+                            // 删除过期登录状态
+                            for (let i=0; i<loginStates.length; i++) {
+                                // alert("tmpid:" + loginStates[i].get('client_id') + "\ni:" + i);
+                                const tmpLogin = AV.Object.createWithoutData('LoginState', loginStates[i].get('objectId'));
+                                tmpLogin.destroy();
+                            }
+
+                            // 保存登陆状态
+                            let NowLogin = AV.Object.extend('LoginState');
+                            let nowLogin = new NowLogin();
+                            nowLogin.set("account_id", account_id);
+                            nowLogin.set("client_id", client_id);
+                            nowLogin.save().then((todo) => {
+                                // 成功保存之后，执行其他逻辑
+                                console.log('账户登陆状态保存成功。objectId:'+ todo);
+                                alert("登陆成功");
+                                location.assign('../index.html');
+                            }, (error) => {
+                                // 异常处理
+                                alert("数据库异常：" + error);
+                            });
+                        });
+                    }
+                });
+            }
+            return;
+        }
+    </script>
+</head>
+<body>
+    <!-- 头部 -->
+    <div class="header">
+        <div class="headerzhanwei"></div>
+        <div class="head_content">
+            <!-- logo -->
+            <a href="../index.html" class="logo">
+                <img src="../source/pic/logo0.png" width="73" height="64">
+            </a>
+    
+            <!-- 导航 -->
+            <div class="nav">
+                <ul>
+                    <li><a href="../index.html" class="navpos">首页</a></li>
+                    <li><a href="../work/searchgroup.html">加入面试</a></li>
+                    <li><a href="../work/newgroup.html">发起面试</a></li>
+                    <li><a href="../account/store.html">定价与购买</a></li>
+                    <li><a href="../help/help_home.html">帮助中心</a></li>
+                </ul>
+            </div>
+    
+            <!-- 用户 -->
+            <div class="user">
+                <div></div>
+                <a href="../msgcenter/systemmsg.html">
+                    <img class="img1" src="../source/pic/user0.png" alt="" width="17" height="22">
+                </a>
+                <a href="../usercenter/personal_information.html">
+                    <img class="img2" src="../source/pic/user1.png" alt="" height="50" width="50">
+                </a>
+                <!-- <a href="../account/login.html">
+                    <span>登录</span>
+                </a> -->
+            </div>
+    
+        </div>
+    
+    </div>
+
+    <div class="content">
+        <div class="dialog">
+            <div class="zhanwei1"></div>
+            <div class="title" onclick="checkAccount()">
+                密码登录
+                <a href="register.html" class="button2">通过邮箱注册账户 ></a>
+            </div>
+            <div class="nav_account">
+                <!-- 登录selvet -->
+                <form action="" id="form">
+                    <p>
+                        <div class="emailtitle">邮箱地址</div>
+                        <input id="email" name="email" type="text"
+                            placeholder=" 请输入邮箱地址" maxlength="30"
+                            onkeyup="value=value.replace(',',''); value=value.replace(';','');">
+                    </p>
+                    <p>
+                        <div class="pwtitle">密码</div>
+                        <input id="password" name="password" type="password"
+                            placeholder=" 请输入账号密码" maxlength="12"
+                            onkeyup="value=value.replace(/[^\w\.\/]/ig,'')">
+                    </p>
+                    <p>
+                        <!-- <input type="submit" class="button" value="登录" onclick="checkAccount()"> -->
+                        <div class="btn_box">
+                            <span class="button" onclick="login()">登 录</span>
+                        </div>
+                        <a href="#" class="wangji">忘记密码，通过验证码找回 ></a>
+                    </p>
+                    
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

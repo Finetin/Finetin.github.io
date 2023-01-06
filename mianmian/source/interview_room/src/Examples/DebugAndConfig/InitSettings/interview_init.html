@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-lang="InitSettings">面面：面试准备</title>
+    <!-- <link rel="icon" href="../../../../favicon.ico" type="image/x-icon" /> -->
+    <!-- <link rel="stylesheet" href="../../../assets/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../../../assets/css/style.css">
+    <link rel="stylesheet" href="./index.css"> -->
+    <script src="../../../../../../source/interview_room/src/assets/js/express_sdk/ZegoExpressWebRTC.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-min.js"></script>
+    <!-- <script src="../../../assets/js/express_sdk/ZegoExpressWebRTC.js"></script> -->
+
+    <link rel="stylesheet" href="../../../../../../css/index.css">
+    <style>
+        body, html {
+            width: 100%;
+            height: 100%;
+        }
+
+        body {
+            background-image: url("https://images.unsplash.com/photo-1661956600684-97d3a4320e45?ixlib=rb-4.0.3&ixid=MnwxMjA3fDF8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80");
+            min-width: 1120px;
+            background-size: cover;
+        }
+
+        .beiyong_btn {
+            width: 100px;
+            height: 30px;
+            font-size: 20px;
+            margin-left: auto;
+            margin-right: auto;
+
+            background-color: #fff;
+            border: 1px solid #000;
+            border-radius: 5px;
+
+            text-align: center;
+            color: #000;
+
+
+        }
+
+        .beiyong_btn:hover {
+            filter: brightness(0.8);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        #mianmian_prepare_content {
+            width: 900px;
+            height: 100%;
+
+            margin-left: auto;
+            margin-right: auto;
+
+            background-color: rgba(255, 255, 255, 0.9);
+            font-family: Rubik, sans-serif;
+            text-align: center;
+        }
+
+        #mianmian_prepare_title {
+            padding-top: 10%;
+            padding-bottom: 5%;
+
+            font-size: 25px;
+            color: #000;
+        }
+    </style>
+
+
+    <script>
+        // 获取面试场次信息
+        urlinfo = window.location.href; //获取当前页面的url
+        len = urlinfo.length;//获取url的长度
+        offset = urlinfo.indexOf("?");//设置参数字符串开始的位置
+        nowpath = urlinfo.substr(0, offset + 1); // 获取当前路径
+        newsidinfo = urlinfo.substr(offset, len); //取出参数字符串 这里会获得类似“id=1”这样的字符串
+        newsids = newsidinfo.split("=");//对获得的参数字符串按照“=”进行分割
+        interview_tmp_name = newsids[1];//得到参数值
+        newsname = newsids[0];//得到参数名字
+        var interview_id = interview_tmp_name;
+
+        // 初始化leancloud
+        const { Query, User } = AV;
+        AV.init({
+            appId: "QINFwm0ds2NuLyRCmbpmUltw-gzGzoHsz",
+            appKey: "16T8fLd7241TyCxCkCvAYPif",
+            serverURL: "https://qinfwm0d.lc-cn-n1-shared.com"
+        });
+
+
+        function mianmian_setAppID(mianmian_appid) {
+            document.getElementById("AppID").value = mianmian_appid;
+        }
+        function mianmian_setServer(mianmian_server) {
+            document.getElementById("Server").value = mianmian_server;
+        }
+        // 设定账户信息
+        function setAccountInfo(mianmian_appid, mianmian_server) {
+            document.getElementById("AppID").value = mianmian_appid;
+            document.getElementById("Server").value = mianmian_server;
+        }
+
+        window.onload = function() {
+            document.getElementById("__vconsole").style.display = "none";
+
+            // 获取AppID与Server
+            const ZegoQuery = new AV.Query('ZegoUserID');
+            ZegoQuery.get('63b66791818b282518fd9614').then((todo) => {
+                setAccountInfo(todo.get("AppID"), todo.get("Server"))
+                document.getElementById("beiyong_btn0").onclick = function () {
+                    setTimeout(function () {
+                        document.getElementById('submit').click();
+                        console.log("登陆成功");
+                        // 跳转页面
+                        location.assign("../../../../../../work/waiting_room.html?interview_id=" + interview_id);
+                    }, 500);
+                }
+            });
+
+        }
+    </script>
+</head>
+
+<body class="fix-sidebar card-no-border">
+    <!-- 程序背后的内容 -->
+    <div class="preloader" style="display: none;">
+        <svg class="circular" viewBox="25 25 50 50">
+            <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="2" stroke-miterlimit="10" />
+        </svg>
+    </div>
+
+    <div class="container main-wrapper" style="display: none;">
+        <!-- <div class="row"> -->
+
+        <div class="page-wrapper">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-12 col-lg-6 preview-wrapper">
+                        <div class="action-step">
+                            <div class="action-title">
+                                <span class="action-info">
+                                    <b data-lang="InitSettings">InitSettings</b>
+                                </span>
+                            </div>
+                            <div style="font-size: 12px; color: #8b8b8b;">
+                                <span data-lang="SettingsDesc">请输入即构控制台中项目对应的 AppID 及 Server（环境配置 - Web - Server），用以体验示例
+                                    demo。</span>
+                                <a href="https://console.zego.im" data-lang="CheckOutConsole"
+                                    target="_blank">点击打开ZEGO控制台</a>
+                            </div>
+                            <div class="action-content">
+                                <div class="action-form font-14">
+                                    <div class="action-item">
+                                        <span data-lang="AppID">AppID</span>
+                                        <input type="text" id="AppID" value="1882325751"/>
+                                    </div>
+                                    <div class="action-item">
+                                        <span data-lang="ServerUrl">Server</span>
+                                        <input type="text" id="Server" value="c266f2792d28c9fabb02af0496bab372" />
+                                    </div>
+                                </div>
+                                <button id="submit" class="play-pause-button" data-lang="Set">
+                                    Set
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- </div> -->
+    </div>
+
+    <!-- 表面内容 -->
+    <!-- 头部内容 -->
+    <div class="header">
+        <div class="headerzhanwei"></div>
+        <div class="head_content">
+            <!-- logo -->
+            <a href="../../../../../../index.html" class="logo">
+                <img src="../../../../../../source/pic/logo0.png" width="73" height="64">
+            </a>
+    
+            <!-- 导航 -->
+            <div class="nav">
+                <ul>
+                    <li><a href="../../../../../../index.html" class="navpos">首页</a></li>
+                    <li><a href="../../../../../../work/searchgroup.html">加入面试</a></li>
+                    <li><a href="../../../../../../work/newgroup.html">发起面试</a></li>
+                    <li><a href="../../../../../../account/store.html">定价与购买</a></li>
+                    <li><a href="../../../../../../help/help_home.html">帮助中心</a></li>
+                </ul>
+            </div>
+    
+            <!-- 用户 -->
+            <div class="user">
+                <div></div>
+                <!-- <a href="" > -->
+                <span onclick="msg_center()">
+                    <img class="img1" src="../../../../../../source/pic/user0.png" alt="" width="17" height="22">
+                </span>
+                <!-- </a> -->
+                <!-- <a href="" > -->
+                <span onclick="person_head()">
+                    <img class="img2" src="../../../../../../source/pic/user1.png" alt="" height="50" width="50">
+                </span>
+                <!-- </a> -->
+            </div>
+    
+        </div>
+    
+    </div>
+
+    <!-- 页面内容 -->
+    <div id="mianmian_prepare_content">
+        <div style="height: 50px; width: 700px;"></div>
+        <div id="mianmian_prepare_title">
+            按下下面的按键进行面试环境的准备工作。
+        </div>
+        <div class="beiyong_btn" id="beiyong_btn0">
+            开始准备
+        </div>
+    </div>
+
+    <!-- <script src="../../../assets/js/left-menu.js"></script> -->
+    <script src="../../../../../../source/interview_room/src/assets/js/jquery.min.js"></script>
+    <script src="../../../../../../source/interview_room/src/assets/js/jquery.i18n.properties.min.js"></script>
+    <script src="../../../../../../source/interview_room/src/assets/js/metisMenu.min.js"></script>
+    <script src="../../../../../../source/interview_room/src/assets/js/jquery.slimscroll.min.js"></script>
+    <script src="../../../../../../source/interview_room/src/assets/js/bootstrap.min.js"></script>
+    <script src="../../../assets/js/vconsole.min.js"></script>
+    <script src="../../../../../../source/interview_room/src/assets/js/custom.js"></script>
+    <script src="../../../../../../source/interview_room/src/Examples/DebugAndConfig/InitSettings/index.js"></script>
+</body>
+
+</html>

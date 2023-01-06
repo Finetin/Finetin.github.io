@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面面：面试准备</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-min.js"></script>
+    <script src="../account/web_prepare01.js"></script>
+    <script>
+        // 初始化leancloud
+        const { Query, User } = AV;
+        AV.init({
+            appId: "QINFwm0ds2NuLyRCmbpmUltw-gzGzoHsz",
+            appKey: "16T8fLd7241TyCxCkCvAYPif",
+            serverURL: "https://qinfwm0d.lc-cn-n1-shared.com"
+        });
+
+        var urlinfo = window.location.href; //获取当前页面的url
+        var len = urlinfo.length;//获取url的长度
+        var offset = urlinfo.indexOf("/work");//设置参数字符串开始的位置
+        var newsidinfo = urlinfo.substr(0, offset + 1)//取出参数字符串 这里会获得类似“id=1”这样的字符串
+        var nowpath = newsidinfo;
+        newsidinfo = urlinfo.substr(offset, len); //取出参数字符串 这里会获得类似“id=1”这样的字符串
+        var newsids = newsidinfo.split("=");//对获得的参数字符串按照“=”进行分割
+        var group_name = newsids[1];//得到参数值
+
+        var page_state = 0;
+        var now_interview_id = '';
+
+        // 时间转化为字符串
+        function dateTimeToString(date) {
+            var y = date.getFullYear();
+            var M = date.getMonth() + 1;
+            var d = date.getDate();
+            var H = date.getHours();
+            var m = date.getMinutes();
+            var s = date.getSeconds();
+            return y + '-' + (M < 10 ? ('0' + M) : M) + '-' + (d < 10 ? ('0' + d) : d) + " " + (H < 10 ? ('0' + H) : H) + ":" + (m < 10 ? ('0' + m) : m) + ":" + (s < 10 ? ('0' + s) : s);
+        }
+
+        function onappear(id) {
+            id.style.display = 'block';
+        }
+
+        function regetBatch_id() {
+            var batches = document.getElementsByClassName("batchid");
+            for (let i = 0; i < batches.length; i++) {
+                // var batchid = document.createTextNode(i+1);
+                batches[i].innerHTML = i + 1;
+            }
+        }
+
+        // 废案
+        function move_up(id) {
+            var element = id;
+            var father = id.parentNode;
+            var fathers = document.getElementsByClassName("batch_members");
+            let pos = 0;
+            while (pos < fathers.length) {
+                if (fathers[pos] == father)
+                    break;
+                else pos++;
+            }
+            if (pos==0) {
+                if (fathers[pos].childNodes.length==1)
+                    alert("当前应聘者是唯一位于第一批次的面试者，无法将批次提前。");
+                else {
+                    // 克隆batch_pair节点
+                    var new_father = fathers[0].parentNode.cloneNode(true);
+                    var bro_nodes = new_father.getElementsByClassName("batch_members")[0].childNodes;
+
+                    // 删除其中所有batch_member 并填入唯一的batchmember
+                    for (let i= bro_nodes.length-1; i>=0; i--) {
+                        new_father.getElementsByClassName("batch_members")[0].
+                            removeChild(bro_nodes[i]);
+                    }
+                    new_father.getElementsByClassName("batch_members")[0].appendChild(id);
+                    fathers[0].parentNode.parentNode.insertBefore(new_father, fathers[0].parentNode);
+                }
+            }
+            else {
+                // father.removeChild(id);
+                fathers[pos - 1].appendChild(id);
+                if (father.getElementsByClassName("batch_member").length==0)
+                    father.parentNode.parentNode.removeChild(father.parentNode);
+            }
+            regetBatch_id();
+        }
+
+        function move_down(id) {
+            var element = id;
+            var father = id.parentNode;
+            var fathers = document.getElementsByClassName("batch_members");
+            let pos = 0;
+            while (pos < fathers.length) {
+                if (fathers[pos] == father)
+                    break;
+                else pos++;
+            }
+            // 当位于最后一位的情况
+            if (pos >= fathers.length-1) {
+                if (fathers[pos].childNodes.length == 1)
+                    alert("当前应聘者是唯一位于最后批次的面试者，无法将批次延后。");
+                else {
+                    var new_father = father.parentNode.cloneNode(true);
+                    var bro_nodes = new_father.getElementsByClassName("batch_members")[0].childNodes;
+                    for (let i = bro_nodes.length - 1; i >= 0; i--) {
+                        new_father.getElementsByClassName("batch_members")[0].
+                            removeChild(bro_nodes[i]);
+                    }
+                    new_father.getElementsByClassName("batch_members")[0].appendChild(id);
+
+                    fathers[0].parentNode.parentNode.insertBefore(new_father, 
+                        document.getElementById("zhanwei002"));
+                }
+            }
+            else {
+                // father.removeChild(id);
+                // alert(fathers.length);
+                fathers[pos + 1].appendChild(id);
+                if (father.getElementsByClassName("batch_member").length == 0)
+                    father.parentNode.parentNode.removeChild(father.parentNode);
+            }
+            regetBatch_id();
+        }
+
+        // 新案
+        function whole_move_up(id) {
+            let batch_no = id.getAttribute("batch_no");
+            batch_no = Number(batch_no);
+            let batch_pairs = document.getElementsByClassName("batch_pair");
+            if (batch_no == 0) {
+                batch_pairs[1].parentNode.insertBefore(batch_pairs[0], document.getElementById('batch_pair_model'));
+            } else {
+                batch_pairs[1].parentNode.insertBefore(batch_pairs[batch_no], batch_pairs[batch_no-1]);
+            }
+            for (let i=0; i< batch_pairs.length-1; i++) {
+                document.getElementsByClassName('batch_member')[i].setAttribute('batch_no', i);
+            }
+            regetBatch_id();
+        }
+
+        function whole_move_down(id) {
+            let batch_no = id.getAttribute("batch_no");
+            batch_no = Number(batch_no);
+            let batch_pairs = document.getElementsByClassName("batch_pair");
+            if (batch_no == batch_pairs.length - 2) {
+                batch_pairs[1].parentNode.insertBefore(batch_pairs[batch_no], batch_pairs[0]);
+            } else {
+                batch_pairs[1].parentNode.insertBefore(batch_pairs[batch_no], batch_pairs[batch_no + 2]);
+            }
+            for (let i = 0; i < batch_pairs.length - 1; i++) {
+                document.getElementsByClassName('batch_member')[i].setAttribute('batch_no', i);
+            }
+            regetBatch_id();
+        }
+
+        // 重设时间框
+        function setInterviewTime(interview_start, interview_end) {
+            document.getElementById("interview_starttime").value = dateTimeToString(interview_start);
+            document.getElementById("interview_endtime").value = dateTimeToString(interview_end);
+        }
+
+        function clone_element(id) {
+            var father = id.parentNode;
+            var new_element = id.cloneNode(true);
+            if (new_element.classList.contains("batch_members_model"))
+                new_element.classList.removeChild("batch_members_model");
+            father.insertBefore(new_element, id);
+            // father.appendChild(new_element);
+        }
+
+        // 通过简历获取信息
+        function newPeopleIntro(people_names, interview_start, interview_end) {
+            // 初始化时间
+            setInterviewTime(interview_start, interview_end)
+
+            // 初始化其他内容
+            let element = document.getElementById("batches_box");
+
+            // 清空页面内容
+            let former_batch_pairs = document.getElementsByClassName("batch_pair");
+            for (let i= former_batch_pairs.length-2; i>=0; i--)
+                element.removeChild(former_batch_pairs[i]);
+
+            // 新建内容
+            for (let i = 0; i < people_names.length; i++) {
+                let div_case = document.createElement("div");
+                div_case.classList.add("batch_pair");
+                div_case.setAttribute("title", "点击姓名查看简历详情。");
+                div_case.innerHTML = '<div class="batch_title">第<span class="batchid">x</span>批面试</div><div class="batch_members"><div class="batch_member"><span class="person_name" onclick="getPersonDetail(this.parentNode);">姓姓名名</span><span class="person_age">24</span><span class="scl">大学</span><span class="scl_rank">硕士研究生</span><span class="profession">计算机科学与技术</span><span class="work_exp">无工作经验</span><span class="move_person"><img src="../source/pic/icon_angle-square-up.png" alt=""class="img_goup_batch" height="20px"onclick="whole_move_up(this.parentNode.parentNode)"><img src="../source/pic/icon_angle-square-down.png" alt=""class="img_godown_batch" height="20px"onclick="whole_move_down(this.parentNode.parentNode)"></span></div></div>';
+                element.insertBefore(div_case, document.getElementById("batch_pair_model"));
+            }
+
+            let batch_member_list = document.getElementsByClassName("batch_member");
+            // alert("长度"+batch_member_list.length);
+            let batch_name_list = document.getElementsByClassName("person_name");
+            let batch_age_list = document.getElementsByClassName("person_age");
+            let batch_eduschool_list = document.getElementsByClassName("scl");
+            let batch_edurank_list = document.getElementsByClassName("scl_rank");
+            let batch_eduprof_list = document.getElementsByClassName("profession");
+            let batch_workexp_list = document.getElementsByClassName("work_exp");
+
+            let rank_code = ["", "中专", "大专", "本科", "硕士", "博士"]
+            for (let i = 0; i < people_names.length; i++) {
+                // 获取用户简历
+                const vitaeQuery = new AV.Query('Vitae');
+                vitaeQuery.equalTo('person_name', people_names[i]);
+                vitaeQuery.find().then((tmp_vitaes) => {
+                    if (tmp_vitaes.length < 0) {
+                        console.log("Failed to get vitae:" + people_names[i]);
+                        return;
+                    }
+                    let now_vitae = tmp_vitaes[0];
+                    let p_name = now_vitae.get('person_name');
+                    let p_age = (new Date().getTime() - now_vitae.get('person_birthday').getTime()) / (1000 * 60 * 60 * 24 * 365);
+                    let p_school = "", p_rank = 0, p_prof = "";
+                    let p_edu_scls = now_vitae.get("person_edu_school"),
+                        p_edu_ranks = now_vitae.get("person_edu_rank"),
+                        p_edu_profs = now_vitae.get("person_edu_professions");
+                    for (let i = 0; i < p_edu_scls.length; i++) {
+                        if (p_edu_ranks[i] > p_rank) {
+                            p_school = p_edu_scls[i];
+                            p_rank = p_edu_ranks[i];
+                            p_prof = p_edu_profs[i];
+                        }
+                    }
+
+                    p_rank = rank_code[p_rank];
+
+                    // 工作检验
+                    let p_work_exp = now_vitae.get("person_work_comp").join(",");
+
+                    // 超长信息处理
+                    if (p_name.length > "水水水水".length) {
+                        p_name = p_name.substr(0, "地道道".length);
+                        p_name += "...";
+                    }
+                    if (p_school.length > "色色色得瑟得瑟".length) {
+                        p_school = p_school.substr(0, "地道道地道道".length);
+                        p_school += "...";
+                    }
+                    if (p_prof.length > "色色色得瑟的得瑟".length) {
+                        p_prof = p_prof.substr(0, "地道道的地道道".length);
+                        p_prof += "...";
+                    }
+                    if (p_work_exp.length > "色色色得等等瑟的得瑟".length) {
+                        p_work_exp = p_work_exp.substr(0, "地道道的地道等等道".length);
+                        p_work_exp += "...";
+                    }
+
+                    batch_member_list[i].setAttribute("person_detail_id", now_vitae.get('objectId'));
+                    batch_member_list[i].setAttribute("batch_no", i);
+                    batch_name_list[i].innerText = p_name;
+                    batch_age_list[i].innerText = Math.floor(p_age);
+                    batch_eduschool_list[i].innerText = p_school;
+                    batch_edurank_list[i].innerText = p_rank;
+                    batch_eduprof_list[i].innerText = p_prof;
+                    batch_workexp_list[i].innerText = p_work_exp;
+                    regetBatch_id();
+                });
+            }
+        }
+
+        function getVitaesFromGroup(InterviewGroup_no) {
+            if (group_name == undefined || group_name == "") {
+                alert("当前工作组不存在。");
+                location.assign("../usercenter/workspace.html");
+                return;
+            }
+
+            // InterviewGroup
+            const InterviewGroupQuery = new AV.Query('InterviewGroup');
+            InterviewGroupQuery.equalTo('group_name', group_name);
+            InterviewGroupQuery.ascending('interview_group_id');
+            InterviewGroupQuery.find().then((interviewGroups) => {
+                if (interviewGroups.length == 0) {
+                    alert("请先完成面试组次的分配。");
+                    location.assign("./grouping.html?group_id="+group_name);
+                    return;
+                }
+                if (InterviewGroup_no < 0) InterviewGroup_no = interviewGroups.length-1;
+                else if (InterviewGroup_no > interviewGroups.length - 1) InterviewGroup_no = 0;
+
+                // 保存页面位置
+                page_state = InterviewGroup_no;
+                document.getElementById("interview_group_id").innerText = InterviewGroup_no;
+                document.getElementById("go_interview_ipt").value = InterviewGroup_no;
+                now_interview_id = interviewGroups[InterviewGroup_no].get("objectId");
+
+                newPeopleIntro(interviewGroups[InterviewGroup_no].get("candidate_arr"),
+                    interviewGroups[InterviewGroup_no].get("start_time"),
+                    interviewGroups[InterviewGroup_no].get("end_time"));
+            });
+        }
+
+        // 初始化window属性
+        function setWindowDecoration() {
+            document.getElementById('window_3').style = "margin-top:" + Math.floor(window.innerHeight/2-118) + "px";
+            document.getElementById("sendemail_event_window").style = "margin-top:"+Math.floor(window.innerHeight/2-188) + "px";
+        }
+
+        // 页面加载时的代码
+        window.onload = function () {
+            setWindowDecoration();
+            // 初始化内容
+            getVitaesFromGroup(0);
+            return;
+
+            // 检查登录状态
+            const loginQuery = new AV.Query('LoginState');
+            let client_id = cans();
+            loginQuery.equalTo('client_id', client_id);
+            loginQuery.find().then((loginStates) => {
+                if (loginStates.length > 0) {
+                    // 判断是否过期
+                    let nowdate = new Date();
+                    if ((nowdate.getTime() - loginStates[0].get('createdAt').getTime()) / 1000 > 3600) {
+                        alert("登录已过期，请重新登录。");
+                        location.assign("../account/login.html");
+                    } else {
+                        // 检查工作组与人员是否对应
+                        const accountQuery = new AV.Query('Account');
+                        // 获取登陆者账号
+                        accountQuery.get(loginStates[0].get("account_id")).then((now_account) => {
+                            // 保存登陆账户名
+                            account_name = now_account.get("account_id"); // 获取账户名
+
+                            let groupQuery = new AV.Query('WorkGroup');
+                            groupQuery.equalTo("group_name", group_name);
+                            groupQuery.find().then((groups) => {
+                                if (groups.length <= 0) {
+                                    alert("不存在该面试工作组。");
+                                    location.assign("workspace.html");
+                                    return;
+                                } else if (groups[0].get("mem_names").indexOf(now_account.get("account_id")) == -1) {
+                                    alert("您尚未加入该面试工作组。");
+                                    location.assign("workspace.html");
+                                    return;
+                                }
+                                
+                                // 在工作组内
+
+
+
+                            });
+                        });
+                    }
+                } else location.assign("../account/login.html");
+            });
+
+            // 加载内容
+            // initPersons();
+
+            // 重写标签
+            regetBatch_id();
+
+            // 邮件内容
+            document.getElementById("email_content").value =
+                "###person###先生女士："+
+                "\n    欢迎您应聘本公司________职位，您的学识、经历给我们留下了良好的印象。为了彼此进一步的了解，请您____月____日____点前线上参加本公司正式面试。"+
+                "\n    携带个人身份证及复印件、学历证书及复印件、职称证书及复印件，个人一寸免冠彩色照片______张。"+
+                "\n    如您时间上不方便，请事先以邮件方式与面试组联系，邮件：xxx xxx@xx.com。"+
+                "\n\t\t\t————###group###";
+        };
+
+        // 打开窗口
+        function openwindow(id) {
+            id.display = 'block';
+        }
+
+        // 关闭窗口
+        function closewindow(id) {
+            id.display = 'none';
+        }
+
+
+        // 插入内容
+        function insertAtCursor(myValue) {
+            let myField = doc.getElementById('email_content');
+            //IE support
+            if (document.selection) {
+                myField.focus();
+                sel = document.selection.createRange();
+                sel.text = myValue;
+                sel.select();
+            }
+            //MOZILLA/NETSCAPE support
+            else if (myField.selectionStart || myField.selectionStart == '0') {
+                var startPos = myField.selectionStart;
+                var endPos = myField.selectionEnd;
+                // save scrollTop before insert
+                var restoreTop = myField.scrollTop;
+                myField.value = myField.value.substring(0, startPos) + myValue + myField.value.substring(endPos, myField.value.length);
+                if (restoreTop > 0) {
+                    // restore previous scrollTop
+                    myField.scrollTop = restoreTop;
+                }
+                myField.focus();
+                myField.selectionStart = startPos + myValue.length;
+                myField.selectionEnd = startPos + myValue.length;
+            } else {
+                myField.value += myValue;
+                myField.focus();
+            }
+        }
+
+        // 获取个人详细简历
+        function getPersonDetail(person_node) {
+            window.open('./vitaedetail.html?candidate=' + person_node.getAttribute('person_detail_id'));
+        }
+
+        function setArrange() {
+            let person_name_boxs = document.getElementsByClassName("person_name");
+            let new_candidate_arr = new Array();
+            for (let i=0; i<person_name_boxs.length-1; i++)
+                new_candidate_arr.push(person_name_boxs[i].innerText);
+            
+            // 新的开始结束时间
+            let new_start_time = new Date(document.getElementById("interview_starttime").value);
+            let new_end_time = new Date(document.getElementById("interview_endtime").value);
+
+            if (new_start_time >= new_end_time) {
+                alert("面试时间非法，请重新设置。");
+                return;
+            }
+
+            // 保存修改 
+            const todo = AV.Object.createWithoutData('InterviewGroup', now_interview_id);
+            todo.set('start_time', new_start_time);
+            todo.set('end_time', new_end_time);
+            todo.set('candidate_arr', new_candidate_arr);
+            todo.save();
+            alert("面试安排保存成功。");
+        }
+
+    </script>
+    <style>
+        html {
+            height: 100%;
+            width: 100%;
+        }
+
+        body {
+            text-decoration: none;
+            background-image: url("../source/pic/bgi004.jpg");
+            background-size: cover;
+            width: 100%;
+            height: 100%;
+
+        }
+
+        .mainshell {
+            float: left;
+            height: calc(100% - 90px);
+            /* height: 100%; */
+            width: 100%;
+            text-align: center;
+        }
+
+        .mainpage {
+            width: 1000px;
+            min-height: 100%;
+            margin-right: auto;
+            margin-left: auto;
+            padding-bottom: 20px;
+            opacity: 0.9;
+            background-color: white;
+        }
+
+        .maintitle {
+            text-align: center;
+            font-size: 35px;
+            padding-top: 30px;
+            padding-bottom: 30px;
+        }
+
+        /* 面试批次信息 */
+        .batch_pair {
+            width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+            /* background-color: violet; */
+            padding-top: 20px;
+            padding-bottom: 20px;
+        }
+
+        .batch_pair .batch_title {
+            width: 850px;
+            height: 25px;
+            margin-left: auto;
+            margin-right: auto;
+            margin-bottom: 5px;
+            background-color: gainsboro;
+            font-size: 18px;
+            border-radius: 5px;
+        }
+
+        .batch_members, .batch_member {
+            width: 850px;
+            margin-left: auto;
+            margin-right: auto;
+            margin-bottom: 5px;
+        }
+        .batch_member {
+            padding-top: 5px;
+            padding-bottom: 5px;
+            height: 36px;
+            font-size: 20px;
+            vertical-align: top;
+            border-radius: 8px;
+
+            /* 内容超出则隐藏 */
+            white-space:nowrap;     /*强制单行显示*/
+            text-overflow:ellipsis; /*超出部分省略号表示*/
+            overflow:hidden;        /*超出部分隐藏*/
+        }
+        .batch_member:hover {
+            background-color: powderblue;
+            user-select: none;
+        }
+        .batch_member span {
+            display: inline-block;
+            height: 30px;
+            margin: 3px;
+        }
+        .batch_member .person_name {
+            width: 90px;
+        }
+        .batch_member .person_age {
+            width: 25px;
+        }
+        .batch_member .scl {
+            width: 130px;
+        }
+        .batch_member .scl_rank {
+            width: 110px;
+        }
+        .batch_member .profession {
+            width: 170px;
+        }
+        .batch_member .work_exp {
+            width: 200px;
+        }
+        
+        .batch_member .move_person {
+            width: 46px;
+        }
+        .batch_member .move_person img {
+            padding-right: 2px;
+            padding-left: 2px;
+        }
+        .batch_member .move_person img:hover {
+            filter: invert(50%);
+            cursor: pointer;
+            /* filter: brightness(50%); */
+        }
+
+        /* 占位符 */
+        #zhanwei002 {
+            height: 20px;
+        }
+        /* 隐藏模板 */
+        #batch_pair_model {
+            display: none;
+        }
+
+        .timepair {
+            display: inline-block;
+            margin-left: 50px;
+            margin-right: 50px;
+        }
+
+        .timepair .timepair_title {
+            text-align: left;
+            margin-bottom: 5px;
+        }
+
+        .timepair .timepair_ipt {
+            height: 25px;
+            font-size: 20px;
+            font-family: 'Times New Roman', 'SimSun';
+        }
+    </style>
+    <link rel="stylesheet" href="../css/index.css">
+</head>
+
+<body>
+    <!-- 头部 -->
+    <div class="header">
+        <div class="headerzhanwei"></div>
+        <div class="head_content">
+            <!-- logo -->
+            <a href="../index.html" class="logo">
+                <img src="../source/pic/logo0.png" width="73" height="64">
+            </a>
+
+            <!-- 导航 -->
+            <div class="nav">
+                <ul>
+                    <li><a href="../index.html" class="navpos">首页</a></li>
+                    <li><a href="searchgroup.html">加入面试</a></li>
+                    <li><a href="newgroup.html">发起面试</a></li>
+                    <li><a href="../account/store.html">定价与购买</a></li>
+                    <li><a href="../help/help_home.html">帮助中心</a></li>
+                </ul>
+            </div>
+
+            <!-- 用户 -->
+            <div class="user">
+                <div></div>
+                <a href="../msgcenter/systemmsg.html">
+                    <img class="img1" src="../source/pic/user0.png" alt="" width="17" height="22">
+                </a>
+                <a href="../usercenter/personal_information.html">
+                    <img class="img2" src="../source/pic/user1.png" alt="" height="50" width="50">
+                </a>
+                <!-- <a href="../account/login.html">
+                    <span>登录</span>
+                </a> -->
+            </div>
+
+        </div>
+
+    </div>
+
+    <span class="mainshell">
+        <div class="mainpage" id="batches_box">
+            <div class="maintitle">
+                第
+                <span id="interview_group_id">0</span>
+                组面试安排
+            </div>
+            <div class="batch_pair"  id="batch_pair_model">
+                <div class="batch_title">
+                    第
+                    <span class="batchid">x</span>
+                    批面试
+                </div>
+                <div class="batch_members">
+                    <div class="batch_member">
+                        <span class="person_name" onclick="getPersonDetail(this.parentNode);">姓姓名名</span>
+                        <span class="person_age">24</span>
+                        <span class="scl">大学</span>
+                        <span class="scl_rank">硕士研究生</span>
+                        <span class="profession">计算机科学与技术</span>
+                        <span class="work_exp">无工作经验</span>
+                        <span class="move_person">
+                            <img src="../source/pic/icon_angle-square-up.png" alt=""
+                                class="img_goup_batch" height="20px"
+                                onclick="whole_move_up(this.parentNode.parentNode)">
+                            <img src="../source/pic/icon_angle-square-down.png" alt=""
+                                class="img_godown_batch" height="20px"
+                                onclick="whole_move_down(this.parentNode.parentNode)">
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+
+            <div id="zhanwei002"></div>
+
+            <div class="timepairs">
+                <span class="timepair">
+                    <div class="timepair_title">开始时间</div>
+                    <input type="datetime-local" id="interview_starttime" class="timepair_ipt">
+                </span>
+                <span class="timepair">
+                    <div class="timepair_title">结束时间</div>
+                    <input type="datetime-local" id="interview_endtime" class="timepair_ipt">
+                </span>
+            </div>
+
+            <div id="zhanwei003" style="height: 35px; width: 700px;"></div>
+            <style>
+                .btn_box {
+                    width: 600px;
+                    height: 36px;
+                    padding-top: 10px;
+                    padding-bottom: 10px;
+                    margin-left: auto;
+                    margin-right: auto;
+                }
+                .btn {
+                    font-size: 20px;
+                    height: 30px;
+                    display: inline-block;
+                    padding-top: 5px;
+                    padding-bottom: 2px;
+                    padding-left: 15px;
+                    padding-right: 15px;
+                    margin-left: 20px;
+                    margin-right: 20px;
+
+                    border-radius: 10px;
+                    box-shadow: 0 0 1px 2px #000;
+                    background-color: #fff;
+                    user-select: none;
+                }
+                .btn:hover {
+                    filter: invert(80%);
+                    cursor: pointer;
+                }
+                .btn input {
+                    font-size: 20px;
+                    width: 30px;
+                    text-align: center;
+                    border-color: #999;
+                    border-radius: 5px;
+                }
+
+                #btn_email {
+                    /* display: none; */
+                }
+            </style>
+            <div class="btn_box">
+                <span class="btn" id="btn_send_arange"
+                    onclick="setArrange();">
+                    提交安排
+                </span>
+                <span class="btn" id="btn_webch" onclick="document.getElementById('webmtg_event').style.display='block';">
+                    面试网址
+                </span>
+                <span class="btn" id="btn_email" onclick="document.getElementById('sendemail_event').style.display='block';">
+                    发送邮件
+                </span>
+            </div>
+
+            <div id="zhanwei004" style="width: 700px; height: 45px;"></div>
+        </div>
+    </span>
+
+    <!-- 悬浮标签的样式 -->
+    <style>
+        .floatbtn {
+            position: fixed;
+            right: 5px;
+            bottom: 50px;
+            height: 195px;
+            width: 60px;
+            background-color: #eee;
+            border-radius: 8px;
+            opacity: 0.9;
+            vertical-align: bottom;
+            text-align: center;
+        }
+    
+        .page_btn {
+            margin: 10px;
+            margin-left: auto;
+            margin-right: auto;
+            /* filter: invert(100%); */
+            /* filter: brightness(1.5); */
+
+            width: 36px;
+            height: 36px;
+
+            border-radius: 18px;
+            background-color: #aaa;
+        }
+
+        .page_btn:hover {
+            background-color: #ddd;
+        }
+    
+        .page_btn img {
+            margin-top: auto;
+            
+            /* border-radius: 50%; */
+            /* background-color: #555; */
+            cursor: pointer;
+        }
+
+        #turn_page_ipt_box  #go_interview_ipt {
+            border: 0;
+            font-size: 20px;
+            width: 50px;
+            height: 22px;
+
+            margin-left: -10px;
+            margin-top: 6px;
+
+            background-color: rgba(255,255,255,0);
+            text-align: center;
+        }
+
+        #turn_page_btn_box img{
+            margin-top: 7px;
+        }
+    </style>
+    
+    <!-- 浮动的标签 -->
+    <span class="floatbtn" title="在圆形输入框中输入面试分组号进行跳转。">
+        <div class="page_btn" onclick="prevVitae();">
+            <img src="../source/pic/icon_arrow-small-left.png" alt="" width="35px" title="上一个面试分组">
+        </div>
+        <div class="page_btn" id="turn_page_ipt_box" onclick="scoreNow(1);" title="圆形输入框">
+            <!-- <img class="score_btn" src="../source/pic/icon_circle-1.png" alt="" width="35px"> -->
+            <input type="text" id="go_interview_ipt" onkeyup="value=value.replace(/[^\d]/g,'') "
+                style="outline:none;">
+        </div>
+        <div class="page_btn" id="turn_page_btn_box" title="跳转至指定分组页面。"
+            onclick="getVitaesFromGroup(Number(document.getElementById('go_interview_ipt').value))">
+            <img class="score_btn" src="../source/pic/icon_rocket-lunch.png" alt="" width="22px">
+        </div>
+        <div class="page_btn" onclick="nextVitae();">
+            <img src="../source/pic/icon_arrow-small-right.png" alt="" width="35px" title="下一个面试分组">
+        </div>
+    </span>
+
+
+    <!-- 发送通知邮件 -->
+    <style>
+        /* 冻结屏幕 */
+        #sendemail_event,
+        #webmtg_event {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(200,200,200,0.8);
+            /* opacity: 0.8; */
+
+            display: none;
+        }
+
+        /* 窗口 */
+        #sendemail_event .window {
+            width: 600px;
+            /* height: 300px; */
+            margin: auto;
+            
+            background-color: rgb(250, 250, 250);
+            border-radius: 8px;
+
+            overflow: hidden;
+        }
+
+        #sendemail_event .windowtitle {
+            font-size: 20px;
+            width: 300px;
+            text-align: center;
+
+            padding-top: 30px;
+            padding-bottom: 10px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .write_area {
+            width: 500px;
+            height: 200px;
+
+            margin-left: auto;
+            margin-right: auto;
+
+            overflow-y: scroll;
+            border: 1px solid #aaa;
+            background-color: #fff;
+        }
+
+        /* 最下方按键区域 */
+        .sendemail_event_btnbox1 {
+            width: calc(100% - 20px);
+            padding-top: 10px;
+            padding-bottom: 10px;
+
+            padding-right: 20px;
+            text-align: right;
+
+            background-color: #eee;
+        }
+
+        /* 按键样式 */
+        .sendemail_event_btnbox1 .sendemail_event_btn1 {
+            font-size: 15px;
+            text-align: center;
+
+            display: inline-block;
+            padding: 3px;
+            padding-left: 10px;
+            padding-right: 10px;
+            width: 80px;
+
+            margin-left: 5px;
+            margin-right: 5px;
+            border-radius: 8px;
+            background-color: #0178D4;
+            color: #fff;
+        }
+
+        .sendemail_event_btnbox1 .sendemail_event_btn1:hover {
+            cursor: pointer;
+            filter: brightness(0.8);
+        }
+
+        .sendemail_event_args {
+            padding-top: 10px;
+            padding-bottom: 10px;
+
+            text-align: center;
+        }
+
+        .sendemail_event_btn0 {
+            padding: 5px;
+            font-style: 15px;
+            border-radius: 10px;
+            background-color: #aaa;
+
+            margin-left: 10px;
+            margin-right: 10px;
+            display: inline-block;
+        }
+
+        .sendemail_event_btn0:hover {
+            filter: brightness(0.8);
+            cursor: pointer;
+        }
+
+        #editor {
+            min-height: 200px;
+        }
+    </style>
+
+    <div id="sendemail_event">
+        <div class="window" id="sendemail_event_window">
+            <div class="windowtitle">
+                向面试者发送通知邮件
+            </div>
+
+            <div class="write_area">
+                <div id="editor" contenteditable="true" title="字符数限制：500各字符。"></div>
+            </div>
+
+    <script>
+        // 发送表情的按钮
+        // var sendEmoji = document.getElementById('sendEmoji');
+        // 定义最后光标对象
+        var lastEditRange;
+
+        // 编辑框点击事件
+        document.getElementById('editor').onclick = function () {
+            // 获取选定对象
+            var selection = getSelection();
+            // 设置最后光标对象
+            lastEditRange = selection.getRangeAt(0);
+        }
+
+        // 编辑框按键弹起事件
+        document.getElementById('editor').onkeyup = function () {
+            // 获取选定对象
+            var selection = getSelection();
+            // 设置最后光标对象
+            lastEditRange = selection.getRangeAt(0);
+        }
+
+        // 限制字数
+        document.getElementById('editor').onkeypress = function () {
+            // 获取可编辑框
+            var editor = document.getElementById('editor');
+            let ipt_val = editor.innerText;
+            if (ipt_val.length > 500) {
+                ipt_val = ipt_val.substr(0, 500);
+            }
+        }
+
+        // 发送表情 document.getElementById('sendEmoji').onclick = 
+        function insertEdit(insert_val) {
+            // 获取可编辑框
+            var editor = document.getElementById('editor');
+            // 获取输入框
+            // var emojiInput = document.getElementById('emojiInput');
+            // 编辑框获得焦点
+            editor.focus();
+
+
+            // 获取选定对象
+            var selection = getSelection();
+            // 如果保存的有上次的光标对象
+            if (lastEditRange) {
+                // 清除所有选区
+                selection.removeAllRanges();
+                // 添加最后光标还原之前的状态
+                selection.addRange(lastEditRange);
+            }
+            // 如果选定对象范围是编辑框范围
+            if (selection.anchorNode.nodeName != '#text') {
+                // 创建表情文本节点进行插入
+                var emojiText = document.createTextNode(insert_val);
+                // 如果文本框的子元素大于0，则表示有其他元素，则按照位置插入表情节点
+                if (editor.childNodes.length > 0) {
+                    for (var i = 0; i < editor.childNodes.length; i++) {
+                        if (i == selection.anchorOffset) {
+                            editor.insertBefore(emojiText, editor.childNodes[i]);
+                        }
+                    }
+                } else {
+                    // 否则直接插入一个表情元素
+                    editor.appendChild(emojiText);
+                }
+                // 创建新的光标对象
+                var range = document.createRange();
+                // 将光标对象的范围界定为新建的表情节点
+                range.selectNodeContents(emojiText);
+                // 定位光标位置在表情节点的最大长度位置
+                range.setStart(emojiText, emojiText.length);
+
+                // 将选区折叠为一个光标
+                range.collapse(true);
+                // 清除所有光标对象
+                selection.removeAllRanges();
+                // 添加新的光标对象
+                selection.addRange(range);
+                // 如果选定对象范围是文本节点
+            } else {
+                // 获取光标对象
+                var range = selection.getRangeAt(0);
+                // 获取光标对象的范围界定对象，一般就是textNode对象
+                var textNode = range.startContainer;
+                // 获取光标位置
+                var rangeStartOffset = range.startOffset;
+                // 在光标位置处插入新的表情内容
+                textNode.insertData(rangeStartOffset, insert_val);
+                // 添加了新内容，将光标移动到新的位置
+                range.setStart(textNode, rangeStartOffset + insert_val);
+
+                // 将选区折叠为一个光标
+                range.collapse(true);
+                // 清除所有光标对象
+                selection.removeAllRanges();
+                // 添加新的光标对象
+                selection.addRange(range);
+            }
+            // 记录最后光标对象
+            lastEditRange = selection.getRangeAt(0)
+        }
+    </script>
+
+            <div class="sendemail_event_args">
+                <span title="在邮件正文中将以应聘者姓名代替{{应聘者名称}}" class="sendemail_event_btn0"
+                    onclick="insertEdit('{{应聘者名称}}')">
+                    应聘者名称
+                </span>
+                <span title="在邮件正文中将以应聘者面试在该场次的批次代替{{应聘者批次}}" class="sendemail_event_btn0"
+                    onclick="insertEdit('{{应聘者批次}}')">
+                    应聘者批次
+                </span>
+            </div>
+
+            <div style="height: 10px;"></div>
+
+            <div class="sendemail_event_btnbox1">
+                <div class="sendemail_event_btn1" onclick="alert('发送成功。'); document.getElementById('sendemail_event').style.display='none';">
+                    发 送
+                </div>
+                <div class="sendemail_event_btn1"
+                    onclick="document.getElementById('sendemail_event').style.display='none';">
+                    取 消
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 面试网址 -->
+    <div id="webmtg_event">
+        <style>
+            .qrcodebox {
+                width: 100px;
+                margin-left: auto;
+                margin-right: auto;
+                text-align: center;
+            }
+        
+            #interview_address_type:hover {
+                cursor: pointer;
+            }
+        
+            .qrcodebox {
+                width: 100px;
+                margin-left: auto;
+                margin-right: auto;
+                text-align: center;
+            }
+        
+            .newpage3_btn_box {
+                width: 100%;
+                text-align: center;
+                background-color: #eee;
+            }
+        
+            /* 新建事项的按键样式 */
+            .newpage3_btn_box .newpage3_btn {
+                display: inline-block;
+                /* margin-left: 40px; */
+                width: 120px;
+                height: 30px;
+                border-radius: 8px;
+                background-color: #0178D4;
+                text-align: center;
+                /* box-shadow: 0 0 2px 1px rgb(131, 133, 134); */
+        
+                /* vertical-align: bottom; */
+                margin-left: 10px;
+                margin-right: 10px;
+                margin-top: 12px;
+                margin-bottom: 12px;
+        
+                display: inline-block;
+            }
+        
+            .newpage3_btn_box .newpage3_btn span {
+                line-height: 30px;
+                color: #fff;
+                display: inline-block;
+                vertical-align: top;
+            }
+        
+            .newpage3_btn_box .newpage3_btn:hover {
+                filter: brightness(0.8);
+                cursor: pointer;
+            }
+        
+            #webmtg_event #window_3 {
+                width: 300px;
+                margin-left: auto;
+                margin-right: auto;
+                opacity: 2;
+        
+                overflow: hidden;
+                border-radius: 8px;
+                background-color: rgb(250, 250, 250);
+            }
+        
+            #window_3 .exit {
+                width: 20px;
+                height: 10px;
+                padding-top: 10px;
+                padding-right: 10px;
+                /* background-color: gainsboro; */
+                float: right;
+            }
+        
+            #window_3 .exit:hover {
+                filter: invert(50%);
+                cursor: pointer;
+            }
+        
+            #window_3 .title {
+                font-size: 20px;
+                color: black;
+                padding-top: 30px;
+                /* margin-left: 30px;
+                        margin-bottom: 20px; */
+                margin-left: auto;
+                margin-right: auto;
+        
+                text-align: center;
+                /* background-color: teal; */
+            }
+        </style>
+        <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+        <script src="https://cdn.bootcdn.net/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js"></script>
+        <script>
+            function fallbackCopyTextToClipboard() {
+                // 1.创建一个可选中元素
+                let textArea = document.createElement("textarea");
+                textArea.value = window.location.href;
+                // 2.使用定位，阻止页面滚动
+                textArea.style.top = "0";
+                textArea.style.left = "0";
+                textArea.style.position = "fixed";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    var successful = document.execCommand('copy');
+                    var msg = successful ? 'successful' : 'unsuccessful';
+                    console.log('Fallback: Copying text command was ' + msg);
+                } catch (err) {
+                    console.error('Fallback: Oops, unable to copy', err);
+                }
+                // 3.移除元素
+                document.body.removeChild(textArea);
+            }
+
+            function copyTextToClipboard(text) {
+                if (!navigator.clipboard) {
+                    fallbackCopyTextToClipboard(text);
+                    return;
+                }
+                navigator.clipboard.writeText(text).then(function () {
+                    console.log('Async: Copying to clipboard was successful!');
+                }, function (err) {
+                    console.error('Async: Could not copy text: ', err);
+                });
+            }
+
+            // 更改二维码
+            function changeQRCode() {
+                if (document.getElementById("interview_address_type").innerText == "面试官地址") {
+                    document.getElementById("qrcode3").style = "display:none";
+                    document.getElementById("qrcode4").style = "display:inline-block";
+                    document.getElementById("interview_address_type").innerText = "应聘者地址";
+                    document.getElementById("changeQRCode_btn").innerHTML = "<span>切换为面试官</span>";
+                } else {
+                    document.getElementById("qrcode3").style = "display:inline-block";
+                    document.getElementById("qrcode4").style = "display:none";
+                    document.getElementById("interview_address_type").innerText = "面试官地址";
+                    document.getElementById("changeQRCode_btn").innerHTML = "<span>切换为应聘者</span>";
+                }
+            }
+
+            // 复制地址
+            function copyInterviewAddress() {
+                if (document.getElementById("interview_address_type").innerText == "面试官地址") {
+                    copyTextToClipboard('https://live.polyv.net/web-start/classroom?channelId=3635166');
+                    alert('面试官地址登录密码为：“123456a”');
+                } else {
+                    copyTextToClipboard(nowpath + 'work/.idea/lianmai.html');
+                }
+            }
+        </script>
+        
+        <div class="window" id="window_3">
+            <div class="exit">
+                <img src="../source/pic/icon_cross.png" alt="" width="10px" height="10px"
+                    onclick="document.getElementById('webmtg_event').style = 'display:none';">
+            </div>
+            <div class="title" id="interview_address_type" onclick="changeQRCode();">
+                面试官地址
+            </div>
+            <div style="height: 10px; width: 100%;"></div>
+        
+            <!-- 依赖jquery库，创建二维码 -->
+            <div class="qrcodebox">
+                <span id="qrcode3" title="点击二维码跳转链接"
+                    onclick="alert('面试官地址登录密码为：“123456a”'); window.open('https://live.polyv.net/web-start/classroom?channelId=3635166');">
+                </span>
+                <span id="qrcode4" title="点击二维码跳转链接" style="display: none;"
+                    onclick="window.open(nowpath + 'work/.idea/lianmai.html');">
+                </span>
+            </div>
+            <script>
+                $('#qrcode3').qrcode({
+                    render: 'canvas', // 或 table
+                    height: 100,
+                    width: 100,
+                    text: "https://live.polyv.net/web-start/classroom?channelId=3635166",
+
+                    typeNumber: -1, // 计算模式
+                    correctLevel: 2, // 二维码纠错级别
+                    background: "#ffffff", // 背景颜色
+                    foreground: "#000000" // 二维码颜色
+                });
+
+                $('#qrcode4').qrcode({
+                    render: 'canvas', // 或 table
+                    height: 100,
+                    width: 100,
+                    text: nowpath + 'work/.idea/lianmai.html',
+                    typeNumber: -1, // 计算模式
+                    correctLevel: 2, // 二维码纠错级别
+                    background: "#ffffff", // 背景颜色
+                    foreground: "#000000" // 二维码颜色
+                })
+            </script>
+        
+            <div style="height: 10px; width: 100%;"></div>
+        
+            <!-- 获取应聘者链接 -->
+            <div class="newpage3_btn_box">
+                <div class="newpage3_btn" id="changeQRCode_btn" onclick="changeQRCode();">
+                    <span>切换为应聘者</span>
+                </div>
+                <div class="newpage3_btn" onclick="copyInterviewAddress();">
+                    <span>复制链接</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面面：面试分组</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-min.js"></script>
+    <script src="../account/web_prepare01.js"></script>
+    <script>
+        // 初始化leancloud
+        const { Query, User } = AV;
+        AV.init({
+            appId: "QINFwm0ds2NuLyRCmbpmUltw-gzGzoHsz",
+            appKey: "16T8fLd7241TyCxCkCvAYPif",
+            serverURL: "https://qinfwm0d.lc-cn-n1-shared.com"
+        });
+
+        // 获取传递的信息
+        urlinfo = window.location.href; //获取当前页面的url
+        len = urlinfo.length;//获取url的长度
+        offset = urlinfo.indexOf("?");//设置参数字符串开始的位置
+        newsidinfo = urlinfo.substr(offset, len); //取出参数字符串 这里会获得类似“id=1”这样的字符串
+        newsids = newsidinfo.split("=");//对获得的参数字符串按照“=”进行分割
+        group_name = newsids[1];//得到参数值
+        newsname = newsids[0];//得到参数名字
+
+
+        function onappear(id) {
+            id.style.display = 'block';
+        }
+
+        var person_names = new Array();
+        
+        
+        function addPerson(person_name_index, group_num) {
+            let person_sum = document.getElementsByClassName("p_gp_"+group_num);
+
+            let model_person = document.getElementById("model_person");
+            var new_person = model_person.cloneNode(true);
+            new_person.classList.add("p_gp" + group_num);
+            new_person.id = person_names[person_name_index];
+
+            var fenges = document.getElementsByClassName("fenge_in_persongroup");
+
+            // alert("fenge:"+fenges.length);
+            // alert("group_num:"+group_num);
+
+            fenges[group_num].parentNode.insertBefore(new_person, fenges[group_num]);
+            // 内容命名
+            document.getElementsByClassName("person_name")[person_name_index].innerHTML = person_names[person_name_index];
+        }
+
+        function newPersonGroup(person_left, person_right) {
+            // alert("personleft:"+person_left);
+            // alert("personright:" + person_right);
+
+            var model_group = document.getElementById("model_group"),
+                new_person_group = model_group.cloneNode(true);
+                mainpage = document.getElementById("mainpage");
+            let group_num = document.getElementsByClassName("grouppair").length-1;
+            new_person_group.id = "group_pair_" + group_num;
+            mainpage.insertBefore(new_person_group, model_group);
+
+            // alert("groupnum:" + group_num);
+            // alert("length:\n"+ document.getElementsByClassName("groupid").length);
+
+            document.getElementsByClassName("groupid")[group_num].innerHTML = "面试组"+group_num+"组";
+
+            // alert("groupnum:"+group_num);
+
+            for (let i=person_left; i<=person_right; i++) {
+                addPerson(i,    group_num);
+            }
+        }
+
+        function newPersonGroups(num_of_groups) {
+            if (num_of_groups < 1) num_of_groups = 1;
+            let grouplength = Math.ceil(person_names.length / num_of_groups);
+            // alert(grouplength);
+            for (let j=0; j<person_names.length; j+=grouplength) {
+                if (j + grouplength - 1 >= person_names.length) {
+                    newPersonGroup(j, person_names.length - 1);
+                } else {
+                    newPersonGroup(j, j + grouplength - 1);
+                }
+
+                let tmp_option = document.createElement("option");
+                tmp_option.label = "面试组"+Math.ceil(j/grouplength);
+                document.getElementById("group_choser").appendChild(tmp_option);
+            }
+            // alert("完成");
+        }
+
+        function move_node_record(element_name) {
+            document.getElementById('move_person_name').innerHTML = element_name;
+        }
+
+        function move_node(person_name, group_num) {
+            group_num-=1;
+            if (group_num < 0) {
+                alert("请选择需要目标面试场次的分组。");
+                return false;
+            }
+            // alert("group_num:"+group_num);
+
+            for (let classname0 of document.getElementById(person_name).classList) {
+                if (classname0.substr(0, 5) == "p_gp_") {
+                    document.getElementById(person_name).classList.remove(classname0);
+                    break;
+                }
+            }
+            document.getElementById(person_name).classList.add("p_gp_" + group_num);
+
+            var fenges = document.getElementsByClassName("fenge_in_persongroup");
+            fenges[group_num].parentNode.insertBefore(
+                document.getElementById(person_name),
+                fenges[group_num]
+            );
+
+            return true;
+        }
+
+        // 加载内容
+        function getAllCandidate() {
+            const vitaeQuery = new AV.Query('Vitae');
+            if (group_name == undefined || group_name == "") {
+                alert("面试组不存在。");
+                location.assign("../usercenter/workspace.html");
+                return;
+            }
+            vitaeQuery.equalTo('workgroup_name', group_name);
+            vitaeQuery.find().then((vitaes) => {
+                if (vitaes.length == 0) {
+                    alert("面试组尚未收到简历投递。");
+                    location.assign("../usercenter/workgroup.html?group_id=" + group_name);
+                    return;
+                }
+                // 初始化总人数
+                document.getElementById("win_cont_0").innerText = vitaes.length;
+                for (let i=0; i<vitaes.length; i++) {
+                    person_names.push(vitaes[i].get("person_name"));
+                }
+            });
+        }
+
+        // 新建信息并保存
+        function saveCandidateGroup() {
+
+            // 声明 class
+            const InterviewGroup = AV.Object.extend('InterviewGroup');
+            alert("保存中");
+            let candidate_group_id = 0;
+            while (true) {
+                let candidate_group_name = "p_gp" + candidate_group_id;
+                let candidates = document.getElementsByClassName(candidate_group_name);
+
+                if (candidates.length == 0) break; // 插入完成
+
+                let candidate_arr = new Array();
+                for (let i=0; i< candidates.length; i++) {
+                    // let tmp_arr = new Array()
+                    // tmp_arr.push(candidates[i].getAttribute("id"));
+                    candidate_arr.push(candidates[i].getAttribute("id"));
+
+                }
+
+                // 查询时间
+                let start_time = document.getElementsByClassName("interview_start")[candidate_group_id].value;
+                let end_time = document.getElementsByClassName("interview_end")[candidate_group_id].value;
+                if (start_time >= end_time) {
+                    alert("面试时间冲突，请调整时间");
+                    return;
+                }
+
+                // alert("zu"+ candidate_group_id + "\narr:" + candidate_arr);
+
+                // 保存分组信息
+                let interviewGroup = new InterviewGroup(); // 构建对象
+                interviewGroup.set('group_name', group_name); // 为属性赋值
+                interviewGroup.set('start_time', new Date(start_time)); // 开始时间
+                interviewGroup.set('end_time', new Date(end_time)); // 结束时间
+                interviewGroup.set('interview_group_id', candidate_group_id); // 组序号
+                interviewGroup.set('candidate_arr', candidate_arr);
+
+                // 将对象保存到云端
+                interviewGroup.save().then((tmp_interviewGroup) => {
+                    // 成功保存之后，执行其他逻辑
+                    console.log(`保存成功。objectId：${tmp_interviewGroup.id}`);
+                }, (error) => {
+                    // 异常处理
+                    console.log("failed...",error);
+                });
+                candidate_group_id++;
+            }
+            alert("信息上传完毕。");
+        }
+
+        // 覆盖信息
+        function resetCandidateGroup() {
+            const candidateQuery = new AV.Query('InterviewGroup');
+            candidateQuery.equalTo('group_name', group_name);
+            candidateQuery.find().then((interview_arranges) => {
+                for (let i=0; i<interview_arranges.length; i++) {
+                    let todo = AV.Object.createWithoutData('InterviewGroup', interview_arranges[i].get('objectId'));
+                    todo.destroy();
+                }
+                // 删除完成，开始保存信息
+                saveCandidateGroup();
+            });
+        }
+
+        // 获取个人详细简历
+        function getPersonDetail(person_node) {
+            const vitaeQuery = new AV.Query('Vitae');
+            vitaeQuery.equalTo('person_name', person_node.getAttribute("id"));
+            vitaeQuery.find().then((vitaes) => {
+                if (vitaes.length == 0) return;
+                else {
+                    window.open('./vitaedetail.html?candidate=' + vitaes[0].get("objectId"));
+                }
+            });
+        }
+
+        // 设置窗口位置
+        function setWindowDecoration() {
+            // alert("window.innerHeight:"+ window.innerHeight);
+            document.getElementById("numdecide_event_window").style = "margin-top:" + Math.floor(-99 + window.innerHeight/2) + "px";
+            document.getElementById("move_event_window").style = "margin-top:" + Math.floor(-92 + window.innerHeight / 2) + "px";
+
+            // 最后撤除白屏
+            document.getElementById("white_wall").style = "display:none";
+        }
+
+        // 初始化内容
+        // 加载时函数
+        window.onload = function () {
+            // 设置窗口状态
+            setWindowDecoration();
+
+            getAllCandidate();
+            return;
+
+            // 检查登录状态
+            const loginQuery = new AV.Query('LoginState');
+            let client_id = cans();
+            loginQuery.equalTo('client_id', client_id);
+            loginQuery.find().then((loginStates) => {
+                if (loginStates.length > 0) {
+                    // 判断是否过期
+                    let nowdate = new Date();
+                    if ((nowdate.getTime() - loginStates[0].get('createdAt').getTime()) / 1000 > 3600) {
+                        alert("登录已过期，请重新登录。");
+                        location.assign("../account/login.html");
+                    } else {
+                        // 检查工作组与人员是否对应
+                        const accountQuery = new AV.Query('Account');
+                        // 获取登陆者账号
+                        accountQuery.get(loginStates[0].get("account_id")).then((now_account) => {
+                            // 保存登陆账户名
+                            account_name = now_account.get("account_id"); // 获取账户名
+
+                            let groupQuery = new AV.Query('WorkGroup');
+                            groupQuery.equalTo("group_name", group_name);
+                            groupQuery.find().then((groups) => {
+                                if (groups.length <= 0) {
+                                    alert("不存在该面试工作组。");
+                                    location.assign("workspace.html");
+                                    return;
+                                } else if (groups[0].get("mem_names").indexOf(now_account.get("account_id")) == -1) {
+                                    alert("您尚未加入该面试工作组。");
+                                    location.assign("workspace.html");
+                                    return;
+                                }
+
+                                // 正常进入
+                                // 开始加载内容
+                                getAllCandidate();
+
+                            });
+                        });
+                    }
+                } else location.assign("../account/login.html");
+            });
+
+        }
+
+    </script>
+    <style>
+        html {
+            height: 100%;
+        }
+        body {
+            text-decoration: none;
+            background-image: url("../source/pic/bgi004.jpg");
+            background-size: cover;
+            height: 100%;
+        }
+        input {
+            text-indent: 10px;
+        }
+        .mainshell {
+            float: left;
+            height: calc(100% - 90px);
+            /* height: 100%; */
+            width: 100%;
+            text-align: center;
+        }
+
+        .mainpage {
+            width: 1000px;
+            min-height: 100%;
+            margin-right: auto;
+            margin-left: auto;
+            opacity: 0.9;
+            background-color: white;
+        }
+
+        .maintitle {
+            text-align: center;
+            font-size: 35px;
+            padding-top: 30px;
+            padding-bottom: 30px;
+        }
+
+        /* 面试小组信息 */
+        .groupid {
+            font-size: 20px;
+            width: 700px;
+            height: 25px;
+            margin-bottom: 10px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left;
+        }
+        .group {
+            width: 780px;
+            /* height: 100px; */
+            margin-left: auto;
+            margin-right: auto;
+            margin-bottom: 50px;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: left;
+            background-color: rgb(240, 245, 250);
+            box-shadow: 0 0 2px 1px rgb(127, 125, 120);
+        }
+
+        .group .person {
+            margin-bottom: 5px;
+            display: inline-block;
+            margin-left: 5px;
+            /* padding: 10px; */
+            height: 30px;
+            padding-left: 20px;
+            padding-right: 20px;
+            border-radius: 15px;
+            background-color: #ddd;
+            
+            box-shadow: 0 0 2px 1px rgb(127, 125, 120);
+            user-select: none;
+        }
+        .group .person:hover {
+            filter: invert(100%);
+            cursor: pointer;
+        }
+        .group .person .person_name {
+            height: 30px;
+            vertical-align: bottom;
+            font-size: 20px;
+            font-family: 'Times New Roman', 'SimSun';
+            text-align: center;
+        }
+        .group .person img {
+            margin-left: 5px;
+            text-align: center;
+        }
+        .group .person img:hover {
+            box-shadow: 0 0 2px 1px #000;
+            cursor: pointer;
+        }
+
+        /* 分组确认按钮 */
+        .sendgroup {
+            font-size: 20px;
+            padding-left: 15px;
+            padding-right: 15px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 30px;
+            border-radius: 15px;
+            width: 100px;
+            background-color: #eee;
+            box-shadow: 0 0 2px 1px #000;
+            user-select: none;
+        }
+        .sendgroup:hover {
+            filter: invert(100%);
+            box-shadow: 0 0 2px 1px #eee;
+            cursor: pointer;
+        }
+        hr {
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }
+        .grouptitle {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+            text-align: left;
+            margin-bottom: 10px;
+        }
+
+        /* 时间安排设置 */
+        .timearange {
+            font-size: 20px;
+            margin-left: 10px;
+            margin-right: 10px;
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        .timearange input {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 20px;
+        }
+        .timearange .edit {
+            float: right;
+            margin-right: 20px;
+        }
+        .timearange .edit:hover {
+            filter: invert(50%);
+            cursor: pointer;
+        }
+        .protect_val {
+            user-select: none;
+        }
+
+        .person img:hover {
+            cursor: pointer;
+        }
+
+        /* 初始化 */
+        #model_group, #model_person {
+            display: none;
+        }
+    </style>
+    <link rel="stylesheet" href="../css/index.css">
+</head>
+
+<body>
+    <!-- 头部 -->
+    <div class="header">
+        <div class="headerzhanwei"></div>
+        <div class="head_content">
+            <!-- logo -->
+            <a href="../index.html" class="logo">
+                <img src="../source/pic/logo0.png" width="73" height="64">
+            </a>
+
+            <!-- 导航 -->
+            <div class="nav">
+                <ul>
+                    <li><a href="../index.html" class="navpos">首页</a></li>
+                    <li><a href="searchgroup.html">加入面试</a></li>
+                    <li><a href="newgroup.html">发起面试</a></li>
+                    <li><a href="../account/store.html">定价与购买</a></li>
+                    <li><a href="../help/help_home.html">帮助中心</a></li>
+                </ul>
+            </div>
+
+            <!-- 用户 -->
+            <div class="user">
+                <div></div>
+                <a href="../msgcenter/systemmsg.html">
+                    <img class="img1" src="../source/pic/user0.png" alt="" width="17" height="22">
+                </a>
+                <a href="../usercenter/personal_information.html">
+                    <img class="img2" src="../source/pic/user1.png" alt="" height="50" width="50">
+                </a>
+                <!-- <a href="../account/login.html">
+                    <span>登录</span>
+                </a> -->
+            </div>
+
+        </div>
+
+    </div>
+
+    <span class="mainshell">
+        <div class="mainpage" id="mainpage">
+            <div class="maintitle" id="mainpage1">
+                面试分组
+            </div>
+
+            <!-- 面试分组模板 -->
+            <div class="grouppair" id="model_group">
+                <div class="groupid">面试组1组</div>
+                <div class="group">
+                    <div class="grouptitle">应聘者</div>
+
+                    <hr class="fenge_in_persongroup">
+                    <div class="grouptitle">面试时间</div>
+                    <div class="timearange">
+                        <input type="datetime-local" class="protect_val interview_start" value="2022-12-09 09:00">
+                        -
+                        <input type="datetime-local" class="protect_val interview_end" value="2022-12-09 11:00">
+                        <span class="edit" title="保存修改" onclick="alert('保存成功。');">
+                            <img src="../source/pic/icon_calendar.png" alt="" width="20px">
+                        </span>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 人类模板 -->
+            <span class="person" id="model_person">
+                <span class="person_name">person</span>
+                <img src="../source/pic/icon_move.png" alt="" width="15px" title="移动到其他组"
+                    onclick="move_node_record(this.parentNode.id); onappear(move_event);">
+                <img src="../source/pic/icon_mode-portrait.png" alt="" width="15px" title="查看简历"
+                    onclick="getPersonDetail(this.parentNode);">
+            </span>
+
+            <div class="sendgroup" onclick="resetCandidateGroup();">
+                分组确认
+            </div>
+            <div style="width: 600px; height: 50px;"></div>
+        </div>
+    </span>
+
+
+
+    <!-- 选定组数 -->
+    <style>
+        /* 冻结屏幕 */
+        #numdecide_event, #move_event {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            
+            background-color: rgba(200,200,200,0.9);
+
+        }
+
+        #numdecide_event .window {
+            width: 300px;
+            margin: auto;
+
+            background-color: rgb(250, 250, 250);
+            overflow: hidden;
+
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        #numdecide_event .windowtitle {
+            font-size: 18px;
+            color: black;
+            padding-top: 30px;
+            
+            width: 200px;
+            margin-left: auto;
+            margin-right: auto;
+
+            text-align: center;
+        }
+
+        #numdecide_event .btn_box {
+            width: 100%;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            background-color: #eee;
+            text-align: center;
+        }
+
+        #numdecide_event .numdecide_btn{
+            display: inline-block;
+
+            background-color: #0178D4;
+            color: #fff;
+
+            border-radius: 8px;
+            margin-left: 10px;
+            margin-right: 10px;
+
+            padding-top: 5px;
+            padding-bottom: 5px;
+
+            width: 100px;
+        }
+
+        #numdecide_event .numdecide_btn:hover {
+            cursor: pointer;
+            filter: brightness(0.8);
+        }
+
+        /* 设置input */
+        #numdecide_event #group_numsum {
+            width: 100px;
+            height: 25px;
+
+            font-size: 18px;
+            border-radius: 8px;
+
+            border: 1px solid #000;
+            font-family: 'Times New Roman', 'SimSun';
+        }
+
+        .zhanwei002 {
+            height: 10px;
+        }
+
+    </style>
+    <div id="numdecide_event">
+        <div class="window" id="numdecide_event_window">
+            <div class="windowtitle">
+                当前入围的面试者共
+                <span id="win_cont_0">
+                    0
+                </span>
+                人，请输入总分组数：
+            </div>
+            <div class="zhanwei002"></div>
+            <div class="win_body">
+                <input type="number" step="1" class="num_ipt" id="group_numsum"
+                    onkeyup="this.value=this.value.replace(/\D/g,'')"
+                    onafterpaste="this.value=this.value.replace(/\D/g,'')"
+                    maxlength="2">
+            </div>
+            <div class="zhanwei002"></div>
+            <div class="zhanwei002"></div>
+            <div class="btn_box">
+                <div class="numdecide_btn"
+                    onclick="newPersonGroups(document.getElementById('group_numsum').value); document.getElementById('numdecide_event').style.display='none';">
+                    提交
+                </div>
+                <div class="numdecide_btn" onclick="location.assign('../index.html');">
+                    退出
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 移动的css -->
+    <style>
+        #move_event {
+            text-align: center;
+            display: none;
+        }
+
+        #move_event #group_choser {
+            width: 150px;
+            height: 25px;
+
+            font-size: 15px;
+            border-radius: 8px;
+            border: 1px solid #000;
+
+            margin-left: auto;
+            margin-right: auto;
+
+            font-family: 'Times New Roman', 'SimSun';
+            font-size: 18px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .win_body {
+            /* background-color: palegreen; */
+            width: 200px;
+            margin-left: auto;
+            margin-right: auto;
+            padding-top: 10px;
+            /* padding-bottom: 20px; */
+        }
+
+        /* 窗口 */
+        #move_event .window {
+            width: 300px;
+            margin: auto;
+
+            background-color: rgb(250, 250, 250);
+            overflow: hidden;
+
+            border-radius: 8px;
+        }
+
+        #move_event .move_event_title {
+            font-size: 18px;
+            color: black;
+            padding-top: 30px;
+            
+            width: 200px;
+            margin-left: auto;
+            margin-right: auto;
+
+            text-align: center;
+        }
+
+        #move_event .move_event_btnbox {
+            width: 100%;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            background-color: #eee;
+            text-align: center;
+        }
+
+        #move_event .move_event_btn {
+            display: inline-block;
+
+            background-color: #0178D4;
+            color: #fff;
+
+            border-radius: 8px;
+            margin-left: 10px;
+            margin-right: 10px;
+
+            padding-top: 5px;
+            padding-bottom: 5px;
+
+            width: 100px;
+        }
+
+        #move_event .move_event_btn:hover {
+            filter: brightness(0.8);
+            cursor: pointer;
+        }
+    </style>
+
+    <!-- 移动到其他组 -->
+    <div id="move_event" >
+        <div class="window" id="move_event_window">
+            <div class="move_event_title">
+                将应聘者
+                <span id="move_person_name">name</span>
+                移动到：
+            </div>
+
+            <div class="zhanwei002"></div>
+
+            <div class="winbody">
+                
+                <select id="group_choser">
+                    <option selected disabled="disabled" label="--请选择--"></option>
+                    <!-- <option label="面试组1" style="display: none;"></option> -->
+                </select>
+            </div>
+
+            <div class="zhanwei002"></div>
+            <div class="zhanwei002"></div>
+
+            <div class="move_event_btnbox">
+                <div class="move_event_btn"
+                    onclick="if(move_node(document.getElementById('move_person_name').innerHTML, document.getElementById('group_choser').selectedIndex))
+                                document.getElementById('move_event').style.display='none';">
+                    确定
+                </div>
+                <div class="move_event_btn" onclick="document.getElementById('move_event').style.display='none';">
+                    取消
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 白屏初始 -->
+    <div id="white_wall" style="position: fixed; width: 100%; height: 100%; background-color: #fff;"></div>
+</body>
+
+</html>

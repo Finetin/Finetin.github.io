@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面面注册页面</title>
+    <!-- 页面样式 -->
+    <link rel="stylesheet" href="../css/index.css">
+    <style>
+        body {
+
+            background-image: url("../source/pic/bgi002.jpg");
+            background-size: cover;
+        }
+
+        input {
+            text-indent: 10px;
+        }
+
+        .content {
+            height: 100%;
+            width: 100%;
+            float: left;
+        }
+
+        .dialog {
+            height: 380px;
+            width: 400px;
+            /* background-color: gray; */
+            /* background-color: #fff; */
+            /* filter: brightness(120%); */
+            filter: drop-shadow(8px 8px 10px white);
+            margin: auto;
+            margin-top: 30px;
+        }
+
+        .nav {
+            /* background-color: #ff4; */
+        }
+
+        .zhanwei1 {
+            height: 20px;
+        }
+
+        .title {
+            height: 80px;
+            font-size: 35px;
+            /* font-weight: bold; */
+            margin: auto;
+            padding-bottom: 20px;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        form {
+            /* background-color: yellowgreen; */
+            margin: auto;
+            width: 350px;
+        }
+
+        .accounttitle,
+        .pwtitle,
+        .pwttitle,
+        .cftitle {
+            font-size: 15px;
+            font-weight: bold;
+        }
+
+        #accountid,
+        #password,
+        #password2,
+        #confirmation {
+            margin-top: 3px;
+            height: 30px;
+            width: 350px;
+            border: 2px solid rgba(99, 99, 138, 0.8);
+            border-radius: 8px;
+            border-color: aliceblue;
+            border-color: rgb(238, 238, 238);
+        }
+
+        #confirmation {
+            /* margin-bottom: 20px; */
+        }
+
+        #accountid:hover,
+        #password:hover,
+        #password2:hover,
+        #confirmation:hover {
+            border-color: rgb(45, 51, 87);
+        }
+
+        .button {
+            height: 35px;
+            /* width: 250px; */
+            border-radius: 10px;
+            padding: 3px;
+            padding-left: 15px;
+            padding-right: 15px;
+            margin-top: 50px;
+            margin-left: 135px;
+            /* margin-right: 50px; */
+
+            background-color: #fff;
+            box-shadow: 0 0 2px 1px rgb(100, 100, 100);
+            cursor: pointer;
+
+            /* display: inline-block; */
+        }
+
+        .button:hover {
+            filter: invert(20%);
+            cursor: pointer;
+        }
+
+        .emailad {
+            font-size: 15px;
+            margin-top: 20px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-min.js"></script>
+    <script>
+        // leancloud初始化
+        const { Query, User } = AV;
+        AV.init({
+            appId: "QINFwm0ds2NuLyRCmbpmUltw-gzGzoHsz",
+            appKey: "16T8fLd7241TyCxCkCvAYPif",
+            serverURL: "https://qinfwm0d.lc-cn-n1-shared.com"
+        });
+
+        // 获取邮箱
+        /* 用途: 接收地址栏参数*/
+        urlinfo = window.location.href; //获取当前页面的url
+        len = urlinfo.length;//获取url的长度
+        offset = urlinfo.indexOf("?");//设置参数字符串开始的位置
+        newsidinfo = urlinfo.substr(offset, len)//取出参数字符串 这里会获得类似“id=1”这样的字符串
+        newsids = newsidinfo.split("=");//对获得的参数字符串按照“=”进行分割
+        newsid = newsids[1];//得到参数值
+        newsname = newsids[0];//得到参数名字
+        var email = newsid;
+
+        // 初始化信息
+        window.onload = function () {
+            // 显示邮箱
+            email = newsid;
+            document.getElementById("email").innerHTML = email;
+            if (email == undefined) {
+                location.replace("register.html");
+            }
+        };
+
+        function checkAccountValid() {
+            let accountid = document.getElementById("accountid").value,
+                password = document.getElementById("password").value,
+                password2 = document.getElementById("password2").value,
+                confirmation = document.getElementById("confirmation").value;
+            email = document.getElementById("email").innerHTML;
+
+            if (accountid == null || accountid == "") {
+                alert("您的用户名为空。");
+                return;
+            } else if (password == null || password.length < 8) {
+                alert("密码长度必须大于8位。");
+                return;
+            } else if (password != password2) {
+                alert("确认密码需与密码一致。");
+                return;
+            } else if (!document.getElementById("confirm_protocol").checked) {
+                alert("请阅读并确认协议。");
+                return;
+            } else {
+                // 判断验证码
+                const confirmQuery = new AV.Query('ConfirmCode');
+                confirmQuery.equalTo('email', email);
+                confirmQuery.find().then((confirmCodes) => {
+                    if (confirmCodes.length < 1) {
+                        alert("验证码已过期，请重新获取验证码。");
+                        location.replace("register.html");
+                        return;
+                    }
+                    let confirmCode = confirmCodes[0];
+                    if ((new Date().getTime() - confirmCode.get("createdAt").getTime()) > 1000 * 60 * 10) {
+                        alert("验证码已过期，请重新获取验证码。");
+                        location.replace("register.html");
+                        return;
+                    } else if (confirmation != confirmCode.get("code_content")) {
+                        alert("验证码错误，请重新输入。");
+                        document.getElementById("confirmation").value = "";
+                        return;
+                    }
+                    // 验证码正确
+                    // 判断邮箱是否已经注册
+                    const query = new AV.Query('Account');
+                    query.equalTo('email', email);
+                    query.find().then((accounts) => {
+                        if (accounts.length > 0) {
+                            alert("该邮箱已被注册，请重新输入未被注册的邮箱地址。");
+                            location.replace("register.html");
+                        } else {
+                            // alert("邮箱通过验证，保存中");
+                            console.log("邮箱通过验证");
+                            let User = AV.Object.extend('Account');
+                            let user = new User();
+                            user.set("email", email);
+                            user.set('account_id', accountid);
+                            user.set("password", password);
+                            user.save().then((todo) => {
+                                // alert(todo.get("objectId"));
+                                // 成功保存之后，执行其他逻辑
+                                console.log(`账户保存成功。objectId：${todo}`);
+
+                                // 新建信息
+                                // 声明 class
+                                const SystemMsg = AV.Object.extend('SystemMessage');
+
+                                // 构建对象
+                                const systemMsg= new SystemMsg();
+
+                                // 为属性赋值
+                                systemMsg.set('title', '欢迎使用面面');
+                                let receivers_arr = new Array()
+                                receivers_arr.push(accountid);
+                                systemMsg.set('receivers', receivers_arr);
+                                systemMsg.set("content", "Hi Account_Example，\n感谢注册 面面 账户！我们的目标是为各领域的面试官们提供一流的 SaaS(Software as a Service) 服务，让面试变得简单而高效。\n以下链接可以帮助您快速找到与我们的产品和服务相关的入口：\nwww.xxx.com ......待更新");
+
+                                // 将对象保存到云端
+                                systemMsg.save().then((tmp_msg) => {
+                                    // 信息保存成功
+                                    // 成功保存之后，执行其他逻辑
+                                    console.log(`保存成功。objectId：${tmp_msg.id}`);
+                                }, (error) => {
+                                    // 异常处理
+                                    console.log("信息保存失败"+error);
+                                });
+
+                                location.replace("registerS1.html");
+                            }, (error) => {
+                                // 异常处理
+                                alert("数据库异常：" + error);
+                            });
+                            // location.replace("registerS1.html");
+                        }
+                    });
+                });
+
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <!-- 头部 -->
+    <div class="header">
+        <div class="headerzhanwei"></div>
+        <div class="head_content">
+            <!-- logo -->
+            <a href="../index.html" class="logo">
+                <img src="../source/pic/logo0.png" width="73" height="64">
+            </a>
+
+            <!-- 导航 -->
+            <div class="nav">
+                <ul>
+                    <li><a href="../index.html" class="navpos">首页</a></li>
+                    <li><a href="../work/searchgroup.html">加入面试</a></li>
+                    <li><a href="../work/newgroup.html">发起面试</a></li>
+                    <li><a href="../account/store.html">定价与购买</a></li>
+                    <li><a href="../help/help_home.html">帮助中心</a></li>
+                </ul>
+            </div>
+
+            <!-- 用户 -->
+            <div class="user">
+                <div></div>
+                <a href="../msgcenter/systemmsg.html">
+                    <img class="img1" src="../source/pic/user0.png" alt="" width="17" height="22">
+                </a>
+                <a href="../usercenter/personal_information.html">
+                    <img class="img2" src="../source/pic/user1.png" alt="" height="50" width="50">
+                </a>
+                <a href="../account/login.html">
+                    <span>登录</span>
+                </a>
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="content">
+        <div class="dialog">
+            <div class="zhanwei1"></div>
+            <div class="title">
+                注册
+                <div class="emailad">
+                    已向邮箱地址"
+                    <span id="email">e.g.</span>
+                    "发送验证码，请输入
+                </div>
+                <!-- <a href="login.html" class="button2">已有账号，通过邮箱登录 ></a> -->
+            </div>
+            <div class="nav_account">
+                <!-- 登录selvet -->
+                <form action="" id="form">
+                    <p title="用户名只能由数字、英文字母组成">
+                    <div class="accounttitle">用户名</div>
+                    <input id="accountid" name="accountid" type="text" placeholder=" 请输入用户名" maxlength="20"
+                        title="由20位以内字符组成" onkeyup="value=value.replace(/[\W]/g,'')">
+                    </p>
+                    <p>
+                    <div class="pwtitle">密码</div>
+                    <input id="password" name="password" type="password" placeholder=" 请输入账户密码" maxlength="10"
+                        οnkeyup="value=value.replace(/[^\w./]/ig,'')" title="密码必须包含8~10位字符，由数字与字母组成。">
+                    </p>
+                    <p>
+                    <div class="pwttitle">确认密码</div>
+                    <input id="password2" name="password2" type="password" placeholder=" 请再次输入密码" maxlength="10"
+                        οnkeyup="value=value.replace(/[^\w./]/ig,'')" title="密码必须包含8~10位字符，由数字与字母组成。">
+                    </p>
+                    <p>
+                    <div class="cftitle">邮箱验证码</div>
+                    <input id="confirmation" name="confirmation" type="text" placeholder=" 请输入邮箱验证码" maxlength="6">
+                    </p>
+                    <p style="font-size: 14px; height: 20px;">
+                        <input type="checkbox" value="" style="float: left; margin-left: 60px;" id="confirm_protocol">
+                        <span style="display: inline-block; float: left;">
+                            阅读并同意<a href="../help/user_protocol.html">《面面用户服务条款》</a>
+                        </span>
+                    </p>
+                    <p>
+                        <dic class="button" onclick="checkAccountValid()">&ensp;确&ensp;&ensp;定&ensp;</dic>
+                        <!-- <input type="submit" class="button" value="确定"> -->
+                    </p>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

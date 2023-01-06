@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面面</title>
+    <link rel="stylesheet" href="./css/index.css">
+    <style>
+        html, body {
+            /* height: 100%; */
+            min-width: 1440px;
+        }
+        .homepage {
+            width: 100%;
+            /* height: 100%; */
+            float: left;
+        }
+        #homepage {
+            /* width: 100%; */
+            width: 1440px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 5465px;
+            /* height: 5000px; */
+            overflow-y: hidden;
+            
+        }
+
+        .test {
+            width: 100%;
+            height: 100px;
+            /* background-color: gold; */
+            float: left;
+            position: absolute;
+            /* bottom: 100px; */
+            top: 4870px;
+            
+            min-width: 1440px;
+        }
+
+        #last_part {
+            width: 100%;
+            height: 250px;
+            background-color: rgb(248,255,255);
+        }
+        #last_part a {
+            padding-top: 50px;
+            font-size: 20px;
+            margin-left: 660px;
+            margin-right: auto;
+            color: #225;
+            font-weight: 600;
+        }
+        #last_part a:hover {
+            color: #113;
+        }
+        #ad01 {
+            margin-left: auto;
+            margin-right: auto;
+            margin-bottom: 40px;
+            height: 120px;
+            color: #333;
+            font-size: 38px;
+        }
+
+        #ad01 span {
+            display: inline-block;
+            margin-top: 80px;
+            margin-left: 500px;
+
+        }
+
+        #endnav {
+            background-color: #002040;
+            height: 500px;
+            width: 100%;
+        }
+
+        .lists {
+            display: inline-block;
+            /* background-color: yellowgreen;    */
+            width: 800px;
+            height: 270px;
+            margin-left: 100px;
+            margin-top: 80px;
+
+            vertical-align: top;
+        }
+
+        .list {
+            padding-left: 35px;
+            padding-right: 35px;
+            display: inline-block;
+            float: left;
+            color: #eee;
+        }
+
+        .list_title {
+            font-size: 25px;
+            font-weight: 600;
+            user-select: none;
+        }
+
+        .list_cont {
+            margin-left: 5px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            font-size: 17px;
+            user-select: none;
+        }
+
+        .list_cont:hover {
+            cursor: pointer;
+        }
+
+        .fengexian {
+            margin-top: 10px;
+            margin-bottom: 20px;
+            background-color: #999;
+            height: 1px;
+            margin-left: 50px;
+            margin-right: 50px;
+        }
+
+        .authority {
+            margin-left: 150px;
+            margin-top: 8px;
+            margin-bottom: 8px;
+            font-size: 15px;
+            color: #bbb;
+            user-select: none;
+        }
+
+        .qrcode {
+            float: right;
+            margin-right: 130px;
+            margin-top: 90px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-min.js"></script>
+    <script src="account/web_prepare01.js"></script>
+    <script>
+        // 初始化leancloud
+        const { Query, User } = AV;
+        AV.init({
+            appId: "QINFwm0ds2NuLyRCmbpmUltw-gzGzoHsz",
+            appKey: "16T8fLd7241TyCxCkCvAYPif",
+            serverURL: "https://qinfwm0d.lc-cn-n1-shared.com"
+        });
+
+        window.onload = function(){
+            // 检查登录状态
+            const loginQuery = new AV.Query('LoginState');
+            let client_id = cans();
+            loginQuery.equalTo('client_id', client_id);
+            loginQuery.find().then((loginStates) => {
+                if (loginStates.length > 0) {
+                    // 判断是否过期
+                    let nowdate = new Date();
+                    if ((nowdate.getTime() - loginStates[0].get('createdAt').getTime()) / 1000 > 3600) {
+                        document.getElementById("login_btn").style.display = "inline-block";
+                    }
+                    else
+                        document.getElementById("login_btn").style.display = "none";
+                } else document.getElementById("login_btn").style.display = "block";
+            });
+        };
+
+        function person_head() {
+            if (localStorage.getItem("login_state") == null || localStorage.getItem("login_state") == "null") {
+                location.replace('./account/login.html');
+            } else {
+                window.location.href = "./usercenter/personal_information.html";
+            }
+            return;
+        }
+
+        function msg_center() {
+            if (localStorage.getItem("login_state") == null || localStorage.getItem("login_state") == "null") {
+                window.location.href = "./account/login.html";
+            } else {
+                window.location.href = "./msgcenter/systemmsg.html";
+            }
+        }
+    </script>
+</head>
+<body>
+    <!-- 头部 -->
+    <div class="header">
+        <div class="headerzhanwei"></div>
+        <div class="head_content">
+            <!-- logo -->
+            <a href="index.html" class="logo">
+                <img src="./source/pic/logo0.png" width="73" height="64">
+            </a>
+
+            <!-- 导航 -->
+            <div class="nav">
+                <ul>
+                    <li><a href="index.html" class="navpos">首页</a></li>
+                    <li><a href="work/searchgroup.html">加入面试</a></li>
+                    <li><a href="work/newgroup.html">发起面试</a></li>
+                    <li><a href="account/store.html">定价与购买</a></li>
+                    <li><a href="help/help_home.html">帮助中心</a></li>
+                </ul>
+            </div>
+            
+            <!-- 用户 -->
+            <div class="user">
+                <div></div>
+                <!-- <a href="" > -->
+                    <span onclick="msg_center()">
+                        <img class="img1" src="source/pic/user0.png" alt="" width="17" height="22">
+                    </span>
+                <!-- </a> -->
+                <!-- <a href="" > -->
+                    <span onclick="person_head()">
+                        <img class="img2" src="source/pic/user1.png" alt="" height="50" width="50">
+                    </span>
+                <!-- </a> -->
+                <a href="./account/login.html" id="login_btn">
+                    <span>登录</span>
+                </a>
+            </div>
+
+        </div>
+
+    </div>
+    
+    <!-- 首页内容 -->
+    <div class="homepage">
+        <iframe src="source/homepage/homepage.html" frameborder="0" id="homepage"></iframe>
+        
+    </div>
+    <div class="test">
+        <!-- fudong -->
+        <div id="last_part">
+            <div id="ad01">
+                <span>面面，让在线面试面面俱到</span>
+            </div>
+            <a href="account/login.html">点击试用 ></a>
+        </div>
+        <div id="endnav">
+            <span class="lists">
+                <span class="list">
+                    <div class="list_title">产品服务</div>
+                    <div class="list_cont">日程提醒</div>
+                    <div class="list_cont">直播面试</div>
+                    <div class="list_cont">智能筛选</div>
+                    <div class="list_cont">数据分析</div>
+                </span>
+                <span class="list">
+                    <div class="list_title">领域</div>
+                    <div class="list_cont">金融</div>
+                    <div class="list_cont">教育</div>
+                    <div class="list_cont">电商</div>
+                    <div class="list_cont">互联网</div>
+                </span>
+                <span class="list">
+                    <div class="list_title">场景</div>
+                    <div class="list_cont">校招</div>
+                    <div class="list_cont">社招</div>
+                    <div class="list_cont">猎头</div>
+                    <div class="list_cont">实习</div>
+                </span>
+                <span class="list">
+                    <div class="list_title">了解更多</div>
+                    <div class="list_cont">技术支持</div>
+                    <div class="list_cont">使用指南</div>
+                    <div class="list_cont">安全体系</div>
+                </span>
+                <span class="list">
+                    <div class="list_title">联系我们</div>
+                    <div class="list_cont">QQ:xxxx</div>
+                    <div class="list_cont">微信公众号</div>
+                </span>
+            </span>
+            <span class="qrcode">
+                <img src="source/pic/qrcode0.png" alt="" width="150px">
+            </span>
+            <div class="fengexian"></div>
+            <div class="authority">公网备案信息</div>
+            <div class="authority">Copyright © 2022- 2023 Mianmain. All Rights Reserved. 面面 版权所有</div>
+        </div>
+    </div>
+
+</body>
+</html>

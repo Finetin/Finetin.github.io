@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面面：面试总结</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-min.js"></script>
+    <script src="../account/web_prepare01.js"></script>
+    <script>
+        // 初始化leancloud
+        const { Query, User } = AV;
+        AV.init({
+            appId: "QINFwm0ds2NuLyRCmbpmUltw-gzGzoHsz",
+            appKey: "16T8fLd7241TyCxCkCvAYPif",
+            serverURL: "https://qinfwm0d.lc-cn-n1-shared.com"
+        });
+
+        var account_id = "";
+
+        // 初始化加载
+        window.onload = function () {
+            return;
+            // 检查登录状态
+            const loginQuery = new AV.Query('LoginState');
+            let client_id = cans();
+            loginQuery.equalTo('client_id', client_id);
+            loginQuery.find().then((loginStates) => {
+                if (loginStates.length > 0) {
+                    // 判断是否过期
+                    let nowdate = new Date();
+                    if ((nowdate.getTime() - loginStates[0].get('createdAt').getTime()) / 1000 > 3600)
+                        location.assign("../account/login.html");
+                    else {
+                        account_id = loginStates[0].get("account_id");
+                    } // 成功登录 
+                } else location.assign("../account/login.html");
+            });
+        };
+
+        // 头像
+        function person_head() {
+            window.location.href = "../usercenter/personal_information.html";
+            return;
+        }
+        // 消息中心
+        function msg_center() {
+            window.location.href = "../msgcenter/systemmsg.html";
+        }
+
+    </script>
+    <style>
+        html {
+            height: 100%;
+        }
+
+        body {
+            height: 100%;
+            text-decoration: none;
+            background-image: url("../source/pic/bgi010.jpg");
+            background-size: cover;
+        }
+
+        input {
+            text-indent: 5px;
+        }
+
+        .mainshell {
+            float: left;
+            height: calc(100% - 90px);
+
+            min-height: 700px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .mainpage {
+            width: 1000px;
+            height: 100%;
+            min-height: 700px;
+
+            margin-right: auto;
+            margin-left: auto;
+            background-color: rgba(255, 255, 255, 0.9);
+            text-align: center;
+        }
+
+        .maintitle {
+            text-align: center;
+            font-size: 38px;
+            padding-top: 30px;
+            padding-bottom: 30px;
+        }
+
+        .attribute_box {
+            width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+
+            border-radius: 8px;
+            border: 1px solid #aaa;
+        }
+
+
+
+
+        /* 杂项 */
+        .zhanwei2 {
+            height: 20px;
+        }
+
+    </style>
+    <link rel="stylesheet" href="../css/index.css">
+</head>
+
+<body>
+    <!-- 头部 -->
+    <div class="header">
+        <div class="headerzhanwei"></div>
+        <div class="head_content">
+            <!-- logo -->
+            <a href="../index.html" class="logo">
+                <img src="../source/pic/logo0.png" width="73" height="64">
+            </a>
+
+            <!-- 导航 -->
+            <div class="nav">
+                <ul>
+                    <li><a href="../index.html" class="navpos">首页</a></li>
+                    <li><a href="../work/searchgroup.html">加入面试</a></li>
+                    <li><a href="../work/newgroup.html">发起面试</a></li>
+                    <li><a href="../account/store.html">定价与购买</a></li>
+                    <li><a href="../help/help_home.html">帮助中心</a></li>
+                </ul>
+            </div>
+
+            <!-- 用户 -->
+            <div class="user">
+                <div></div>
+                <span onclick="msg_center()">
+                    <img class="img1" src="../source/pic/user0.png" alt="" width="17" height="22">
+                </span>
+                <span onclick="person_head()">
+                    <img class="img2" src="../source/pic/user1.png" alt="" height="50" width="50">
+                </span>
+            </div>
+
+        </div>
+
+    </div>
+
+    <span class="mainshell">
+        <div class="mainpage">
+            <div class="maintitle">
+                面试总结
+            </div>
+            <div class="attribute_box">
+                <div class="attribute_box_title">基本信息</div>
+                <hr>
+                <div class="attribute_pair">
+                    <span class="attribute_key">应聘者</span>
+                    <span class="attribute_val">xxx</span>
+                </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">面试场次时间</span>
+                    <span class="attribute_val"></span>
+                </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">应聘者</span>
+                    <span class="attribute_val">xxx</span>
+                </div>
+            </div>
+
+
+            <!-- 提交键 -->
+            <div id="new_group_btn" onclick="checkGroupValid()">
+                确定
+            </div>
+
+            <div class="zhanwei2"></div>
+        </div>
+    </span>
+
+</body>
+
+</html>

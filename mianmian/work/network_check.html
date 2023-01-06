@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面面：网速检测</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-min.js"></script>
+    <script src="../account/web_prepare01.js"></script>
+
+    <style>
+        body {
+            text-decoration: none;
+            background-image: url("../source/pic/bgi007.jpg");
+            min-width: 1120px;
+            background-size: cover;
+
+            height: 100%;
+        }
+        html {
+            height: 100%;
+        }
+
+        .mainshell {
+            background-color: rgba(255, 255, 255, 0.9);
+            float: left;
+
+            width: 900px;
+            margin-left: calc(50% - 450px);
+            height: calc(100% - 90px);
+            text-align: center;
+        }
+
+
+        .maintitle {
+            text-align: center;
+            font-size: 38px;
+            
+            padding-bottom: 30px;
+        }
+
+        #speed_show {
+            text-align: center;
+            margin-left: auto;
+            margin-right: auto;
+            width: 502px;
+            height: 300px;
+        }
+
+        #show_speed_box {
+            float: left;
+
+            width: 300px;
+            height: 300px;
+            background-color: #eee;
+            border: 1px solid #000;
+
+            position: relative;
+            vertical-align: bottom;
+
+            overflow: hidden;
+        }
+
+        #show_speed_list {
+            float: left;
+
+            width: 160px;
+            padding-left: 20px;
+            padding-right: 20px;
+            padding-top: 130px;
+            padding-bottom: 50px;
+
+            /* background-color: wheat; */
+            font-size: 20px;
+        }
+
+        .show_speed_box_pt {
+            width: 1px;
+            height: 1px;
+            background-color: #001529;
+
+            position: absolute;
+            /* vertical-align: bottom; */
+        }
+
+        /* 按键设置 */
+        .btn_box {
+            width: 600px;
+            padding-top: 20px;
+            padding-bottom: 20px;
+
+            text-align: center;
+            /* background-color: floralwhite; */
+            margin-left: calc(50% - 300px);
+            margin-right: auto;
+        }
+        .network_btn {
+            padding: 3px;
+            font-size: 18px;
+            padding-left: 10px;
+            padding-right: 10px;
+            margin-left: 5px;
+            margin-right: 5px;
+
+            display: inline-block;
+            color: #000;
+            background-color: #fff;
+            border: 1px solid #067CFA;
+
+            border-radius: 8px;
+        }
+
+        .network_btn:hover {
+            cursor: pointer;
+            user-select: none;
+            background-color: #067CFA;
+            color: #fff;
+        }
+    </style>
+    <link rel="stylesheet" href="../css/index.css">
+
+    <script>
+        var speed_avg = 0, speed0 = 2000, test_finish_sum=0;
+        var last_test_date = new Date(2000, 1, 1);
+        function sleep(d) {
+            for (var t = Date.now(); Date.now() - t <= d;);
+        }
+
+        function getDownloadSpeed(test_num) {
+            let start = null;
+            let end = null;
+            let img = document.createElement('img');
+            img.src = "https://img.cnmo.com/1894_600x1000/1893652.jpg";
+            start = new Date().getTime();
+            img.onload = function (e) {
+                end = new Date().getTime();
+                const speed = 52.5 * 1000 / (end - start);
+                speed_avg += speed;
+                test_finish_sum++;
+                
+                // 插入数据
+                let new_pt = document.createElement('div');
+                new_pt.style.bottom = "0px";
+                new_pt.classList.add('show_speed_box_pt');
+                new_pt.style.left = test_num + "px";
+                if (test_num == 0) {
+                    new_pt.style.height = 150 + "px";
+                    speed0 = speed;
+                    document.getElementById("show_speed_list").innerText = "当前网络的传输速度为" + speed.toFixed(2) + "kb/s。";
+                } else {
+                    new_pt.style.height = speed / speed0 * 150 + "px";
+                }
+                document.getElementById("show_speed_box").appendChild(new_pt);
+            }
+        }
+
+        function getNetworkSpeed() {
+            if ((new Date().getTime() - last_test_date.getTime()) <= 10000) {
+                alert("您当前测速过于频繁，请等待10秒后进行复测。");
+                return;
+            }
+            last_test_date = new Date();
+            document.getElementById("show_speed_box").innerText = "";
+            document.getElementById("show_speed_list").innerText = "测速中...";
+            test_finish_sum = 0;
+            for (let i=0; i<300; i++) {
+                getDownloadSpeed(i);
+            }
+        }
+
+        window.onload = function() {
+            getNetworkSpeed();
+        }
+    </script>
+</head>
+
+<body>
+    <!-- 头部信息 -->
+    <div class="header">
+        <div class="headerzhanwei"></div>
+        <div class="head_content">
+            <!-- logo -->
+            <a href="../index.html" class="logo">
+                <img src="../source/pic/logo0.png" width="73" height="64">
+            </a>
+
+            <!-- 导航 -->
+            <div class="nav">
+                <ul>
+                    <li><a href="../index.html" class="navpos">首页</a></li>
+                    <li><a href="../work/searchgroup.html">加入面试</a></li>
+                    <li><a href="../work/newgroup.html">发起面试</a></li>
+                    <li><a href="../account/store.html">定价与购买</a></li>
+                    <li><a href="../help/help_home.html">帮助中心</a></li>
+                </ul>
+            </div>
+
+            <!-- 用户 -->
+            <div class="user">
+                <div></div>
+                <a href="../account/login.html">
+                    <img class="img1" src="../source/pic/user0.png" alt="" width="17" height="22">
+                </a>
+                <a href="../account/login.html">
+                    <img class="img2" src="../source/pic/user1.png" alt="" height="50" width="50">
+                </a>
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="mainshell">
+        <div style="width: 700px; height: 30px;"></div>
+        <div class="maintitle">
+            网络质量检测
+        </div>
+        <div id="speed_show">
+            <div id="show_speed_box">
+
+            </div>
+            <div id="show_speed_list">
+                测速中...
+            </div>
+        </div>
+        <div style="width: 900px; height: 50px;"></div>
+        <div class="btn_box">
+            <div class="network_btn" title="重新进行网络测试"
+                onclick="getNetworkSpeed();">重新测试</div>
+            <div class="network_btn" title="进入网址https://www.speedtest.cn/进行更加细致的网络测试。"
+                onclick="window.open('https://www.speedtest.cn');">详细信息</div>
+            <div class="network_btn" title="应聘者进入面试等候厅，面试官将直接进入面试网页。">进入等候厅</div>
+        </div>
+    </div>
+
+</body>
+
+</html>

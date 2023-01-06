@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面面：简历筛选</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-min.js"></script>
+    <script src="../account/web_prepare01.js"></script>
+    <script>
+        // 初始化leancloud
+        const { Query, User } = AV;
+        AV.init({
+            appId: "QINFwm0ds2NuLyRCmbpmUltw-gzGzoHsz",
+            appKey: "16T8fLd7241TyCxCkCvAYPif",
+            serverURL: "https://qinfwm0d.lc-cn-n1-shared.com"
+        });
+
+        // 获取传递的信息
+        urlinfo = window.location.href; //获取当前页面的url
+        len = urlinfo.length;//获取url的长度
+        offset = urlinfo.indexOf("?");//设置参数字符串开始的位置
+        newsidinfo = urlinfo.substr(offset, len); //取出参数字符串 这里会获得类似“id=1”这样的字符串
+        newsids = newsidinfo.split("=");//对获得的参数字符串按照“=”进行分割
+        group_name = newsids[1];//得到参数值
+        newsname = newsids[0];//得到参数名字
+
+        var now_vitae_id = "";
+        var now_vitae_pos = 0;
+
+        // 设定姓名
+        function setName(name) {
+            document.getElementById("vitae_name").innerText = name;
+            let tmp_name = name;
+            if (tmp_name.indexOf("(") != -1) {
+                tmp_name = tmp_name.substr(0, tmp_name.indexOf("(") + 1);
+                document.getElementById("vitae_name").title = "(*)为姓名重复而设定的标签，实际姓名为：" + "tmp_name";
+            } else document.getElementById("vitae_name").title = "姓名：" + "tmp_name";
+        }
+
+        // 日期转字符串
+        function dateToString(date) {
+            var year = date.getFullYear();
+            var month = (date.getMonth() + 1).toString();
+            var day = (date.getDate()).toString();
+            if (month.length == 1) {
+                month = "0" + month;
+            }
+            if (day.length == 1) {
+                day = "0" + day;
+            }
+            var dateTime = year + "-" + month + "-" + day;
+            return dateTime;
+        }
+
+        // 设定所有收到的简历
+        function setVitaeSum(vitaesum) {
+            document.getElementById("vitae_sum").innerText = vitaesum;
+        }
+
+        // 设定第几份简历
+        function setVitaeNo(novitae) {
+            document.getElementById("vitae_id").innerText = novitae;
+        }
+
+        // 设定邮箱
+        function setEmail(email) {
+            document.getElementById("vitae_email").innerText = email;
+        }
+
+        // 设定电话
+        function setTelNum(telnum) {
+            document.getElementById("vitae_telnum").innerText = telnum;
+        }
+
+        // 设定出生日期
+        function setBirthday(birthday) {
+            document.getElementById("vitae_birthday").innerText = dateToString(birthday);
+        }
+
+        // 设定受教育经历
+        function setEduExp(edu_start_list, edu_end_list, edu_school_list, edu_rank_list, edu_prof_list) {
+            let len = edu_school_list.length; // 受教育经历数量
+            
+            let element = document.getElementById("educases");
+            let zhanwei001 = document.getElementById("zhanwei001");
+            let tmp_edus = document.getElementsByClassName("educase");
+            for (let i=tmp_edus.length-1; i>=0; i--)
+                element.removeChild(tmp_edus[i]);
+
+            if (len == 0) {
+                element.style.display = "none";
+                return;
+            } else element.style.display = "block";
+
+            for (let i=0; i<len; i++) {
+                var div_case = document.createElement("div");
+                div_case.classList.add("educase");
+                div_case.innerHTML = '<div class="eduevent"><div class="edu_atr_title">起始时间</div><div class="edu_atr_val"><div class="timeyear edu_start">edu_starttime</div></div><div class="edu_atr_title">结业时间</div><div class="edu_atr_val"><div class="timeyear edu_end">edu_endtime</div></div><div class="edu_atr_title">学位</div><div class="edu_atr_val"><div class="rank">本科</div></div><div class="edu_atr_title">毕业院校</div><div class="edu_atr_val"><div class="school">本科大学</div></div><div class="edu_atr_title">专业</div><div class="edu_atr_val"><div class="profession">专业内容</div></div></div>';
+                element.insertBefore(div_case, zhanwei001);
+            }
+
+            let div_starts = document.getElementsByClassName("edu_start");
+            let div_ends = document.getElementsByClassName("edu_end");
+            let div_schools = document.getElementsByClassName("school");
+            let div_ranks = document.getElementsByClassName("rank");
+            let div_profs = document.getElementsByClassName("profession");
+
+            for (let i=0; i<len; i++) {
+                div_starts[i].innerText = dateToString(edu_start_list[i]);
+                div_ends[i].innerText = dateToString(edu_end_list[i]);
+                div_schools[i].innerText = edu_school_list[i];
+                div_ranks[i].innerText = edu_rank_list[i];
+                div_profs[i].innerText = edu_prof_list[i];
+            }
+        }
+
+        // 设定工作经历
+        function setWorkExp(work_start_list, work_end_list, work_comp_list, work_job_list) {
+            let len = work_comp_list.length; // 工作经历数量
+
+            let element = document.getElementById("workcases");
+            let zhanwei001 = document.getElementById("zhanwei002");
+            let tmp_edus = document.getElementsByClassName("workcase");
+            for (let i = tmp_edus.length - 1; i >= 0; i--)
+                element.removeChild(tmp_edus[i]);
+
+            if (len == 0) {
+                element.style.display = "none";
+                return;
+            } else element.style.display = "block";
+
+            for (let i = 0; i < len; i++) {
+                var div_case = document.createElement("div");
+                div_case.classList.add("workcase");
+                div_case.innerHTML = '<div class="workevent"><div class="work_atr_title">起始时间</div><div class="work_atr_val"><div class="timeyear work_start">xxxx-xx-xx</div></div><div class="work_atr_title">结束时间</div><div class="work_atr_val"><div class="timeyear work_end">xxxx-xx-xx</div></div><div class="work_atr_title">工作内容</div><div class="work_atr_val"><div class="job">职位、岗位</div></div><div class="work_atr_title">企业</div><div class="work_atr_val"><div class="business">受雇企业</div></div></div>';
+                element.insertBefore(div_case, zhanwei001);
+            }
+
+            let div_starts = document.getElementsByClassName("work_start");
+            let div_ends = document.getElementsByClassName("work_end");
+            let div_comps = document.getElementsByClassName("business");
+            let div_jobs = document.getElementsByClassName("job");
+
+            for (let i = 0; i < len; i++) {
+                div_starts[i].innerText = dateToString(work_start_list[i]);
+                div_ends[i].innerText = dateToString(work_end_list[i]);
+                div_comps[i].innerText = work_comp_list[i];
+                div_jobs[i].innerText = work_job_list[i];
+            }
+        }
+
+        // 设定获奖经历
+        function setRewardExp(reward_time_list, reward_content_list) {
+            let len = reward_time_list.length; // 获奖经历数量
+
+            let element = document.getElementById("rewardcases");
+            let zhanwei001 = document.getElementById("zhanwei003");
+            let tmp_edus = document.getElementsByClassName("rewardcase");
+            for (let i = tmp_edus.length - 1; i >= 0; i--)
+                element.removeChild(tmp_edus[i]);
+
+            if (len == 0) {
+                element.style.display = "none";
+                return;
+            } else element.style.display = "block";
+
+            for (let i = 0; i < len; i++) {
+                var div_case = document.createElement("div");
+                div_case.classList.add("rewardcase");
+                div_case.innerHTML = '<div class="rewardevent"><div class="reward_atr_title">获奖时间</div><div class="reward_atr_val"><div class="timeyear reward_time">xxxx-xx-xx</div></div><div class="reward_atr_title">奖项内容</div><div class="reward_atr_val"><div class="reward_title">职位、岗位</div></div><div class="reward_atr_title">个人评价/个人贡献</div><div class="reward_atr_val"><div class="reward_content">个人评价/个人贡献</div></div></div>';
+                element.insertBefore(div_case, zhanwei001);
+            }
+
+            let div_time = document.getElementsByClassName("reward_time");
+            let div_title = document.getElementsByClassName("reward_title");
+            let div_content = document.getElementsByClassName("reward_content");
+
+            for (let i = 0; i < len; i++) {
+                div_time[i].innerText = dateToString(reward_time_list[i]);
+                div_title[i].innerText = reward_content_list[2*i];
+                div_content[i].innerText = reward_content_list[2*i+1];
+            }
+        }
+
+        // 设定科研经历
+        function setSciExp(sci_start_list, sci_end_list, sci_content_list) {
+            let len = sci_start_list.length; // 受教育经历数量
+
+            let element = document.getElementById("scicases");
+            let zhanwei001 = document.getElementById("zhanwei004");
+            let tmp_edus = document.getElementsByClassName("scicase");
+            for (let i = tmp_edus.length - 1; i >= 0; i--)
+                element.removeChild(tmp_edus[i]);
+
+            if (len == 0) {
+                element.style.display = "none";
+                return;
+            } else element.style.display = "block";
+
+            for (let i = 0; i < len; i++) {
+                var div_case = document.createElement("div");
+                div_case.classList.add("scicase");
+                div_case.innerHTML = '<div class="scievent"><div class="sci_atr_title">起始时间</div><div class="sci_atr_val"><div class="timeyear sci_start">xxxx-xx-xx</div></div><div class="sci_atr_title">结题时间</div><div class="sci_atr_val"><div class="timeyear sci_end">xxxx-xx-xx</div></div><div class="sci_atr_title">科研课题</div><div class="sci_atr_val"><div class="sci_title">课题内容</div></div><div class="sci_atr_title">个人贡献</div><div class="sci_atr_val"><div class="sci_content">个人参与部分</div></div></div>';
+                element.insertBefore(div_case, zhanwei001);
+            }
+
+            let div_starts = document.getElementsByClassName("sci_start");
+            let div_ends = document.getElementsByClassName("sci_end");
+            let div_titles = document.getElementsByClassName("sci_title");
+            let div_conts = document.getElementsByClassName("sci_content");
+
+            for (let i = 0; i < len; i++) {
+                div_starts[i].innerText = dateToString(sci_start_list[i]);
+                div_ends[i].innerText = dateToString(sci_end_list[i]);
+                div_titles[i].innerText = sci_content_list[2*i];
+                div_conts[i].innerText = sci_content_list[2*i+1];
+            }
+        }
+
+        // 设定目标岗位
+        function setTarget(target_job_list) {
+            let len = target_job_list.length; // 受目标岗位数量
+
+            let element = document.getElementById("targetcases");
+            let zhanwei001 = document.getElementById("zhanwei005");
+            let tmp_edus = document.getElementsByClassName("targetcase");
+            for (let i = tmp_edus.length - 1; i >= 0; i--)
+                element.removeChild(tmp_edus[i]);
+
+            if (len == 0) {
+                element.style.display = "none";
+                return;
+            } else element.style.display = "block";
+
+            for (let i = 0; i < len; i++) {
+                var div_case = document.createElement("div");
+                div_case.classList.add("targetcase");
+                div_case.innerHTML = '<div class="targetevent"><div class="target_atr_title">第'+(i+1)+'志愿</div><div class="target_atr_val"><div class="target_job">岗位内容</div></div></div>';
+                element.insertBefore(div_case, zhanwei001);
+            }
+
+            let div_jobs = document.getElementsByClassName("target_job");
+
+            for (let i = 0; i < len; i++) {
+                div_jobs[i].innerText = target_job_list[i];
+            }
+        }
+
+        // 设定个人技能
+        function setSkill(skill_content_list) {
+            let len = skill_content_list.length; // 个人技能数量
+
+            let element = document.getElementById("skillcases");
+            let zhanwei001 = document.getElementById("zhanwei006");
+            let tmp_edus = document.getElementsByClassName("skillcase");
+            for (let i = tmp_edus.length - 1; i >= 0; i--)
+                element.removeChild(tmp_edus[i]);
+
+            if (len == 0) {
+                element.style.display = "none";
+                return;
+            } else element.style.display = "block";
+
+            for (let i = 0; i < len; i++) {
+                var div_case = document.createElement("div");
+                div_case.classList.add("skillcase");
+                div_case.innerHTML = '<div class="skillevent"><div class="skill_atr_title">技能简述</div><div class="skill_atr_val"><div class="skill_content">个人特别技能</div></div></div>';
+                element.insertBefore(div_case, zhanwei001);
+            }
+
+            let div_conts = document.getElementsByClassName("skill_content");
+
+            for (let i = 0; i < len; i++) {
+                div_conts[i].innerText = skill_content_list[i];
+            }
+        }
+
+        // 设定性格自述
+        function setSelfIntro(self_intro_content) {
+            document.getElementById("self_intro").innerText = self_intro_content;
+        }
+
+        // 设定所有
+        function showAll(no_vitae) {
+            const vitaeQuery = new AV.Query('Vitae');
+            vitaeQuery.equalTo('workgroup_name', group_name);
+            vitaeQuery.find().then((vitaes) => {
+                let vitaesum = vitaes.length;
+                if (vitaesum == 0) {
+                    alert("工作组目前尚未收到简历。");
+                    location.assign("../usercenter/workspace.html?group_id="+group_name);
+                    return;
+                }
+
+                if (no_vitae == NaN || no_vitae == undefined) {
+                    console.log("该简历超出范围。");
+                    return;
+                }
+
+                if (no_vitae >= vitaesum) {
+                    no_vitae = 0;
+                } else if (no_vitae < 0) {
+                    no_vitae = vitaesum-1;
+                }
+                setVitaeSum(vitaesum);
+                setVitaeNo(no_vitae+1);
+                now_vitae_pos = no_vitae+1;
+
+                let score_btns = document.getElementsByClassName("score_btn");;
+                // 显示分数
+                for (let j=0; j<5; j++) {
+                    if (score_btns[j].classList.contains("chose_score_btn"));
+                        score_btns[j].classList.remove("chose_score_btn")
+                    if (j == vitaes[no_vitae].get("vitae_score0")-1)
+                        score_btns[j].classList.add("chose_score_btn");
+                }
+
+                // 设定具体信息
+                setEmail(vitaes[no_vitae].get("person_email"));
+                setName(vitaes[no_vitae].get("person_name"));
+                setTelNum(vitaes[no_vitae].get("person_tel"));
+                setBirthday(vitaes[no_vitae].get("person_birthday"));
+
+                setEduExp(vitaes[no_vitae].get("person_edu_starttime"), vitaes[no_vitae].get("person_edu_endtime"),
+                    vitaes[no_vitae].get("person_edu_school"), vitaes[no_vitae].get("person_edu_rank"),
+                    vitaes[no_vitae].get("person_edu_professions"));
+                setWorkExp(vitaes[no_vitae].get("person_work_starttime"), vitaes[no_vitae].get("person_work_endtime"),
+                    vitaes[no_vitae].get("person_work_comp"), vitaes[no_vitae].get("person_work_job"));
+                setRewardExp(vitaes[no_vitae].get("person_reward_times"), vitaes[no_vitae].get("person_reward_conts"));
+                setSciExp(vitaes[no_vitae].get("person_sci_starttime"), vitaes[no_vitae].get("person_sci_endtime"),
+                    vitaes[no_vitae].get("person_sci_content"));
+
+                setTarget(vitaes[no_vitae].get("person_target_jobs"));
+                setSkill(vitaes[no_vitae].get("person_skills"));
+                setSelfIntro(vitaes[no_vitae].get("person_character"));
+
+                // 设定完毕
+                now_vitae_id = vitaes[no_vitae].get("objectId");
+            });
+        }
+
+        // 下一面
+        function nextVitae() {
+            showAll(Number(document.getElementById("vitae_id").innerText));
+        }
+
+        // 上一面
+        function prevVitae() {
+            showAll(Number(document.getElementById("vitae_id").innerText) - 2);
+        }
+
+        // 打分
+        function scoreNow(click_score) {
+            // 检查登录状态
+            const loginQuery = new AV.Query('LoginState');
+            let client_id = cans();
+            loginQuery.equalTo('client_id', client_id);
+            loginQuery.find().then((loginStates) => {
+                if (loginStates.length > 0) {
+                    // 判断是否过期
+                    let nowdate = new Date();
+                    if ((nowdate.getTime() - loginStates[0].get('createdAt').getTime()) / 1000 > 3600) {
+                        alert("登录已过期，请重新登录。");
+                        location.assign("../account/login.html");
+                    } else {
+                        if (group_name == undefined || group_name == "") {
+                            location.assign("../usercenter/workspace.html");
+                            return;
+                        } else {
+                            // 判断是否是工作组的成员
+                            // 检查工作组与人员是否对应
+                            const accountQuery = new AV.Query('Account');
+                            // 获取登陆者账号
+                            accountQuery.get(loginStates[0].get("account_id")).then((now_account) => {
+                                // 查询组
+                                let ingroup = now_account.get("work_group_list").indexOf(group_name); // 获取账户名
+                                if (ingroup == -1) {
+                                    alert("您尚未加入该面试工作组。");
+                                    location.assign("../usercenter/workspace.html");
+                                    return;
+                                }
+                            });
+                            // 进入打分的步骤
+                            showAll(Number(document.getElementById("vitae_id").innerText));
+                            
+                            const vitaeQuery = new AV.Query('Vitae');
+                            vitaeQuery.get(now_vitae_id).then((now_vitae) => {
+                                now_vitae.set("vitae_score0", click_score);
+                                now_vitae.save();
+                                alert("评分成功。");
+                            });
+                        }
+                    }
+                } else location.assign("../account/login.html");
+            });
+        }
+
+        // 页面预加载内容
+        window.onload = function () {
+            // return;
+
+            // 检查登录状态，确定登录键是否删除
+            const loginQuery = new AV.Query('LoginState');
+            let client_id = cans();
+            loginQuery.equalTo('client_id', client_id);
+            loginQuery.find().then((loginStates) => {
+                if (loginStates.length > 0) {
+                    // 判断是否过期
+                    let nowdate = new Date();
+                    if ((nowdate.getTime() - loginStates[0].get('createdAt').getTime()) / 1000 > 3600) {
+                        alert("登录已过期，请重新登录。");
+                        location.assign("../account/login.html");
+                    } else {
+                        if (group_name == undefined || group_name == "") {
+                            location.assign("../usercenter/workspace.html");
+                            return;
+                        } else {
+                            // 判断是否是工作组的成员
+                            // 检查工作组与人员是否对应
+                            const accountQuery = new AV.Query('Account');
+                            // 获取登陆者账号
+                            accountQuery.get(loginStates[0].get("account_id")).then((now_account) => {
+                                // 查询组
+                                let ingroup = now_account.get("work_group_list").indexOf(group_name); // 获取账户名
+                                if (ingroup == -1) {
+                                    alert("您尚未加入该面试工作组。");
+                                    location.assign("../usercenter/workspace.html");
+                                    return;
+                                }
+                            });
+
+                            // 初始化内容
+                            showAll(0);
+                        }
+
+
+                    }
+                } else location.assign("../account/login.html");
+            });
+        };
+
+    </script>
+    <style>
+        body {
+            text-decoration: none;
+            background-image: url("../source/pic/bgi004.jpg");
+            background-size: cover;
+            min-width: 1120px;
+        }
+
+        .mainshell {
+            float: left;
+            width: 100%;
+            text-align: center;
+        }
+
+        .mainpage {
+            width: 1000px;
+            /* height: 1000px; */
+
+            margin-right: auto;
+            margin-left: auto;
+            opacity: 0.9;
+            background-color: white;
+        }
+
+        .maintitle {
+            text-align: center;
+            font-size: 38px;
+            padding-top: 30px;
+            padding-bottom: 30px;
+        }
+
+        .attribt_pair {
+            margin-left: 100px;
+            margin-right: 100px;
+            padding-top: 10px;
+            padding-bottom: 20px;
+            /* background-color: greenyellow; */
+
+        }
+
+        .attribt_key {
+            font-size: 15px;
+            font-weight: 600;
+            width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left;
+            /* background-color: teal; */
+
+            margin-top: 20px;
+        }
+
+        .attribt_val {
+            font-size: 25px;
+            width: 400px;
+            /* height: 35px; */
+            margin-left: auto;
+            margin-right: auto;
+            margin-top: 5px;
+            /* line-height: 300%; */
+            /* background-color: aquamarine; */
+        }
+
+        /* 信息内容 */
+        .attribt_val .inputtxt .showtxt {
+            font-size: 22px;
+            width: 396px;
+            /* height: 30px; */
+            border: 1;
+            padding: 0;
+        }
+
+        .showtxt {
+            font-family: 'Times New Roman', 'SimSun', 'Microsoft YaHei', 'SimHei';
+            text-align-last: left;
+        }
+
+        .showtxt:hover,
+        .timeyear:hover,
+        .rank:hover,
+        .school:hover,
+        .job:hover,
+        .business:hover,
+        .profession:hover,
+        .reward_title:hover,
+        .reward_content:hover,
+        .sci_title:hover,
+        .sci_content:hover,
+        .target_job:hover,
+        .skill_content:hover {
+            background-color: aliceblue;
+        }
+
+        /* 添加信息 */
+        .attribt_key .add,
+        .attribt_key .del {
+            display: inline-block;
+            float: right;
+            margin-right: 5px;
+        }
+
+        .attribt_key .add:hover,
+        .attribt_key .del:hover {
+            filter: invert(50%);
+        }
+
+        .eduevent,
+        .workevent,
+        .rewardevent,
+        .scievent,
+        .targetevent,
+        .skillevent {
+            padding-top: 5px;
+            width: 380px;
+            margin-left: auto;
+            margin-right: auto;
+            background-color: rgb(255,254,251);
+            border-radius: 15px;
+        }
+
+        .edu_atr_title,
+        .work_atr_title,
+        .reward_atr_title,
+        .sci_atr_title,
+        .target_atr_title,
+        .skill_atr_title {
+            font-size: 15px;
+            vertical-align: bottom;
+            font-weight: 600;
+            width: 380px;
+            color: rgb(80, 80, 80);
+            text-align: left;
+            /* background-color: seashell; */
+        }
+
+        .edu_atr_val,
+        .work_atr_val,
+        .reward_atr_val,
+        .sci_atr_val,
+        .target_atr_val,
+        .skill_atr_val {
+            font-size: 28px;
+            width: 380px;
+            /* height: 35px; */
+            margin-left: auto;
+            margin-right: auto;
+
+            line-height: 150%;
+            /* background-color: darkcyan; */
+        }
+
+        .edu_atr_val .timeyear,
+        .edu_atr_val .profession,
+        .work_atr_val .timeyear,
+        .edu_atr_val .rank,
+        .edu_atr_val .school,
+        .work_atr_val .job,
+        .work_atr_val .business,
+        .reward_atr_val .timeyear,
+        .sci_atr_val .timeyear,
+        .reward_atr_val .reward_title,
+        .reward_atr_val .reward_content,
+        .sci_atr_val .sci_title,
+        .sci_atr_val .sci_content,
+        .target_atr_val .target_job,
+        .skill_atr_val .skill_content {
+            font-size: 22px;
+            font-family: 'Times New Roman', 'SimSun', 'Microsoft YaHei', 'SimHei';
+            text-align-last: left;
+            /* font-family: 'Times New Roman', Times, serif; */
+            width: 376px;
+            /* height: 30px; */
+            border: 1;
+            padding: 0;
+            float: left;
+        }
+
+        /* .timeyear, .profession
+        .edu_atr_val .rank,
+        .work_atr_val .job {
+            text-align-last: left;
+            float: left;
+        } */
+
+        /* .edu_atr_val .rank {
+            width: 120px;
+            display: inline-block;
+            margin-right: 0;
+        } */
+
+        /* .work_atr_val .job {
+            width: 100px;
+        } */
+
+        /* .edu_atr_val .school {
+            text-align-last: left;
+            display: inline-block;
+            float: right;
+            width: 228px;
+        } */
+
+        /* .work_atr_val .business {
+            text-align-last: left;
+            float: right;
+            width: 263px;
+        } */
+
+        /* 杂项 */
+        .zhanwei2 {
+            height: 20px;
+        }
+
+        /* 受教育信息 工作经历 信息 */
+        .educase,
+        .workcase,
+        .rewardcase,
+        .scicase,
+        .targetcase,
+        .skillcase {
+            margin-top: 5px;
+            margin-bottom: 5px;
+        }
+    </style>
+    <link rel="stylesheet" href="../css/index.css">
+</head>
+
+<body>
+    <div class="header">
+        <div class="headerzhanwei"></div>
+        <div class="head_content">
+            <!-- logo -->
+            <a href="../index.html" class="logo">
+                <img src="../source/pic/logo0.png" width="73" height="64">
+            </a>
+
+            <!-- 导航 -->
+            <div class="nav">
+                <ul>
+                    <li><a href="../index.html" class="navpos">首页</a></li>
+                    <li><a href="searchgroup.html">加入面试</a></li>
+                    <li><a href="newgroup.html">发起面试</a></li>
+                    <li><a href="../account/store.html">定价与购买</a></li>
+                    <li><a href="../help/help_home.html">帮助中心</a></li>
+                </ul>
+            </div>
+
+            <!-- 用户 -->
+            <div class="user">
+                <div></div>
+                <a href="../msgcenter/systemmsg.html">
+                    <img class="img1" src="../source/pic/user0.png" alt="" width="17" height="22">
+                </a>
+                <a href="../usercenter/personal_information.html">
+                    <img class="img2" src="../source/pic/user1.png" alt="" height="50" width="50">
+                </a>
+            </div>
+
+        </div>
+
+    </div>
+
+    <span class="mainshell">
+        <div class="mainpage">
+            <div class="maintitle">
+                <span id="vitae_id">0</span>/
+                <span id="vitae_sum">0</span>
+            </div>
+            <div class="attribt_pair">
+                <div class="attribt_key"></div>
+                <div class="attribt_val">
+                    <div class="showtxt" id="vitae_name">陈新新</div>
+                </div>
+            </div>
+            <div class="attribt_pair">
+                <div class="attribt_key">邮箱</div>
+                <div class="attribt_val">
+                    <div class="showtxt" id="vitae_email">example@address.com</div>
+                </div>
+            </div>
+            <div class="attribt_pair">
+                <div class="attribt_key">电话</div>
+                <div class="attribt_val">
+                    <div class="showtxt" id="vitae_telnum">xxx-xxxx-xxxx</div>
+                </div>
+            </div>
+            <div class="attribt_pair">
+                <div class="attribt_key">出生日期</div>
+                <div class="attribt_val">
+                    <div class="showtxt" id="vitae_birthday">xxxx/xx/xx</div>
+                </div>
+            </div>
+
+            <!-- 受教育经历 -->
+            <div class="attribt_pair" id="educases">
+                <div class="attribt_key">
+                    受教育经历
+                </div>
+                <div class="educase">
+                    <div class="eduevent">
+                        <div class="edu_atr_title">起始时间</div>
+                        <div class="edu_atr_val">
+                            <div class="timeyear edu_start">edu_starttime</div>
+                        </div>
+                        <div class="edu_atr_title">结业时间</div>
+                        <div class="edu_atr_val">
+                            <div class="timeyear edu_end">edu_endtime</div>
+                        </div>
+                        <div class="edu_atr_title">学位</div>
+                        <div class="edu_atr_val">
+                            <div class="rank">本科</div>
+                        </div>
+                        <div class="edu_atr_title">毕业院校</div>
+                        <div class="edu_atr_val">
+                            <div class="school">本科大学</div>
+                        </div>
+                        <div class="edu_atr_title">专业</div>
+                        <div class="edu_atr_val">
+                            <div class="profession">专业内容</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="zhanwei001"></div>
+            </div>
+
+            <!-- 工作经历 -->
+            <div class="attribt_pair" id="workcases">
+                <div class="attribt_key">
+                    工作经历
+                </div>
+                <div class="workcase">
+                    <div class="workevent">
+                        <div class="work_atr_title">起始时间</div>
+                        <div class="work_atr_val">
+                            <div class="timeyear work_start">xxxx-xx-xx</div>
+                        </div>
+                        <div class="work_atr_title">结束时间</div>
+                        <div class="work_atr_val">
+                            <div class="timeyear work_end">xxxx-xx-xx</div>
+                        </div>
+                        <div class="work_atr_title">工作内容</div>
+                        <div class="work_atr_val">
+                            <div class="job">职位、岗位</div>
+                        </div>
+                        <div class="work_atr_title">企业</div>
+                        <div class="work_atr_val">
+                            <div class="business">受雇企业</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="zhanwei002"></div>
+            </div>
+
+            <!-- 获奖经历 -->
+            <div class="attribt_pair" id="rewardcases">
+                <div class="attribt_key">
+                    获奖经历
+                </div>
+                <div class="rewardcase" id="rewardcase01">
+                    <div class="rewardevent">
+                        <div class="reward_atr_title">获奖时间</div>
+                        <div class="reward_atr_val">
+                            <div class="timeyear reward_time">xxxx-xx-xx</div>
+                        </div>
+                        <div class="reward_atr_title">奖项内容</div>
+                        <div class="reward_atr_val">
+                            <div class="reward_title">职位、岗位</div>
+                        </div>
+                        <div class="reward_atr_title">个人评价/个人贡献</div>
+                        <div class="reward_atr_val">
+                            <div class="reward_content">个人评价/个人贡献</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="zhanwei003"></div>
+            </div>
+
+            <!-- 科研经历 -->
+            <div class="attribt_pair" id="scicases">
+                <div class="attribt_key">
+                    科研经历
+                </div>
+                <div class="scicase">
+                    <div class="scievent">
+                        <div class="sci_atr_title">起始时间</div>
+                        <div class="sci_atr_val">
+                            <div class="timeyear sci_start">xxxx-xx-xx</div>
+                        </div>
+                        <div class="sci_atr_title">结题时间</div>
+                        <div class="sci_atr_val">
+                            <div class="timeyear sci_end">xxxx-xx-xx</div>
+                        </div>
+                        <div class="sci_atr_title">科研课题</div>
+                        <div class="sci_atr_val">
+                            <div class="sci_title">课题内容</div>
+                        </div>
+                        <div class="sci_atr_title">个人贡献</div>
+                        <div class="sci_atr_val">
+                            <div class="sci_content">个人参与部分</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="zhanwei004"></div>
+            </div>
+
+            <!-- 目标岗位 -->
+            <div class="attribt_pair" id="targetcases">
+                <div class="attribt_key">
+                    目标岗位
+                </div>
+                <div class="targetcase">
+                    <div class="targetevent">
+                        <div class="target_atr_title">第1志愿</div>
+                        <div class="target_atr_val">
+                            <div class="target_job">岗位内容</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="zhanwei005"></div>
+            </div>
+
+            <!-- 个人技能 -->
+            <div class="attribt_pair" id="skillcases">
+                <div class="attribt_key">
+                    个人技能
+                </div>
+                <div class="skillcase">
+                    <div class="skillevent">
+                        <div class="skill_atr_title">技能简述</div>
+                        <div class="skill_atr_val">
+                            <div class="skill_content">个人特别技能</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="zhanwei006"></div>
+            </div>
+
+            <!-- 性格自述 -->
+            <div class="attribt_pair">
+                <div class="attribt_key">性格自述</div>
+                <div class="attribt_val">
+                    <div class="showtxt" id="self_intro">应聘者个人的性格自述</div>
+                </div>
+            </div>
+
+            <div class="zhanwei2"></div>
+            <div class="zhanwei2"></div>
+        </div>
+    </span>
+
+    <!-- 悬浮标签的样式 -->
+    <style>
+        .floatbtn {
+            position: fixed;
+            right: 5px;
+            bottom: 50px;
+            height: 395px;
+            width: 60px;
+            background-color: #eee;
+            border-radius: 8px;
+            opacity: 0.9;
+            vertical-align: bottom;
+            text-align: center;
+        }
+        .page_btn {
+            margin: 10px;
+            margin-left: auto;
+            margin-right: auto;
+            filter: invert(100%);
+            filter: brightness(1.5);
+        }
+        .page_btn img:hover {
+            border-radius: 50%;
+            background-color: #555;
+            cursor: pointer;
+        }
+
+        .chose_score_btn {
+            border-radius: 50%;
+            background-color: rgb(100, 100, 100);
+        }
+    </style>
+
+    <!-- 浮动的标签 -->
+    <span class="floatbtn" title="请按1~5给应聘者打分">
+        <div class="page_btn" onclick="prevVitae();">
+            <img src="../source/pic/icon_left.png" alt="" width="35px" title="上一位面试者">
+        </div>
+        <div class="page_btn" onclick="scoreNow(1);">
+            <img class="score_btn" src="../source/pic/icon_circle-1.png" alt="" width="35px">
+        </div>
+        <div class="page_btn" onclick="scoreNow(2);">
+            <img class="score_btn" src="../source/pic/icon_circle-2.png" alt="" width="35px">
+        </div>
+        <div class="page_btn" onclick="scoreNow(3);">
+            <img class="score_btn" src="../source/pic/icon_circle-3.png" alt="" width="35px">
+        </div>
+        <div class="page_btn" onclick="scoreNow(4);">
+            <img class="score_btn" src="../source/pic/icon_circle-4.png" alt="" width="35px">
+        </div>
+        <div class="page_btn" onclick="scoreNow(5);">
+            <img class="score_btn" src="../source/pic/icon_circle-5.png" alt="" width="35px">
+        </div>
+        <div class="page_btn" onclick="nextVitae();">
+            <img src="../source/pic/icon_right.png" alt="" width="35px" title="下一位应聘者">
+        </div>
+        <div class="page_btn" onclick="location.assign('./vitae_statistic.html?group_id='+group_name);">
+            <img src="../source/pic/icon_chart-pie.png" alt="" width="35px" title="统计分数与提交">
+        </div>
+    </span>
+
+</body>
+
+</html>

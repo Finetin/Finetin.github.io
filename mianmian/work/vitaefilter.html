@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面面：简历筛选</title>
+    <link rel="stylesheet" href="../css/index.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-min.js"></script>
+    <script src="../account/web_prepare01.js"></script>
+    <script>
+        // 初始化leancloud
+        const { Query, User } = AV;
+        AV.init({
+            appId: "QINFwm0ds2NuLyRCmbpmUltw-gzGzoHsz",
+            appKey: "16T8fLd7241TyCxCkCvAYPif",
+            serverURL: "https://qinfwm0d.lc-cn-n1-shared.com"
+        });
+
+        // 获取传递的信息
+        urlinfo = window.location.href; //获取当前页面的url
+        len = urlinfo.length;//获取url的长度
+        offset = urlinfo.indexOf("?");//设置参数字符串开始的位置
+        newsidinfo = urlinfo.substr(offset, len); //取出参数字符串 这里会获得类似“id=1”这样的字符串
+        newsids = newsidinfo.split("=");//对获得的参数字符串按照“=”进行分割
+        group_name = newsids[1];//得到参数值
+        newsname = newsids[0];//得到参数名字
+
+        function invertcolor(id) {
+            if (id.classList.contains('nselect')) {
+                id.classList.remove('nselect');
+                id.classList.add('select');
+            } else {
+                id.classList.remove('select');
+                id.classList.add('nselect');
+            }
+        }
+
+        // 添加项目函数
+        function addcase(casename, casesum, elementid, lastid, caseclass) {
+            var node = document.createTextNode(casename + "(" + casesum + ")");
+            var spannew = document.createElement("span");
+            spannew.id = casename;
+            spannew.classList.add("nselect");
+            spannew.classList.add("val_case");
+            spannew.classList.add(caseclass);
+
+            spannew.setAttribute("onclick", "invertcolor(this);");
+            // spannew.onclick = "invertcolor(this)"
+            spannew.appendChild(node);
+            var element = document.getElementById(elementid);
+            var last = document.getElementById(lastid);
+            element.insertBefore(spannew, last);
+        }
+        // 年龄
+        function addcase_age(casename, casesum) {
+            addcase(casename, casesum, "casevals_age", "casevals_age_last", "person_age_case");
+        }
+        // 毕业院校
+        function addcase_scl(casename, casesum) {
+            addcase(casename, casesum, "casevals_scl", "casevals_scl_last", "person_scl_case");
+        }
+        // 应届生
+        function addcase_graduate(casename, casesum) {
+            addcase(casename, casesum, "casevals_graduates", "casevals_graduate_last", "person_graduate_case");
+        }
+        // 学位
+        function addcase_srank(casename, casesum) {
+            addcase(casename, casesum, "casevals_sclrank", "casevals_sclrank_last", "person_sclrank_case");
+        }
+        // 专业
+        function addcase_prof(casename, casesum) {
+            addcase(casename, casesum, "casevals_prof", "casevals_prof_last", "person_prof_case");
+        }
+        // 工作经历
+        function addcase_work(casename, casesum) {
+            addcase(casename, casesum, "casevals_work", "casevals_work_last", "person_work_case");
+        }
+        // 理想目标岗位
+        function addcase_target(casename, casesum) {
+            addcase(casename, casesum, "casevals_target", "casevals_target_last", "person_target_case");
+        }
+
+        // 设置应聘者数量
+        function addpeoplesum(personsum) {
+            document.getElementById("persen_sum").innerHTML = ""+personsum;
+        }
+
+        // 页面预加载内容
+        window.onload = function () {
+            // return;
+
+            // 检查登录状态，确定登录键是否删除
+            const loginQuery = new AV.Query('LoginState');
+            let client_id = cans();
+            loginQuery.equalTo('client_id', client_id);
+            loginQuery.find().then((loginStates) => {
+                if (loginStates.length > 0) {
+                    // 判断是否过期
+                    let nowdate = new Date();
+                    if ((nowdate.getTime() - loginStates[0].get('createdAt').getTime()) / 1000 > 3600) {
+                        alert("登录已过期，请重新登录。");
+                        location.replace("../account/login.html");
+                    } else {
+                        if (group_name == undefined || group_name == "") {
+                            location.replace("../usercenter/workspace.html");
+                            return;
+                        } else {
+                            // 判断是否是工作组的成员
+                            // 检查工作组与人员是否对应
+                            const accountQuery = new AV.Query('Account');
+                            // 获取登陆者账号
+                            accountQuery.get(loginStates[0].get("account_id")).then((now_account) => {
+                                // 查询组
+                                let ingroup = now_account.get("work_group_list").indexOf(group_name); // 获取账户名
+                                if (ingroup == -1) {
+                                    alert("您尚未加入该面试工作组。");
+                                    location.replace("../usercenter/workspace.html");
+                                    return;
+                                }
+                            });
+
+                            // 初始化内容
+                            const vitaeStatQuery = new AV.Query('VitaeStatistic');
+                            vitaeStatQuery.equalTo('group_name', group_name);
+                            vitaeStatQuery.find().then((statistics) => {
+                                let vitaeSta = statistics[0];
+
+                                // 初始化人数
+                                let vitaeSum = vitaeSta.get("vitae_sum");
+                                addpeoplesum(vitaeSum);
+
+                                // 初始化年龄
+                                let vitaeAgeSum = vitaeSta.get("vitae_age_sum");
+                                let vitaeAges = ["18-岁", "18~22岁", "22~28岁", "28~35岁", "35~40岁", "40~50岁", "50~60岁", "60+岁"];
+                                for (let i=0; i<8 ;i++) {
+                                    if (vitaeAgeSum[i] > 0)
+                                        addcase_age(vitaeAges[i], vitaeAgeSum[i]);
+                                }
+
+                                // 初始化毕业院校
+                                let vitaeSchools = vitaeSta.get("vitae_schools");
+                                let vitaeSchoolSum = vitaeSta.get("vitae_school_sum");
+                                for (let i = 0; i < vitaeSchoolSum.length; i++) {
+                                    addcase_scl(vitaeSchools[i], vitaeSchoolSum[i]);
+                                }
+
+                                // 初始化应届生
+                                let graduater_sum = vitaeSta.get("vitae_graduate_sum");
+                                addcase_graduate("应届生", graduater_sum);
+                                addcase_graduate("往届生", vitaeSum-graduater_sum);
+
+                                // 最高学历
+                                let maxrank_sum = vitaeSta.get("vitae_maxrank_sum");
+                                let maxranks = ["中专", "大专", "本科", "硕士研究生","博士研究生"];
+                                for (let i=0; i<5; i++) {
+                                    if (maxrank_sum[i] > 0)
+                                        addcase_srank(maxranks[i], maxrank_sum[i]);
+                                }
+
+                                // 专业
+                                let edu_profs = vitaeSta.get("vitae_profs");
+                                let edu_prof_sum = vitaeSta.get("vitae_prof_sum");
+                                for (let i=0; i<edu_profs.length; i++) {
+                                    addcase_prof(edu_profs[i], edu_prof_sum[i]);
+                                }
+
+                                // 工作经验
+                                let work_comps = vitaeSta.get("vitae_comps");
+                                let work_comp_sum = vitaeSta.get("vitae_comp_sum");
+                                for (let i = 0; i < work_comps.length; i++) {
+                                    addcase_work(work_comps[i], work_comp_sum[i]);
+                                }
+
+                                // 目标岗位
+                                let target_jobs = vitaeSta.get("vitae_first_targets");
+                                let target_sum = vitaeSta.get("vitae_first_target_sum");
+                                for (let i = 0; i < target_jobs.length; i++) {
+                                    addcase_target(target_jobs[i], target_sum[i]);
+                                }
+                            });
+                        }
+                        
+
+                    }
+                } else location.replace("../account/login.html");
+            });
+        };
+
+        function setAllInvert(person_element_class) {
+            let person_cases = document.getElementsByClassName(person_element_class);
+            for (let person_case of person_cases) {
+                invertcolor(person_case);
+            }
+        }
+
+        // 关闭窗口
+        function disappear(id) {
+            id.style.display = 'none';
+        }
+        // 开启窗口
+        function onappear(id) {
+            id.style.display = 'block';
+        }
+        </script>
+    <style>
+        html { height: 100%;}
+        body {
+            text-decoration: none;
+            background-image: url("../source/pic/bgi005.jpg");
+            background-size: cover;
+            margin: 0;
+            height: 100%;
+        }
+
+        .page_shell {
+            float: left;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            bottom: 0;
+            text-align: center;
+            display: inline-block;
+        }
+
+        .mainpage {
+            width:1000px;
+            min-height: 100%;
+            margin-top: 0;
+            padding-top: 0;
+            border-top: 0;
+            opacity: 0.9;
+
+            display: inline-block;
+            background-color: white;
+        }
+        #firstcase {
+            padding-top: 50px;
+        }
+
+        .case {
+            font-size: 25px;
+            width: 700px;
+            margin-right: auto;
+            margin-left: auto;
+            /* background-color: fuchsia; */
+            margin-top: 20px;
+            margin-bottom: 50px;
+        }
+
+        .val_case {
+            display: inline-block;
+            background-color: #fff;
+            border-radius: 50%;
+            border-radius: 13px;
+            font-size: 18px;
+            padding-top: 3px;
+            padding-bottom: 3px;
+            padding-left: 10px;
+            padding-right: 10px;
+            margin-left: 10px;
+            margin-top: 10px;
+            
+            user-select: none;
+            box-shadow: 0 0 2px 2px rgb(50, 50, 50);
+        }
+
+        .val_case:hover, .btn:hover {
+            filter: brightness(0.8);
+            cursor: pointer;
+        }
+        .nselect {
+            color: #000;
+            background-color: #fff;
+            box-shadow: 0 0 2px 2px rgb(50, 50, 50);
+        }
+        .select {
+            color: #fff;
+            background-color: #001529;
+            box-shadow: 0 0 2px 2px #001529;
+        }
+
+        /* 按键样式 */
+        .btn_chois {
+            width: 700px;
+            text-align: center;
+            margin-left: auto;
+            margin-right: auto;
+            /* background-color: blue; */
+            padding-bottom: 20px;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #fff;
+            border-radius: 50%;
+            border-radius: 13px;
+            font-size: 18px;
+            padding-top: 3px;
+            padding-bottom: 3px;
+            padding-left: 15px;
+            padding-right: 15px;
+            margin-left: 15px;
+            margin-right: 15px;
+            margin-top: 10px;
+            
+            user-select: none;
+            box-shadow: 0 0 2px 2px rgb(50, 50, 50);
+
+        }
+
+        /* 提交筛选 窗口 */
+        .window_event {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background-color: #fff;
+            opacity: 0.9;
+
+            display: none;
+        }
+        .window {
+            width: 400px;
+            /* height: 200px; */
+            margin-top: 13%;
+            margin-left: auto;
+            margin-right: auto;
+            background-color: #ddd;
+
+            border-radius: 8px;
+        }
+
+        .windowtitle {
+            padding-top: 30px;
+            margin-left: auto;
+            margin-right: auto;
+            width: 300px;
+            text-align: center;
+            font-size: 26px;
+        }
+        .btn_chois2 {
+            width: 300px;
+            text-align: center;
+            margin-left: auto;
+            margin-right: auto;
+            /* margin-left: 35px; */
+            /* background-color: blue; */
+            padding-top: 20px;
+            padding-bottom: 40px;
+        }
+
+        .casetitle:hover {
+            cursor: pointer;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- 页面头部 -->
+    <div class="header">
+        <div class="headerzhanwei"></div>
+        <div class="head_content">
+            <!-- logo -->
+            <a href="../index.html" class="logo">
+                <img src="../source/pic/logo0.png" width="73" height="64">
+            </a>
+    
+            <!-- 导航 -->
+            <div class="nav">
+                <ul>
+                    <li><a href="../index.html" class="navpos">首页</a></li>
+                    <li><a href="searchgroup.html">加入面试</a></li>
+                    <li><a href="newgroup.html">发起面试</a></li>
+                    <li><a href="../account/store.html">定价与购买</a></li>
+                    <li><a href="../help/help_home.html">帮助中心</a></li>
+                </ul>
+            </div>
+    
+            <!-- 用户 -->
+            <div class="user">
+                <div></div>
+                <a href="../msgcenter/systemmsg.html">
+                    <img class="img1" src="../source/pic/user0.png" alt="" width="17" height="22">
+                </a>
+                <a href="../usercenter/personal_information.html">
+                    <img class="img2" src="../source/pic/user1.png" alt="" height="50" width="50">
+                </a>
+                <!-- <a href="../account/login.html">
+                    <span>登录</span>
+                </a> -->
+            </div>
+    
+        </div>
+    
+    </div>
+
+    <!-- 页面主体 -->
+    <span class="page_shell">
+        <div class="mainpage">
+            <div class="case" id="firstcase">
+                <div class="casetitle">
+                    您当前共收到来自
+                    <span id="persen_sum">number</span>
+                    位应聘者的简历投递。
+                </div>
+            </div>
+            <!-- 年龄 -->
+            <div class="case">
+                <div class="casetitle" onclick="setAllInvert('person_age_case');">
+                    其中，他们的年龄囊括：
+                </div>
+                <div class="casevals" id="casevals_age">
+                    <!-- <span class="val_case nselect" onclick="invertcolor(this)">年长者(人)</span> -->
+                    <span id="casevals_age_last"></span>
+        
+                </div>
+            </div>
+            <!-- 毕业院校 -->
+            <div class="case">
+                <div class="casetitle" onclick="setAllInvert('person_scl_case')">
+                    他们的毕业院校有：
+                </div>
+                <div class="casevals" id="casevals_scl">
+                    <!-- <span class="val_case nselect" onclick="invertcolor(this)">年长者(人)</span> -->
+                    <span id="casevals_scl_last"></span>
+                </div>
+            </div>
+            <!-- 应届生 -->
+            <div class="case">
+                <div class="casetitle" onclick="setAllInvert('person_graduate_case')">
+                    他们中有：
+                </div>
+                <div class="casevals" id="casevals_graduates">
+                    <!-- <span class="val_case nselect" onclick="invertcolor(this)">年长者(人)</span> -->
+                    <span id="casevals_graduate_last"></span>
+                </div>
+            </div>
+            <!-- 学历 -->
+            <div class="case">
+                <div class="casetitle" onclick="setAllInvert('person_sclrank_case')">
+                    他们的最高学历为：
+                </div>
+                <div class="casevals" id="casevals_sclrank">
+                    <!-- <span class="val_case nselect" onclick="invertcolor(this)">年长者(人)</span> -->
+                    <span id="casevals_sclrank_last"></span>
+                </div>
+            </div>
+        
+            <!-- 专业 -->
+            <div class="case">
+                <div class="casetitle" onclick="setAllInvert('person_prof_case')">
+                    他们的专业有：
+                </div>
+                <div class="casevals" id="casevals_prof">
+                    <!-- <span class="val_case nselect" onclick="invertcolor(this)">年长者(人)</span> -->
+                    <span id="casevals_prof_last"></span>
+                </div>
+            </div>
+        
+            <!-- 工作经历 -->
+            <div class="case">
+                <div class="casetitle" onclick="setAllInvert('person_work_case')">
+                    他们曾任职于：
+                </div>
+                <div class="casevals" id="casevals_work">
+                    <!-- <span class="val_case nselect" onclick="invertcolor(this)">年长者(人)</span> -->
+                    <span id="casevals_work_last"></span>
+                </div>
+            </div>
+
+            <!-- 第一志愿岗位 -->
+            <div class="case">
+                <div class="casetitle" onclick="setAllInvert('person_target_case')">
+                    他们的理想目标岗位有：
+                </div>
+                <div class="casevals" id="casevals_target">
+                    <!-- <span class="val_case nselect" onclick="invertcolor(this)">年长者(人)</span> -->
+                    <span id="casevals_target_last"></span>
+                </div>
+            </div>
+
+
+            <div class="btn_chois">
+                <span class="btn" onclick="onappear(checkevent)">提交筛选</span>
+                <span class="btn" onclick="location.replace('vitaefilter2.html?group_id='+group_name)">人工筛选</span>
+            </div>
+        </div>
+    </span>
+
+    <div class="window_event" id="checkevent">
+        <div class="window">
+            <div class="windowtitle">
+                经过筛选，得到入围的
+                <span id="people_last_num">30</span>
+                位应聘者。
+            </div>
+            <div class="btn_chois2">
+                <span class="btn" onclick="disappear(checkevent); littletrick();">确定</span>
+                <span class="btn" onclick="disappear(checkevent)">取消</span>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

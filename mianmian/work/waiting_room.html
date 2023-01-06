@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面面：面试等候厅</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-min.js"></script>
+    <script src="../account/web_prepare01.js"></script>
+
+    <style>
+        body {
+            text-decoration: none;
+            background-image: url("../source/pic/bgi009.jpg");
+            min-width: 1120px;
+            background-size: cover;
+
+            height: 100%;
+            text-align: center;
+        }
+
+        html {
+            height: 100%;
+        }
+
+        .mainshell {
+            background-color: rgba(255, 255, 255, 0.9);
+            float: left;
+
+            width: 900px;
+            margin-left: calc(50% - 450px);
+            height: calc(100% - 90px);
+            text-align: center;
+        }
+
+
+        .maintitle {
+            text-align: center;
+            font-size: 38px;
+
+            padding-bottom: 50px;
+        }
+
+        /* 等待框信息 */
+        #wait_content {
+            width: 374px;
+            margin-left: auto;
+            margin-right: auto;
+            padding-top: 20px;
+            padding-bottom: 20px;
+
+            text-align: center;
+            vertical-align: top;
+        }
+
+        /* 时间框设置 */
+        #time_broad {
+            display: inline-block;
+
+            /* background-color: darkcyan; */
+        }
+        #time_content {
+            font-size: 60px;
+            letter-spacing: 5px;
+            font-family:Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+        }
+        #date_content {
+            font-style: 15px;
+            font-family:Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+        }
+        #wait_info_box {
+            display: inline-block;
+
+            width: 250px;
+            padding-left: 20px;
+            /* background-color: seashell; */
+        }
+        .wait_info_pair {
+            padding-left: 10px;
+            padding-right: 10px;
+
+            text-align: left;
+        }
+        .wait_info_key {
+            font-size: 15px;
+            font-weight: 600;
+        }
+        .wait_info_val {
+            font-size: 20px;
+            font-family: 'Times New Roman', Times, serif;
+        }
+
+        /* 按键设置 */
+        #wait_btn_box {
+            padding-top: 50px;
+            padding-bottom: 50px;
+
+            text-align: center;
+        }
+        .wait_btn {
+            padding: 5px;
+            font-size: 18px;
+            letter-spacing: 3px;
+            padding-left: 8px;
+            padding-right: 8px;
+
+            border-radius: 5px;
+            border: 1px solid #000;
+            background-color: #fff;
+        }
+        .wait_btn:hover {
+            filter: brightness(0.8);
+            cursor: pointer;
+            user-select: none;
+        }
+
+    </style>
+    <link rel="stylesheet" href="../css/index.css">
+    <script>
+        // 初始化leancloud
+        const { Query, User } = AV;
+        AV.init({
+            appId: "QINFwm0ds2NuLyRCmbpmUltw-gzGzoHsz",
+            appKey: "16T8fLd7241TyCxCkCvAYPif",
+            serverURL: "https://qinfwm0d.lc-cn-n1-shared.com"
+        });
+
+        urlinfo = window.location.href; //获取当前页面的url
+        len = urlinfo.length;//获取url的长度
+        offset = urlinfo.indexOf("?");//设置参数字符串开始的位置
+        nowpath = urlinfo.substr(0, offset + 1); // 获取当前路径
+        newsidinfo = urlinfo.substr(offset, len); //取出参数字符串 这里会获得类似“id=1”这样的字符串
+        newsids = newsidinfo.split("=");//对获得的参数字符串按照“=”进行分割
+        interview_tmp_name = newsids[1];//得到参数值
+        newsname = newsids[0];//得到参数名字
+        var interview_id = interview_tmp_name;
+
+        var candidate_arr = new Array(), is_interviewer = undefined, chose_candidate = undefined,
+            interview_start = new Date(), interview_end = new Date();
+        var now_my_number = -1, now_my_vitaeid="";
+
+        // 时间转字符串
+        function dateToString(date) {
+            var y = date.getFullYear();
+            var M = date.getMonth() + 1;
+            var d = date.getDate();
+            var H = date.getHours();
+            var m = date.getMinutes();
+            var s = date.getSeconds();
+            return y + '-' + (M < 10 ? ('0' + M) : M) + '-' + (d < 10 ? ('0' + d) : d) + " " + (H < 10 ? ('0' + H) : H) + ":" + (m < 10 ? ('0' + m) : m) + ":" + (s < 10 ? ('0' + s) : s);
+        }
+        // 日期转字符串
+        function dateToString0(date) {
+            var y = date.getFullYear();
+            var M = date.getMonth() + 1;
+            var d = date.getDate();
+            var H = date.getHours();
+            var m = date.getMinutes();
+            var s = date.getSeconds();
+            let xinqi_arr = ["星期天", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+            return y + '年' + (M < 10 ? ('0' + M) : M) + '月' + (d < 10 ? ('0' + d) : d) + "日 " + xinqi_arr[date.getDay()];
+            //  + (H < 10 ? ('0' + H) : H) + ":" + (m < 10 ? ('0' + m) : m) + ":" + (s < 10 ? ('0' + s) : s);
+        }
+        // 转换时间
+        function timeToString(date) {
+            var H = date.getHours();
+            var m = date.getMinutes();
+            return (H < 10 ? ('0' + H) : H) + ":" + (m < 10 ? ('0' + m) : m);
+        }
+
+        function getAllCandidates() {
+            const interviewQuery = new AV.Query('InterviewGroup');
+            interviewQuery.get(interview_id).then((tmp_interview) => {
+                candidate_arr = tmp_interview.get("candidate_arr");
+                let slt = document.getElementById("signin_name_slt");
+                for (let i=0; i<candidate_arr.length; i++) {
+                    let new_div_candidate = document.createElement("option");
+                    new_div_candidate.innerText = candidate_arr[i];
+                    slt.appendChild(new_div_candidate);
+                }
+
+                // 保存面试组信息
+                interview_start = tmp_interview.get("start_time");
+                interview_end = tmp_interview.get("end_time");
+            });
+        }
+
+        // 连续获取时间
+        function setTime() {
+            let now_time = new Date();
+            document.getElementById("time_content").innerText = timeToString(now_time);
+            document.getElementById("date_content").innerText = dateToString0(now_time);
+        }
+
+        function getGrouoInfo () {
+            const interviewQuery = new AV.Query('InterviewGroup');
+            interviewQuery.get(interview_id).then((now_interview) => {
+                candidate_arr = now_interview.get("candidate_arr");
+                
+                // 设置信息
+                document.getElementById("workgroup_name").innerText = now_interview.get("group_name");
+                document.getElementById("interview_total").innerText = candidate_arr.length;
+                document.getElementById("interview_now_number").innerText = now_interview.get("interview_progress");
+                document.getElementById("interview_time").innerText = "从 "+
+                    dateToString(now_interview.get("start_time")) + " 至 " + dateToString(now_interview.get("end_time"));
+                document.getElementById("interview_person_number").innerText = 1+candidate_arr.indexOf(chose_candidate);
+                now_my_number = 1 + candidate_arr.indexOf(chose_candidate);
+
+                // 登录操作
+                if (candidate_arr.indexOf(chose_candidate) == -1) {
+                    alert("信息丢失，请刷新网页后重试。");
+                    return;
+                } else {
+                    const personQuery = new AV.Query('Vitae');
+                    personQuery.equalTo('person_name', chose_candidate);
+                    personQuery.find().then((tmp_persons) => {
+                        if (tmp_persons.length == 0) {
+                            alert("信息丢失，请刷新网页后重试。");
+                            return;
+                        } else {
+                            // 保存应聘者id
+                            now_my_vitaeid = tmp_persons[0].get("objectId");
+                            if (tmp_persons[0].get("interview_signin_state") == undefined ||
+                                (interview_start.getTime()-tmp_persons[0].get("interview_signin_state").getTime()) > 1000*60*120) {
+                                // 更新信息
+                                const todo = AV.Object.createWithoutData('Vitae', tmp_persons[0].get("objectId"));
+                                todo.set('interview_signin_state', new Date());
+                                todo.save();
+                            }
+                        }
+                    });
+                }
+
+                // workgroup_target
+                const groupQuery = new AV.Query('WorkGroup');
+                groupQuery.equalTo('group_name', now_interview.get("group_name"));
+                groupQuery.find().then((tmp_group_arr) => {
+                    if (tmp_group_arr.length == 0) return;
+                    document.getElementById("workgroup_target").innerText = tmp_group_arr[0].get("email_conf");
+                });
+            });
+
+            // 不断获取面试进度
+            setInterval(() => {
+                getInterviewProcess();
+            }, 5000);
+        }
+
+        function setWindowDecoration() {
+            document.getElementById("sign_in_window").style.marginTop = window.innerHeight/2-132 + "px";
+            document.getElementById("sign_in_window").style.display = "block";
+            document.getElementById("enter_interview_window").style.marginTop = window.innerHeight/2-93 + "px";
+            document.getElementById("enter_interview_dialog").style.display = "none";
+
+            // 设置选项与保存
+            document.getElementById("signin_type_slt").onchange = function () {
+                if (this.selectedIndex == 1) {
+                    document.getElementById("signin_name_pair").style.visibility = "hidden";
+                    is_interviewer = true;
+                } else if (this.selectedIndex == 2) {
+                    document.getElementById("signin_name_pair").style.visibility = "visible";
+                    is_interviewer = false;
+                }
+            }
+
+            document.getElementById("signin_name_slt").onchange = function () {
+                if (this.selectedIndex == 0) {
+                    chose_candidate = undefined;
+                } else {
+                    chose_candidate = candidate_arr[this.selectedIndex-1];
+                }
+            }
+
+            document.getElementById("sign_in_btn").onclick = function () {
+                if (is_interviewer == undefined) {
+                    alert("请选择您的身份");
+                } else if (is_interviewer) {
+                    // 面试官的情况
+                    // 检查是否登录
+                    const loginQuery = new AV.Query('LoginState');
+                    let client_id = cans();
+                    loginQuery.equalTo('client_id', client_id);
+                    loginQuery.find().then((loginStates) => {
+                        if (loginStates.length > 0) {
+                            // 判断是否过期
+                            let nowdate = new Date();
+                            if ((nowdate.getTime() - loginStates[0].get('createdAt').getTime()) / 1000 > 36000) {
+                                alert("登录过期，请重新登录。");
+                                location.assign("../account/login.html");
+                                return;
+                            } else { // 成功登录
+                                // 页面跳转
+                                location.assign("../source/interview_room/src/Examples/AdvancedStreaming/PublishingMultipleStreams/interviewer.html?interview_number=" + interview_id);
+                            } 
+                        } else {
+                            alert("请登录您的账号。");
+                            location.assign("../account/login.html");
+                            return;
+                        } 
+                    });
+                } else {
+                    // 应聘者的情况
+                    if (chose_candidate == undefined) {
+                        alert("请选择您的姓名");
+                    } else {
+                        getGrouoInfo();
+                        document.getElementById("sign_in_dialog").style = "display:none";
+                    }
+                }
+            }
+        }
+
+        // 获取进度
+        function getInterviewProcess() {
+            // 获取面试进度
+            const interviewQuery = new AV.Query('InterviewGroup');
+            interviewQuery.get(interview_id).then((now_interview) => {
+                document.getElementById("interview_now_number").innerText = now_interview.get("interview_progress");
+                // alert("获取");
+                if (now_my_number == now_interview.get("interview_progress")) {
+                    // 提醒用户
+                    document.getElementById("enter_interview_dialog").style.display = "block";
+                    document.getElementById("enter_interview_clock").play();
+                }
+            });
+        }
+
+        // 进入面试室
+        function enterInterviewRoom() {
+            // 查询是否轮到自己
+            const interviewQuery = new AV.Query('InterviewGroup');
+            interviewQuery.get(interview_id).then((now_interview) => {
+                document.getElementById("interview_now_number").innerText = now_interview.get("interview_progress");
+                if (now_my_number == now_interview.get("interview_progress")) {
+                    // 进入面试室
+                    // 保存时间
+                    const todo = AV.Object.createWithoutData('Vitae', now_my_vitaeid);
+                    todo.set('interview_going_state', new Date());
+                    todo.save().then(function (params) {
+                        // 跳转页面
+                        location.assign("../source/interview_room/src/Examples/AdvancedStreaming/PublishingMultipleStreams/interviewee.html?interview_id="
+                            + interview_tmp_name + "&person_id=" + now_my_vitaeid);
+                    });
+
+                } else {
+                    alert("您被跳过了，请联系面试组了解详情。");
+                    return;
+                }
+            });
+        }
+
+        window.onload = function() {
+            if (interview_id == undefined || interview_id == "") {
+                alert("请输入有效的地址。");
+                location.assign("../index.html");
+            }
+            setWindowDecoration();
+
+            getAllCandidates();
+
+            setInterval(() => {
+                setTime();
+            }, 1000);
+
+        }
+    </script>
+
+</head>
+
+<body>
+    <!-- 头部信息 -->
+    <div class="header">
+        <div class="headerzhanwei"></div>
+        <div class="head_content">
+            <!-- logo -->
+            <a href="../index.html" class="logo">
+                <img src="../source/pic/logo0.png" width="73" height="64">
+            </a>
+
+            <!-- 导航 -->
+            <div class="nav">
+                <ul>
+                    <li><a href="../index.html" class="navpos">首页</a></li>
+                    <li><a href="../work/searchgroup.html">加入面试</a></li>
+                    <li><a href="../work/newgroup.html">发起面试</a></li>
+                    <li><a href="../account/store.html">定价与购买</a></li>
+                    <li><a href="../help/help_home.html">帮助中心</a></li>
+                </ul>
+            </div>
+
+            <!-- 用户 -->
+            <div class="user">
+                <div></div>
+                <a href="../account/login.html">
+                    <img class="img1" src="../source/pic/user0.png" alt="" width="17" height="22">
+                </a>
+                <a href="../account/login.html">
+                    <img class="img2" src="../source/pic/user1.png" alt="" height="50" width="50">
+                </a>
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="mainshell">
+        <div style="height: 30px; width: 100%;"></div>
+        <div class="maintitle">
+            面试等候厅
+        </div>
+        <div class="wait_content">
+            <span id="time_broad">
+                <div style="width: 100%; height: 40px; line-height: 40px; color: rgba(255, 255, 255, 0); user-select: none;"> 8</div>
+                <div id="time_content">09:30</div>
+                <div id="date_content">2023年01月03日 星期二</div>
+                <div style="width: 100%; height: 130px; line-height: 130px; color: rgba(255, 255, 255, 0); user-select: none;"> 8</div>
+            </span>
+            <span id="wait_info_box">
+                <div class="wait_info_pair">
+                    <div class="wait_info_key">面试组</div>
+                    <div class="wait_info_val" id="workgroup_name">面试组名称</div>
+                </div>
+                <div class="wait_info_pair">
+                    <div class="wait_info_key">招聘岗位</div>
+                    <div class="wait_info_val" id="workgroup_target">岗位</div>
+                </div>
+                <div class="wait_info_pair">
+                    <div class="wait_info_key">当前进度</div>
+                    <div class="wait_info_val">
+                        <span id="interview_now_number"></span>
+                        /
+                        <span id="interview_total"></span>
+                    </div>
+                </div>
+                <div class="wait_info_pair">
+                    <div class="wait_info_key">您的位次</div>
+                    <div class="wait_info_val">
+                        <span id="interview_person_number">x</span>
+                    </div>
+                </div>
+                <div class="wait_info_pair">
+                    <div class="wait_info_key">面试时间</div>
+                    <div class="wait_info_val">
+                        <span id="interview_time"></span>
+                    </div>
+                </div>
+            </span>
+        </div>
+        <div id="wait_btn_box">
+            <span class="wait_btn">
+                进入面试室
+            </span>
+        </div>
+    </div>
+
+<!-- 对话框样式文件 -->
+<style>
+    .wait_dialog {
+        position: fixed;
+
+        width: 100%;
+        height: 100%;
+        background-color: rgba(200,200,200,0.8);
+    }
+
+    #sign_in_window {
+        width: 300px;
+        margin: auto;
+        
+        background-color: rgb(250, 250, 250);
+        border-radius: 8px;
+
+        overflow: hidden;
+    }
+    .wait_dialog_title {
+        font-size: 20px;
+        padding: 20px;
+        padding-top: 30px;
+    }
+
+    /* 按键框 */
+    .wait_dialog_btnbox {
+        width: 100%;
+        padding-top: 10px;
+        padding-bottom: 10px;
+
+        /* padding-right: 20px; */
+        text-align: center;
+
+        background-color: #eee;
+    }
+    .signin_btn {
+        font-size: 15px;
+        text-align: center;
+
+        display: inline-block;
+        padding: 3px;
+        padding-left: 10px;
+        padding-right: 10px;
+        width: 110px;
+
+        margin-left: 5px;
+        margin-right: 5px;
+        border-radius: 8px;
+        background-color: #0178D4;
+        color: #fff;
+    }
+    .signin_btn:hover {
+        cursor: pointer;
+        filter: brightness(0.8);
+    }
+
+    /* 内容框 */
+    .signin_pair {
+        width: 150px;
+        margin-left: auto;
+        margin-right: auto;
+
+        text-align: left;
+        padding-bottom: 20px;
+    }
+    .signin_key {
+        font-size: 15px;
+        font-weight: 600;
+    }
+    .signin_val {
+        width: 100%;
+        height: 25px;
+
+        font-size: 18px;
+    }
+
+</style>
+    <!-- 进入网站的签到事件 -->
+    <div class="wait_dialog" id="sign_in_dialog">
+        <div id="sign_in_window" style="display: none;">
+            <div class="wait_dialog_title">
+                请选择您的认证方式
+            </div>
+            <div class="signin_pair">
+                <div class="signin_key">身份</div>
+                <select class="signin_val" id="signin_type_slt">
+                    <option selected disabled="disabled" label="面试身份"></option>
+                    <option>面试官</option>
+                    <option>应聘者</option>
+                </select>
+            </div>
+            <div class="signin_pair" id="signin_name_pair" style="visibility: hidden;">
+                <div class="signin_key">姓名</div>
+                <select class="signin_val" id="signin_name_slt">
+                    <option selected disabled="disabled" label="录入的名称"></option>
+                </select>
+            </div>
+            <div class="wait_dialog_btnbox" style="margin-top: 10px;">
+                <span class="signin_btn" id="sign_in_btn">
+                    确定
+                </span>
+                <span class="signin_btn" id="sign_exit_btn" onclick="window.close();">
+                    退出
+                </span>
+            </div>
+        </div>
+
+    </div>
+
+<!-- 对话框样式文件 -->
+<style>
+    .wait_dialog {
+        position: fixed;
+
+        width: 100%;
+        height: 100%;
+        background-color: rgba(200, 200, 200, 0.8);
+    }
+
+    #enter_interview_window {
+        width: 300px;
+        margin: auto;
+
+        background-color: rgb(250, 250, 250);
+        border-radius: 8px;
+
+        overflow: hidden;
+    }
+
+    .enter_interview_title {
+        font-size: 20px;
+        padding: 20px;
+        padding-top: 30px;
+    }
+
+    /* 按键框 */
+    .enter_interview_btnbox {
+        width: 100%;
+        padding-top: 10px;
+        padding-bottom: 10px;
+
+        /* padding-right: 20px; */
+        text-align: center;
+
+        background-color: #eee;
+    }
+
+    .enter_interview_btn {
+        font-size: 15px;
+        text-align: center;
+
+        display: inline-block;
+        padding: 3px;
+        padding-left: 10px;
+        padding-right: 10px;
+        width: 110px;
+
+        margin-left: 5px;
+        margin-right: 5px;
+        border-radius: 8px;
+        background-color: #0178D4;
+        color: #fff;
+    }
+
+    .enter_interview_btn:hover {
+        cursor: pointer;
+        filter: brightness(0.8);
+    }
+
+</style>
+<!-- 进入网站的签到事件 -->
+    <div class="wait_dialog" id="enter_interview_dialog" style="display: none;">
+        <div id="enter_interview_window" style="display: block;">
+            <div class="enter_interview_title">
+                面试组正在邀请您进入面试。
+            </div>
+            <audio src="../source/audio/clock001.mp3" style="width: 200px; height: 30px; margin-bottom: 20px;" id="enter_interview_clock" controls></audio>
+            <div class="enter_interview_btnbox" style="margin-top: 10px;">
+                <span class="enter_interview_btn" id="enter_interview_event" onclick="enterInterviewRoom();">
+                    确定
+                </span>
+                <span class="enter_interview_btn" id="enter_interview_out" onclick="window.close();">
+                    退出
+                </span>
+            </div>
+        </div>
+
+    </div>
+
+
+</body>
+
+</html>

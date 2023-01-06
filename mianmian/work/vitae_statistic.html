@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面面：简历筛选</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-min.js"></script>
+    <script src="../account/web_prepare01.js"></script>
+    <script>
+        // 初始化leancloud
+        const { Query, User } = AV;
+        AV.init({
+            appId: "QINFwm0ds2NuLyRCmbpmUltw-gzGzoHsz",
+            appKey: "16T8fLd7241TyCxCkCvAYPif",
+            serverURL: "https://qinfwm0d.lc-cn-n1-shared.com"
+        });
+
+        // 获取传递的信息
+        urlinfo = window.location.href; //获取当前页面的url
+        len = urlinfo.length;//获取url的长度
+        offset = urlinfo.indexOf("?");//设置参数字符串开始的位置
+        newsidinfo = urlinfo.substr(offset, len); //取出参数字符串 这里会获得类似“id=1”这样的字符串
+        newsids = newsidinfo.split("=");//对获得的参数字符串按照“=”进行分割
+        group_name = newsids[1];//得到参数值
+        newsname = newsids[0];//得到参数名字
+
+        var now_vitae_id = "";
+        var now_vitae_pos = 0;
+        var all_score_sum = [1,2,3,4,5,6];
+
+        function showPie(score_sum) {
+            // 确定提示信息
+            let score_case_list = document.getElementsByClassName("score_case");
+            for (let i=0; i<6; i++) {
+                score_case_list[i].title = score_sum[i]+"人";
+            }
+
+            let data = [
+                { title: "评级0分", money: score_sum[0] },
+                { title: "评级1分", money: score_sum[1] },
+                { title: "评分2级", money: score_sum[2] },
+                { title: "评分3级", money: score_sum[3] },
+                { title: "评分4级", money: score_sum[4] },
+                { title: "评分5级", money: score_sum[5] },
+            ]
+
+            /** @type {HTMLCanvasElement} */
+            let canvas = document.querySelector("#pie_pic");
+            let ctx = canvas.getContext("2d");
+            let r = 100;
+
+            let money = function (obj, sum) {
+                for (let i = 0; i < obj.length; i++) {
+                    sum += data[i].money
+                }
+                return sum;
+            }
+            let totalmoney = money(data, 0);
+
+            let nowsum = 0;
+            let start = 0;
+            let end = 0;
+            let R = 150;
+            let i = 0;
+
+            let jishuqi = 0;
+            let colors = ["#F8696B", "#F9A3A6", "#FBDEE1", "#DEF0E5", "#A1D7B0", "#63BE7B"];
+            data.forEach(function (item) {
+                ctx.beginPath()
+                nowsum += item.money;
+                end = (nowsum / totalmoney)
+                ctx.moveTo(R + 50, R + 50);
+                ctx.arc(R + 50, R + 50, R, start * Math.PI * 2, end * Math.PI * 2)
+                start = end;
+                //产生随机颜色
+                // ctx.fillStyle = '#' + Math.floor(Math.random() * 0xffffff).toString(16);
+
+                ctx.fillStyle = colors[jishuqi];
+                jishuqi++;
+
+                // ctx.rect(350, 5 + (35 * i), 30, 30);
+                // ctx.font = "14px 黑体"
+                // ctx.fillText(item.title, 400, 25 + (35 * i))
+                ctx.strokeStyle = "#000";
+                ctx.fill();
+                ctx.stroke();
+                i++;
+            })
+        }
+
+        function showBar(score_sum) {
+            // 确定提示信息
+            let score_case_list0 = document.getElementsByClassName("bar_case");
+            let score_case_list1 = document.getElementsByClassName("bar_title");
+
+            let max_score = 0;
+
+            for (let i = 0; i < 6; i++) {
+                score_case_list0[i].title = score_sum[i] + "人";
+                score_case_list1[i].title = score_sum[i] + "人";
+
+                if (score_sum[i] > max_score) max_score = score_sum[i];
+            }
+
+            for (let i=0; i<6; i++) {
+                score_case_list0[i].style.height = score_sum[i]/max_score*300 + "px";
+            }
+        }
+
+        // 设定按键
+        function changeCheck(btn_no) {
+            let checkboxs = document.getElementsByClassName("main_choice_checkbox");
+            if (checkboxs.length <= btn_no) return;
+            else if (btn_no < 0) return;
+
+            checkboxs[btn_no].checked = !checkboxs[btn_no].checked;
+            // if (checkboxs[btn_no].checked)
+        }
+
+        // 日期转字符串
+        function dateToString(date) {
+            var year = date.getFullYear();
+            var month = (date.getMonth() + 1).toString();
+            var day = (date.getDate()).toString();
+            if (month.length == 1) {
+                month = "0" + month;
+            }
+            if (day.length == 1) {
+                day = "0" + day;
+            }
+            var dateTime = year + "-" + month + "-" + day;
+            return dateTime;
+        }
+
+        function showStatistics(score_sum) {
+            showPie(score_sum);
+            showBar(score_sum);
+        }
+
+        // 刷新选择人数
+        function getChooseSum() {
+            let sumpeople = 0;
+            let checkboxs = document.getElementsByClassName("main_choice_checkbox");
+
+            for (let i=0; i<6; i++){
+                if (checkboxs[i].checked) {
+                    sumpeople += all_score_sum[i];
+                }
+            }
+
+            document.getElementById("choicesum").innerText = sumpeople;
+        }
+
+        // 展示所有的数据
+        function showAllStatistic() {
+            let score_sum = [0,0,0,0,0,0];
+
+            const vitaeGroupAuery = new AV.Query('Vitae');
+            vitaeGroupAuery.equalTo('workgroup_name', group_name);
+
+            vitaeGroupAuery.count().then((count_num0) => {
+                // 0
+                // alert("0:"+count_num0);
+                score_sum[0] = count_num0;
+                const vitaeScoreAuery1 = new AV.Query('Vitae');
+                vitaeScoreAuery1.equalTo('vitae_score0', 1);
+
+                const query1 = AV.Query.and(vitaeGroupAuery, vitaeScoreAuery1);
+                query1.count().then((count_num1) => {
+                    // 1
+                    score_sum[1] = count_num1;
+                    const vitaeScoreAuery2 = new AV.Query('Vitae');
+                    vitaeScoreAuery2.equalTo('vitae_score0', 2);
+
+                    const query2 = AV.Query.and(vitaeGroupAuery, vitaeScoreAuery2);
+                    query2.count().then((count_num2) => {
+                        // 2
+                        score_sum[2] = count_num2;
+                        const vitaeScoreAuery3 = new AV.Query('Vitae');
+                        vitaeScoreAuery3.equalTo('vitae_score0', 3);
+
+                        const query3 = AV.Query.and(vitaeGroupAuery, vitaeScoreAuery3);
+                        query3.count().then((count_num3) => {
+                            // 3
+                            score_sum[3] = count_num3;
+                            const vitaeScoreAuery4 = new AV.Query('Vitae');
+                            vitaeScoreAuery4.equalTo('vitae_score0', 4);
+
+                            const query4 = AV.Query.and(vitaeGroupAuery, vitaeScoreAuery4);
+                            query4.count().then((count_num4) => {
+                                // 4
+                                score_sum[4] = count_num4;
+                                const vitaeScoreAuery5 = new AV.Query('Vitae');
+                                vitaeScoreAuery5.equalTo('vitae_score0', 5);
+
+                                const query5 = AV.Query.and(vitaeGroupAuery, vitaeScoreAuery5);
+                                query5.count().then((count_num5) => {
+                                    // 4
+                                    score_sum[5] = count_num5;
+                                    score_sum[0] -= (score_sum[1] + score_sum[2] + score_sum[3] + score_sum[4] + score_sum[5]);
+
+                                    // 展示所有数据
+                                    for (let i=0; i<6; i++)
+                                        all_score_sum[i] = score_sum[i];
+                                    showStatistics(score_sum);
+                                });
+                            });
+                        });
+                    });
+                });
+
+            });
+
+            const vitaeAuery = new AV.Query('Vitae');
+            vitaeAuery.equalTo('lastName', 'Smith');
+            vitaeAuery.find().then((vitaes) => {
+                // students 是包含满足条件的 Student 对象的数组
+            });
+        }
+
+        // 页面预加载内容
+        window.onload = function () {
+            // return;
+
+            // 检查登录状态
+            const loginQuery = new AV.Query('LoginState');
+            let client_id = cans();
+            loginQuery.equalTo('client_id', client_id);
+            loginQuery.find().then((loginStates) => {
+                if (loginStates.length > 0) {
+                    // 判断是否过期
+                    let nowdate = new Date();
+                    if ((nowdate.getTime() - loginStates[0].get('createdAt').getTime()) / 1000 > 3600) {
+                        alert("登录已过期，请重新登录。");
+                        location.assign("../account/login.html");
+                    } else {
+                        if (group_name == undefined || group_name == "") {
+                            location.assign("../usercenter/workspace.html");
+                            return;
+                        } else {
+                            // 判断是否是工作组的成员
+                            // 检查工作组与人员是否对应
+                            const accountQuery = new AV.Query('Account');
+                            // 获取登陆者账号
+                            accountQuery.get(loginStates[0].get("account_id")).then((now_account) => {
+                                // 查询组
+                                let ingroup = now_account.get("work_group_list").indexOf(group_name); // 获取账户名
+                                if (ingroup == -1) {
+                                    alert("您尚未加入该面试工作组。");
+                                    location.assign("../usercenter/workspace.html");
+                                    return;
+                                }
+                            });
+
+                            // 初始化内容
+                            showAllStatistic();
+                        }
+
+
+                    }
+                } else location.assign("../account/login.html");
+            });
+        };
+
+        function sendRes() {
+            let ischecked = [false,false,false,false,false,false];
+            let checkboxs = document.getElementsByClassName("main_choice_checkbox");
+
+            for (let i = 0; i < 6; i++) {
+                ischecked[i] = (checkboxs[i].checked);
+            }
+
+            const vitaeGroupAuery = new AV.Query('Vitae');
+            vitaeGroupAuery.equalTo('workgroup_name', group_name);
+
+            vitaeGroupAuery.find().then((group_vitaes) => {
+                for (let i=0; i<group_vitaes.length; i++) {
+                    if (!ischecked[group_vitaes[i].get("vitae_score0")]) {
+                        let tmp_vitae = AV.Object.createWithoutData('Vitae', group_vitaes[i].get("objectId"));
+                        tmp_vitae.destroy();
+                    }
+                }
+            });
+            alert("提交成功");
+        }
+    </script>
+    <style>
+        body {
+            text-decoration: none;
+            background-image: url("../source/pic/bgi006.jpg");
+            background-size: cover;
+            min-width: 1120px;
+        }
+
+        .mainshell {
+            float: left;
+            width: 100%;
+            text-align: center;
+        }
+
+        .mainpage {
+            width: 1000px;
+            /* height: 1000px; */
+
+            margin-right: auto;
+            margin-left: auto;
+            /* opacity: 0.9; */
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+
+        .maintitle {
+            text-align: center;
+            font-size: 38px;
+            padding-top: 30px;
+            padding-bottom: 30px;
+        }
+
+
+    </style>
+    <link rel="stylesheet" href="../css/index.css">
+</head>
+
+<body>
+    <!-- 头部信息 -->
+    <div class="header">
+        <div class="headerzhanwei"></div>
+        <div class="head_content">
+            <!-- logo -->
+            <a href="../index.html" class="logo">
+                <img src="../source/pic/logo0.png" width="73" height="64">
+            </a>
+
+            <!-- 导航 -->
+            <div class="nav">
+                <ul>
+                    <li><a href="../index.html" class="navpos">首页</a></li>
+                    <li><a href="searchgroup.html">加入面试</a></li>
+                    <li><a href="newgroup.html">发起面试</a></li>
+                    <li><a href="../account/store.html">定价与购买</a></li>
+                    <li><a href="../help/help_home.html">帮助中心</a></li>
+                </ul>
+            </div>
+
+            <!-- 用户 -->
+            <div class="user">
+                <div></div>
+                <a href="../msgcenter/systemmsg.html">
+                    <img class="img1" src="../source/pic/user0.png" alt="" width="17" height="22">
+                </a>
+                <a href="../usercenter/personal_information.html">
+                    <img class="img2" src="../source/pic/user1.png" alt="" height="50" width="50">
+                </a>
+            </div>
+
+        </div>
+
+    </div>
+
+    <span class="mainshell">
+        <div class="mainpage">
+            <div class="maintitle">
+                简历人工筛选评分统计
+            </div>
+
+<style>
+
+    .main_pie_content {
+        width: 550px;
+        height: 400px;
+        /* background-color: navajowhite; */
+        margin-left: auto;
+        margin-right: auto;
+
+        /* padding-bottom: 50px; */
+    }
+
+    #pie_pic_box {
+        float: left;
+    }
+    #pie_pic {
+        /* background-color: aqua; */
+        display: inline-block;
+    }
+
+    #score_list {
+        float: right;
+
+        /* background-color: lawngreen; */
+        width: 150px;
+        height: 245px;
+
+        margin-top: 80px;
+        vertical-align: text-top;
+    }
+
+    .score_case {
+        font-size: 18px;
+        margin-top: 12px;
+        margin-bottom: 12px;
+    }
+
+    .score_color {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        margin-right: 10px;
+        background-color: #eee;
+        border: 1px solid #000;
+    }
+
+    .score_content {
+        line-height: 22px;
+        float: right;
+        margin-right: 35px;
+    }
+
+    .main_bar_content {
+        width: 600px;
+        height: 400px;
+
+        padding-top: 20px;
+        margin-left: auto;
+        margin-right: auto;
+        /* background-color: darkcyan; */
+    }
+
+    .bar_box {
+        width: 500px;
+        height: 350px;
+        
+        margin-left: auto;
+        margin-right: auto;
+
+        background-color: #fff;
+        border: 2px solid #000;
+
+        vertical-align: bottom;
+        position: relative;
+    }
+
+    .bar_case {
+        height: 300px;
+        width: 30px;
+
+        display: inline-block;
+        /* background-color: lawngreen; */
+
+        margin-left: 20px;
+        margin-right: 20px;
+
+        position: absolute;
+        bottom: 0px;
+    }
+
+    .bar_case:hover, .bar_title:hover,
+    .score_case:hover {
+        filter: brightness(0.8);
+        cursor: pointer;
+    }
+
+    .bar_title {
+        margin-left: 6px;
+        margin-right: 6px;
+
+    }
+
+    .main_choice_content {
+        width: 500px;
+        height: 150px;
+        /* background-color: #F9A3A6; */
+
+        margin-left: auto;
+        margin-right: auto;
+        padding-top: 20px;
+    }
+
+    .main_choice_case {
+        display: inline-block;
+        font-size: 20px;
+        margin-left: 10px;
+        margin-right: 10px;
+
+        padding: 3px;
+        padding-left: 8px;
+        padding-right: 10px;
+        border-radius: 15px;
+
+        margin-top: 5px;
+        margin-bottom: 5px;
+
+        background-color: rgba(245, 245, 255, 0.6);
+        border: 1px solid rgb(120,120,125);
+    }
+
+    .main_choice_case:hover {
+        background-color: #DEF0E5;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .main_choice_title {
+        font-size: 25px;
+    }
+
+    .main_explain {
+        font-size: 15px;
+    }
+    
+    .main_send_box {
+        width: 600px;
+        height: 80px;
+        margin-left: auto;
+        margin-right: auto;
+
+        padding-top: 20px;
+        padding-bottom: 20px;
+    }
+
+    .main_send_btn {
+        display: inline-block;
+        font-size: 20px;
+
+        padding: 3px;
+        padding-left: 20px;
+        padding-right: 20px;
+        border-radius: 12px;
+
+        /* margin-left: calc(50% - 20px); */
+
+        border: 2px solid rgba(0, 15, 30, 0.8);
+        background-color: rgb(250, 250, 255);
+    }
+
+    .main_send_btn:hover {
+        cursor: pointer;
+        user-select: none;
+        background-color: #aaa;
+    }
+
+</style>
+
+            <div class="main_pie_content">
+                <span id="score_list">
+                    <div class="score_case">
+                        <span class="score_color" style="background-color: #F8696B;"></span>
+                        <span class="score_content">评分0级</span>
+                    </div>
+                    <div class="score_case">
+                        <span class="score_color" style="background-color: #F9A3A6;"></span>
+                        <span class="score_content">评分1级</span>
+                    </div>
+                    <div class="score_case">
+                        <span class="score_color" style="background-color: #FBDEE1;"></span>
+                        <span class="score_content">评分2级</span>
+                    </div>
+                    <div class="score_case">
+                        <span class="score_color" style="background-color: #DEF0E5;"></span>
+                        <span class="score_content">评分3级</span>
+                    </div>
+                    <div class="score_case">
+                        <span class="score_color" style="background-color: #A1D7B0;"></span>
+                        <span class="score_content">评分4级</span>
+                    </div>
+                    <div class="score_case">
+                        <span class="score_color" style="background-color: #63BE7B;"></span>
+                        <span class="score_content">评分5级</span>
+                    </div>
+                </span>
+                <span id="pie_pic_box">
+                    <canvas id='pie_pic' width='400' height='400' ></canvas>
+                    <script>
+                        let data = [
+
+                            { title: "0分", money: 400 },
+                            { title: "1分", money: 400 },
+                            { title: "2分", money: 400 },
+                            { title: "3分", money: 400 },
+                            { title: "4分", money: 400 },
+                            { title: "5分", money: 400 },
+
+                            // { title: "服饰1", money: 400 },
+                            // { title: "服饰2", money: 300 },
+                            // { title: "服饰3", money: 400 },
+                            // { title: "服饰4", money: 200 },
+                            // { title: "服饰5", money: 500 },
+                            // // { title: "服饰6", money: 180 },
+                            // { title: "服饰7", money: 500 }
+                        ]
+
+                        /** @type {HTMLCanvasElement} */
+                        let canvas = document.querySelector("#pie_pic");
+                        let ctx = canvas.getContext("2d");
+                        let r = 100;
+
+                        let money = function (obj, sum) {
+                            for (let i = 0; i < obj.length; i++) {
+                                sum += data[i].money
+
+                            }
+                            return sum;
+                        }
+                        let totalmoney = money(data, 0);
+
+                        let nowsum = 0;
+                        let start = 0;
+                        let end = 0;
+                        let R = 150;
+                        let i = 0;
+
+                        let jishuqi = 0;
+                        let colors = ["#F8696B", "#F9A3A6", "#FBDEE1", "#DEF0E5", "#A1D7B0", "#63BE7B"];
+                        data.forEach(function (item) {
+                            ctx.beginPath()
+                            nowsum += item.money;
+                            end = (nowsum / totalmoney)
+                            ctx.moveTo(R+50, R+50);
+                            ctx.arc(R+50, R+50, R, start * Math.PI * 2, end * Math.PI * 2)
+                            start = end;
+                            //产生随机颜色
+                            // ctx.fillStyle = '#' + Math.floor(Math.random() * 0xffffff).toString(16);
+
+                            ctx.fillStyle = colors[jishuqi];
+                            jishuqi++;
+
+                            // ctx.rect(350, 5 + (35 * i), 30, 30);
+                            // ctx.font = "14px 黑体"
+                            // ctx.fillText(item.title, 400, 25 + (35 * i))
+                            ctx.strokeStyle = "#000";
+                            ctx.fill();
+                            ctx.stroke();
+                            i++;
+                        })
+                    </script>
+                </span>
+            </div>
+
+            <div class="main_bar_content">
+                <div class="bar_box">
+                    <span class="bar_case" style="left: 25px; background-color: #F8696B"></span>
+                    <span class="bar_case" style="left: 100px; background-color: #F9A3A6;"></span>
+                    <span class="bar_case" style="left: 175px; background-color: #FBDEE1;"></span>
+                    <span class="bar_case" style="left: 250px; background-color: #DEF0E5;"></span>
+                    <span class="bar_case" style="left: 325px; background-color: #A1D7B0;"></span>
+                    <span class="bar_case" style="left: 400px; background-color: #63BE7B;"></span>
+                </div>
+                <div class="bar_titles">
+                    <span class="bar_title">评分0级</span>
+                    <span class="bar_title">评分1级</span>
+                    <span class="bar_title">评分2级</span>
+                    <span class="bar_title">评分3级</span>
+                    <span class="bar_title">评分4级</span>
+                    <span class="bar_title">评分5级</span>
+                </div>
+            </div>
+
+            <div class="main_explain">
+                * 评分0级的应聘者均为未被打分的应聘者。
+            </div>
+
+            <div class="main_choice_content" onclick="getChooseSum();">
+                <div class="main_choice_title">
+                    请选择入围的评分等级的应聘者。当前选中的应聘者共
+                    <span id="choicesum">0</span>
+                    人。
+                </div>
+                <span class="main_choice_case">
+                    <input type="checkbox" class="main_choice_checkbox">
+                    <span class="main_choice_casetitle" onclick="changeCheck(0)">评分0级</span>
+                </span>
+                <span class="main_choice_case">
+                    <input type="checkbox" class="main_choice_checkbox">
+                    <span class="main_choice_casetitle" onclick="changeCheck(1)">评分1级</span>
+                </span>
+                <span class="main_choice_case">
+                    <input type="checkbox" class="main_choice_checkbox">
+                    <span class="main_choice_casetitle" onclick="changeCheck(2)">评分2级</span>
+                </span>
+                <span class="main_choice_case">
+                    <input type="checkbox" class="main_choice_checkbox">
+                    <span class="main_choice_casetitle" onclick="changeCheck(3)">评分3级</span>
+                </span>
+                <span class="main_choice_case">
+                    <input type="checkbox" class="main_choice_checkbox">
+                    <span class="main_choice_casetitle" onclick="changeCheck(4)">评分4级</span>
+                </span>
+                <span class="main_choice_case">
+                    <input type="checkbox" class="main_choice_checkbox">
+                    <span class="main_choice_casetitle" onclick="changeCheck(5)">评分5级</span>
+                </span>
+            </div>
+
+            <div class="main_send_box">
+                <span class="main_send_btn" onclick="sendRes();">
+                    提 交 筛 选
+                </span>
+            </div>
+
+            <div class="zhanwei2"></div>
+            <div class="zhanwei2"></div>
+        </div>
+    </span>
+
+    <!-- 悬浮标签的样式 -->
+    <style>
+        .floatbtn {
+            position: fixed;
+            right: 5px;
+            bottom: 50px;
+            height: 55px;
+            width: 60px;
+            
+            background-color: #eee;
+            border-radius: 8px;
+            opacity: 0.9;
+            vertical-align: bottom;
+            text-align: center;
+        }
+
+        .page_btn {
+            margin: 10px;
+            margin-left: auto;
+            margin-right: auto;
+            filter: invert(100%);
+            filter: brightness(1.5);
+        }
+
+        .page_btn img:hover {
+            border-radius: 50%;
+            background-color: #555;
+            cursor: pointer;
+        }
+    </style>
+
+    <!-- 浮动的标签 -->
+    <span class="floatbtn">
+        <div class="page_btn" onclick="">
+            <img src="../source/pic/icon_exit.png" alt="" width="23px"
+                style="border: rgba(0, 15, 30, 0.9) solid 3px; border-radius: 17px; padding: 3px;" title="返回简历页面"
+                onclick="location.assign('./vitaefilter2.html?group_id=' + group_name)">
+        </div>
+    </span>
+
+</body>
+
+</html>

@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面面：简历投递</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-min.js"></script>
+    <script src="../account/web_prepare01.js"></script>
+    <script>
+        // 初始化leancloud
+        const { Query, User } = AV;
+        AV.init({
+            appId: "QINFwm0ds2NuLyRCmbpmUltw-gzGzoHsz",
+            appKey: "16T8fLd7241TyCxCkCvAYPif",
+            serverURL: "https://qinfwm0d.lc-cn-n1-shared.com"
+        });
+
+        // 获取传递的信息
+        urlinfo = window.location.href; //获取当前页面的url
+        len = urlinfo.length;//获取url的长度
+        offset = urlinfo.indexOf("?");//设置参数字符串开始的位置
+        newsidinfo = urlinfo.substr(offset, len); //取出参数字符串 这里会获得类似“id=1”这样的字符串
+        newsids = newsidinfo.split("=");//对获得的参数字符串按照“=”进行分割
+        group_name = newsids[1];//得到参数值
+        newsname = newsids[0];//得到参数名字
+
+        // 简历终止日期
+        var vitae_ddl = new Date();
+
+        // 日期转字符串
+        function dateToString(date) {
+            var year = date.getFullYear();
+            var month = (date.getMonth() + 1).toString();
+            var day = (date.getDate()).toString();
+            if (month.length == 1) {
+                month = "0" + month;
+            }
+            if (day.length == 1) {
+                day = "0" + day;
+            }
+            var dateTime = year + "-" + month + "-" + day;
+            return dateTime;
+        }
+
+        // 页面预加载内容
+        window.onload = function () {
+            // return;
+            // 检查登录状态，确定登录键是否删除
+            const loginQuery = new AV.Query('LoginState');
+            let client_id = cans();
+            loginQuery.equalTo('client_id', client_id);
+            loginQuery.find().then((loginStates) => {
+                if (loginStates.length > 0) {
+                    // 判断是否过期
+                    let nowdate = new Date();
+                    if ((nowdate.getTime() - loginStates[0].get('createdAt').getTime()) / 1000 > 3600) {
+                        document.getElementById("login_btn").style.display = "inline-block";
+                    }
+                    else {
+                        document.getElementById("login_btn").style.display = "none";
+                    }
+                } else document.getElementById("login_btn").style.display = "inline-block";
+            });
+
+            // 检查简历的终止日期
+            const vitaestatisticQuery = new AV.Query('VitaeStatistic');
+            vitaestatisticQuery.equalTo('group_name', group_name);
+            vitaestatisticQuery.find().then((vitaeStatistics) => {
+                if (vitaeStatistics.length < 1) {
+                    alert("简历收集已停止。");
+                    location.replace("../index.html");
+                    return;
+                } else if (vitaeStatistics[0].get("end_date") < new Date()) {
+                    alert("简历收集已停止。");
+                    location.replace("../index.html");
+                    return;
+                } else {
+                    vitae_ddl = vitaeStatistics[0].get("end_date");
+                    // alert("ddl:" + vitae_ddl);
+                }
+            });
+        };
+
+        function sendVitae() {
+            // 截至
+            // return;
+
+            // let will_continue = confirm("简历中空缺的项目将不会上传。请问是否继续提交简历。");
+            // if (!will_continue) return;
+
+            // 读取信息
+            // 读取姓名
+            let person_name = document.getElementById("person_name").value;
+            if (person_name == "") {
+                alert("请输入您的姓名");
+                return;
+            }
+            // 读取邮箱
+            let person_email = document.getElementById("person_email").value;
+            if (person_email == "") {
+                alert("请输入您的邮箱地址");
+                return;
+            }
+            // 读取联系方式
+            let person_tel = document.getElementById("person_tel").value;
+            if (person_tel == "") {
+                alert("请输入您的联系方式");
+                return;
+            }
+
+            // 读取出生日期
+            let person_birthday = document.getElementById("person_birthday").value;
+            let person_age = (vitae_ddl - new Date(person_birthday).getTime()) / (1000 * 60 * 60 * 24 * 365);
+            if (person_age < 18 || person_birthday == null || person_birthday == undefined) {
+                alert("请输入有效的出生日期");
+                return;
+            }
+            let person_age_type = 0;
+            {
+                if (person_age >= 18 && person_age < 22) {
+                    person_age_type = 1;
+                } else if (person_age >= 22 && person_age < 28) {
+                    person_age_type = 2;
+                } else if (person_age >= 28 && person_age < 35) {
+                    person_age_type = 3;
+                } else if (person_age >= 35 && person_age < 40) {
+                    person_age_type = 4;
+                } else if (person_age >= 40 && person_age < 50) {
+                    person_age_type = 5;
+                } else if (person_age >= 50 && person_age < 60) {
+                    person_age_type = 6;
+                } else if (person_age >= 60) person_age_type = 7;
+            }
+
+            // 读取受教育经历
+            let is_new_graduate = false; // 是否为应届生
+            let edu_max_rank = 0; // 个人最高学历
+            let edu_time = document.getElementsByClassName("edutime");
+            let edu_ranks = document.getElementsByClassName("rank");
+            let edu_schools = document.getElementsByClassName("school");
+            let edu_profs = document.getElementsByClassName("eduprofession");
+            // 开始学习时间、结束时间、学习、学位
+            let edu_starttime = new Array(), edu_endtime = new Array(),
+                edu_stu_school = new Array(), edu_stu_rank = new Array();
+            let edu_stu_prof = new Array();
+            for (let i=0; i< edu_schools.length; i++) {
+                if (edu_schools[i].value == "" ||
+                    edu_ranks[i].selectedIndex == 0 ||
+                    edu_profs[i].value == "") {
+                    alert("请输入有效的受教育信息");
+                    return;
+                } else if (new Date(edu_time[2*i].value) >= new Date(edu_time[2*i+1].value)) {
+                    alert("请输入有效的受教育信息。入学时间与毕业时间相冲突。");
+                    return;
+                }
+
+                if (vitae_ddl.getTime() - new Date(edu_time[2*i+1].value).getTime() <= 1000*60*60*24*90)
+                    is_new_graduate = true;
+                if (edu_ranks[i].selectedIndex > edu_max_rank)
+                    edu_max_rank = edu_ranks[i].selectedIndex;
+                
+                edu_starttime.push(new Date(edu_time[2*i].value)); // 开始时间
+                edu_endtime.push(new Date(edu_time[2*i+1].value)); // 结束时间
+                edu_stu_school.push(edu_schools[i].value); // 学校的中文全称
+                edu_stu_rank.push(edu_ranks[i].selectedIndex); // 学位
+                edu_stu_prof.push(edu_profs[i].value); // 专业
+            }
+
+            // 保存工作信息
+            let work_time = document.getElementsByClassName("worktime");
+            let work_jobs = document.getElementsByClassName("job");
+            let work_comps = document.getElementsByClassName("business");
+
+            // 各种工作信息
+            let work_starttime = new Array(), work_endtime = new Array(),
+                work_comp_list = new Array(), work_job_list = new Array();
+            for (let i=0; i< work_jobs.length; i++) {
+                if (work_jobs[i].value == "" ||
+                    work_comps[i].value == "" ||
+                    work_time[2*i].value > new Date() ||
+                    work_time[2*i].value >= work_time[2*i+1].value) {
+                    alert("请输入有效的工作经历");
+                    return;
+                }
+                work_starttime.push(new Date(work_time[2*i].value)); // 开始时间
+                work_endtime.push(new Date(work_time[2*i+1].value)); // 工作结束
+                work_comp_list.push(work_comps[i].value); // 工作公司
+                work_job_list.push(work_jobs[i].value); // 工作岗位
+            }
+
+            // 获奖经历
+            let reward_div_times = document.getElementsByClassName("reward_time");
+            let reward_div_titles = document.getElementsByClassName("reward_title");
+            let reward_div_dos = document.getElementsByClassName("reward_content");
+            // 获奖时间与内容等等
+            let reward_times = new Array(), reward_conts = new Array();
+            for (let i=0; i<reward_div_times.length; i++) {
+                if (new Date(reward_div_times[i].value) > new Date()) {
+                    alert("您的获奖信息时间有误，请重新填写");
+                    return;
+                } else if (reward_div_titles[i].value == "" ||
+                    reward_div_dos[i].value == "") continue;
+                reward_times.push(new Date(reward_div_times[i].value));
+                reward_conts.push(reward_div_titles[i].value);
+                reward_conts.push(reward_div_dos[i].value);
+            }
+
+            // 科研经历
+            let sci_div_time = document.getElementsByClassName("sci_time");
+            let sci_div_titles = document.getElementsByClassName("sci_title");
+            let sci_div_dos = document.getElementsByClassName("sci_content");
+            // 科研时间与内容等等
+            let sci_start = new Array(), sci_end = new Array(),
+                sci_conts = new Array();
+            for (let i = 0; i < sci_div_titles.length; i++) {
+                if (sci_div_titles[i].value == "" ||
+                    sci_div_dos[i].value == "") continue;
+                if (new Date(sci_div_time[2 * i].value) >=
+                    new Date(sci_div_time[2 * i+1].value)) {
+                        alert("您的科研信息有误，开始时间与结题时间相冲突，请重新填写。");
+                        return;
+                    }
+                sci_start.push(new Date(sci_div_time[2*i].value));
+                sci_end.push(new Date(sci_div_time[2*i+1].value));
+                sci_conts.push(sci_div_titles[i].value);
+                sci_conts.push(sci_div_dos[i].value);
+            }
+            
+
+            // 目标岗位
+            let person_targets = document.getElementsByClassName("target_job");
+            let person_target_jobs = new Array();
+            for (let i=0; i<person_targets.length; i++) {
+                if (person_targets[i].value == "" && i == 0) {
+                    alert("您尚未填写目标岗位的第一志愿。");
+                    return;
+                }
+                person_target_jobs.push(person_targets[i].value);
+            }
+
+            // 个人技能
+            let person_div_skills = document.getElementsByClassName("skill_content");
+            let person_skills = new Array();
+            for (let i=0; i<person_div_skills.length; i++) {
+                if (person_div_skills[i].value == "") continue;
+                person_skills.push(person_div_skills[i].value);
+            }
+
+            // 性格自述
+            let person_character = document.getElementById("person_character").value;
+            
+            // 在数据库中保存信息
+            let Vitae = AV.Object.extend('Vitae');
+            let vitae = new Vitae();
+            vitae.set("person_name", person_name); // 姓名
+            vitae.set("person_email", person_email); // 邮件
+            vitae.set("person_tel", person_tel); // 电话号码
+            vitae.set("person_birthday", new Date(person_birthday)); // 生日
+            vitae.set("person_age_type", person_age_type); // 年龄区间
+            
+            // 受教育经历
+            vitae.set("person_edu_starttime", edu_starttime);
+            vitae.set("person_edu_endtime", edu_endtime);
+            vitae.set("person_edu_rank", edu_stu_rank);
+            vitae.set("person_edu_school", edu_stu_school);
+            vitae.set("person_edu_professions", edu_stu_prof);
+            vitae.set("be_new_graduate", is_new_graduate);
+
+            // 工作经历
+            vitae.set("person_work_starttime", work_starttime);
+            vitae.set("person_work_endtime", work_endtime);
+            vitae.set("person_work_job", work_job_list);
+            vitae.set("person_work_comp", work_comp_list);
+
+            // 获奖经历
+            vitae.set("person_reward_times", reward_times);
+            vitae.set("person_reward_conts", reward_conts);
+
+            // 科研经历
+            vitae.set("person_sci_starttime", sci_start);
+            vitae.set("person_sci_endtime", sci_end);
+            vitae.set("person_sci_content", sci_conts);
+
+            // 目标岗位
+            vitae.set("person_target_jobs", person_target_jobs);
+
+            // 个人技能
+            vitae.set("person_skills", person_skills);
+
+            // 性格自述
+            vitae.set("person_character", person_character);
+
+            // 提交组名
+            vitae.set("workgroup_name", group_name);
+
+
+            // 在数据库中统计信息
+            const vitaestatisticQuery = new AV.Query('VitaeStatistic');
+            vitaestatisticQuery.equalTo('group_name', group_name);
+            vitaestatisticQuery.find().then((vitaeStatistics) => {
+                if (vitaeStatistics.length < 1) {
+                    alert("简历收集已停止。");
+                    return;
+                } else if (vitaeStatistics[0].get("end_date") < new Date()) {
+                    alert("简历收集已停止。");
+                    return;
+                }
+                vitaeStatistic = vitaeStatistics[0];
+
+                // 保存简历总数
+                vitaeStatistic.set('vitae_sum', vitaeStatistic.get('vitae_sum')+1); // 简历收集数增加
+                
+                // 统计年龄信息
+                let vitae_age_sum = vitaeStatistic.get('vitae_age_sum');
+                vitae_age_sum[person_age_type]++;
+                vitaeStatistic.set('vitae_age_sum', vitae_age_sum);
+
+                // 统计毕业院校
+                let vitae_schools = vitaeStatistic.get("vitae_schools");
+                let vitae_school_sum = vitaeStatistic.get("vitae_school_sum");
+                for (let i=0; i< edu_stu_school.length; i++) {
+                    let tmp_pos = vitae_schools.indexOf(edu_stu_school[i]);
+                    if (tmp_pos == -1) {
+                        vitae_schools.push(edu_stu_school[i]);
+                        vitae_school_sum.push(1);
+                    } else if (edu_stu_school.indexOf(edu_stu_school[i]) == i){
+                        vitae_age_sum[tmp_pos]++;
+                    }
+                }
+                vitaeStatistic.set("vitae_schools", vitae_schools);
+                vitaeStatistic.set("vitae_school_sum", vitae_school_sum);
+
+                // 统计最高学历
+                let vitae_maxrank_sum = vitaeStatistic.get("vitae_maxrank_sum");
+                vitae_maxrank_sum[edu_max_rank - 1]++;
+                vitaeStatistic.set("vitae_maxrank_sum", vitae_maxrank_sum);
+
+                // 统计专业
+                let vitae_profs = vitaeStatistic.get("vitae_profs");
+                let vitae_prof_sum = vitaeStatistic.get("vitae_prof_sum");
+                for (let i = 0; i < edu_stu_prof.length; i++) {
+                    let tmp_pos = vitae_profs.indexOf(edu_stu_prof[i]);
+                    if (tmp_pos == -1) {
+                        vitae_profs.push(edu_stu_prof[i]);
+                        vitae_prof_sum.push(1);
+                    } else if (edu_stu_prof.indexOf(edu_stu_prof[i]) == i) {
+                        vitae_prof_sum[tmp_pos]++;
+                    }
+                }
+                vitaeStatistic.set("vitae_profs", vitae_profs);
+                vitaeStatistic.set("vitae_prof_sum", vitae_prof_sum);
+
+                // 统计应届生
+                let vitae_grudate_sum = vitaeStatistic.get("vitae_graduate_sum");
+                if (is_new_graduate) vitae_grudate_sum++;
+                vitaeStatistic.set("vitae_graduate_sum", vitae_grudate_sum);
+
+                // 统计工作企业
+                let vitae_comps = vitaeStatistic.get("vitae_comps");
+                let vitae_comp_sum = vitaeStatistic.get("vitae_comp_sum");
+                for (let i = 0; i < work_comp_list.length; i++) {
+                    let tmp_pos = vitae_comps.indexOf(work_comp_list[i]);
+                    if (tmp_pos == -1) {
+                        vitae_comps.push(work_comp_list[i]);
+                        vitae_comp_sum.push(1);
+                    } else if (work_comp_list.indexOf(work_comp_list[i]) == i) {
+                        vitae_comp_sum[tmp_pos]++;
+                    }
+                }
+                vitaeStatistic.set("vitae_comps", vitae_comps);
+                vitaeStatistic.set("vitae_comp_sum", vitae_comp_sum);
+
+                // 统计第一岗位
+                let vitae_first_targets = vitaeStatistic.get("vitae_first_targets"),
+                    vitae_first_target_sum = vitaeStatistic.get("vitae_first_target_sum");
+                {
+                    let tmp_pos = vitae_first_targets.indexOf(person_target_jobs[0]);
+                    if (tmp_pos == -1) {
+                        vitae_first_targets.push(person_target_jobs[0]);
+                        vitae_first_target_sum.push(1);
+                    } else vitae_first_target_sum[tmp_pos]++;
+                }
+                vitaeStatistic.set("vitae_first_targets", vitae_first_targets);
+                vitaeStatistic.set("vitae_first_target_sum", vitae_first_target_sum);
+
+                // 保存修改
+                vitaeStatistic.save();
+
+                // 检查重名
+                const vitaeQuery = new AV.Query('Vitae');
+                // 相当于 SQL 中的 title LIKE 'lunch%'
+                vitaeQuery.startsWith('name', person_name);
+                vitaeQuery.count().then((count) => {
+                    if (count != 0) {
+                        alert("投递的简历中，存在"+count+"人与您同名，您在数据库中的姓名将以“"+person_name+"("+count+")”的形式保存");
+                        vitae.set("person_name", person_name+"("+count+")");
+                    }
+                    // 保存简历
+                    vitae.save().then((todo) => {
+                        // 成功保存之后，执行其他逻辑
+                        console.log(`简历投递成功。objectId：${todo}`);
+                        alert("简历投递成功");
+                        location.reload();
+                    }, (error) => {
+                        // 异常处理
+                        alert("数据库异常：" + error);
+                    });
+                });
+
+            });
+        }
+
+    </script>
+    <style>
+        body {
+            text-decoration: none;
+            background-image: url("../source/pic/bgi004.jpg");
+            min-width: 1120px;
+            background-size: cover;
+        }
+
+        input {
+            text-indent: 10px;
+        }
+
+        .mainshell {
+            float: left;
+            width: 100%;
+            text-align: center;
+        }
+
+        .mainpage {
+            width:1000px;
+            /* height: 1000px; */
+            
+            margin-right: auto;
+            margin-left: auto;
+            opacity: 0.9;
+            background-color: white;
+        }
+
+        .maintitle {
+            text-align: center;
+            font-size: 38px;
+            padding-top: 30px;
+            padding-bottom: 30px;
+        }
+
+        .attribt_pair {
+            margin-left: 100px;
+            margin-right: 100px;
+            padding-top: 10px;
+            padding-bottom: 20px;
+            /* background-color: greenyellow; */
+
+        }
+        .attribt_key {
+            font-size: 15px;
+            font-weight: 600;
+            width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left;
+            /* background-color: teal; */
+        }
+        .attribt_val {
+            font-size: 28px;
+            width: 400px;
+            height: 35px;
+            margin-left: auto;
+            margin-right: auto;
+            /* background-color: aquamarine; */
+        }
+        .attribt_val .inputtxt {
+            font-size: 20px;
+            font-family: 'Times New Roman', Times, serif;
+            width: 396px;
+            height: 30px;
+            border: 1;
+            padding: 0;
+        }
+
+        /* 添加信息 */
+        .attribt_key .add, .attribt_key .del {
+            display: inline-block;
+            float: right;
+            margin-right: 5px;
+        }
+        .attribt_key .add:hover, .attribt_key .del:hover {
+            filter: invert(50%);
+            cursor: pointer;
+        }
+
+        .eduevent, .workevent, .rewardevent, .scievent, .targetevent, .skillevent {
+            padding-top: 5px;
+            width: 380px;
+            margin-left: auto;
+            margin-right: auto;
+            /* background-color: violet; */
+        }
+        .edu_atr_title, .work_atr_title, .reward_atr_title, .sci_atr_title, .target_atr_title, .skill_atr_title {
+            font-size: 15px;
+            vertical-align: bottom;
+            font-weight: 600;
+            width: 380px;
+            text-align: left;
+            color: rgb(80,80,80);
+            /* background-color: seashell; */
+        }
+        .edu_atr_val, .work_atr_val, .reward_atr_val, .sci_atr_val, .target_atr_val, .skill_atr_val {
+            font-size: 28px;
+            width: 380px;
+            height: 35px;
+            margin-left: auto;
+            margin-right: auto;
+            /* background-color: darkcyan; */
+        }
+        .edu_atr_val .timeyear, .work_atr_val .timeyear,
+        .rank, .school, .job, .business,
+        .edu_atr_val .eduprofession, .reward_atr_val .timeyear,
+        .sci_atr_val .timeyear, .target_atr_val .target_job,
+        .reward_title, .reward_content, .sci_title, .sci_content,
+        .skill_atr_val .skill_content {
+            font-size: 20px;
+            font-family: 'Times New Roman', Times, serif;
+            width: 376px;
+            height: 30px;
+            border: 1;
+            padding: 0;
+        }
+        .timeyear, .eduprofession, .skill_content, .target_job { float: left;}
+        .edu_atr_val .rank {
+            float: left;
+            width: 120px;
+            height: 34px;
+        }
+        .work_atr_val .job, .reward_atr_val .reward_title, .sci_atr_val .sci_title{
+            float: left;
+            width: 100px;
+        }
+        .edu_atr_val .school {
+            float: right;
+            width: 238px;
+        }
+        .work_atr_val .business, .reward_atr_val .reward_content, .sci_atr_val .sci_content {
+            /* margin-left: 5px; */
+            float: right;
+            width: 263px;
+        }
+
+        /* 杂项 */
+        .zhanwei2 {
+            height: 20px;
+        }
+
+        /* 提交按钮 */
+        .submit {
+            width: 120px;
+            height: 30px;
+            font-size: 20px;
+            border-radius: 20px;
+            padding: 2px;
+            vertical-align: middle;
+            margin-left: auto;
+            margin-right: auto;
+            background-color: rgb(220,225,220);
+            text-align: center;
+            
+            user-select: none;
+            box-shadow: 0 0 2px 1px rgb(86, 108, 115);
+        }
+        .submit:hover {
+            filter: brightness(1.2);
+            cursor: pointer;
+        }
+
+        .educase, .workcase, .reward_case, .sci_case {
+            margin-top: 5px;
+            margin-bottom: 5px;
+        }
+    </style>
+    <link rel="stylesheet" href="../css/index.css">
+</head>
+<body>
+    <!-- 头部信息 -->
+    <div class="header">
+        <div class="headerzhanwei"></div>
+        <div class="head_content">
+            <!-- logo -->
+            <a href="../index.html" class="logo">
+                <img src="../source/pic/logo0.png" width="73" height="64">
+            </a>
+
+            <!-- 导航 -->
+            <div class="nav">
+                <ul>
+                    <li><a href="../index.html" class="navpos">首页</a></li>
+                    <li><a href="../work/searchgroup.html">加入面试</a></li>
+                    <li><a href="../work/newgroup.html">发起面试</a></li>
+                    <li><a href="../account/store.html">定价与购买</a></li>
+                    <li><a href="../help/help_home.html">帮助中心</a></li>
+                </ul>
+            </div>
+
+            <!-- 用户 -->
+            <div class="user">
+                <div></div>
+                <a href="../account/login.html">
+                    <img class="img1" src="../source/pic/user0.png" alt="" width="17" height="22">
+                </a>
+                <a href="../account/login.html">
+                    <img class="img2" src="../source/pic/user1.png" alt="" height="50" width="50">
+                </a>    
+                <a href="../account/login.html" id="login_btn">
+                    <span>登录</span>
+                </a>
+            </div>
+
+        </div>
+
+    </div>
+
+    <span class="mainshell">
+        <div class="mainpage">
+            <div class="maintitle">
+                请填写您的简历
+            </div>
+            <div class="attribt_pair">
+                <div class="attribt_key">姓名</div>
+                <div class="attribt_val">
+                    <input class="inputtxt" id="person_name" type="text" placeholder="请输入您的姓名">
+                </div>
+            </div>
+            <div class="attribt_pair">
+                <div class="attribt_key">邮箱</div>
+                <div class="attribt_val">
+                    <input class="inputtxt" id="person_email" type="text" placeholder="请输入您的电子邮箱地址">
+                </div>
+            </div>
+            <div class="attribt_pair">
+                <div class="attribt_key">电话</div>
+                <div class="attribt_val">
+                    <input class="inputtxt" id="person_tel" type="text" placeholder="请输入您的电话号码">
+                </div>
+            </div>
+            <div class="attribt_pair">
+                <div class="attribt_key">出生日期</div>
+                <div class="attribt_val">
+                    <input class="inputtxt" id="person_birthday" type="date" value="2000-01-01">
+                </div>
+            </div>
+        
+<!-- 修改教育经历按钮事件 -->
+<script>
+    function new_edu_case() {
+        let element = document.getElementById("educases");
+        var div_educase = document.createElement("div");
+        div_educase.classList.add("educase");
+        div_educase.innerHTML = '<div class="eduevent"><div class="edu_atr_title">起始时间</div><div class="edu_atr_val"><input type="date" class="timeyear edutime" value="2020-09-01"></div><div class="edu_atr_title">结束时间</div><div class="edu_atr_val"><input type="date" class="timeyear edutime" value="2021-09-01"></div><div class="edu_atr_title">学历</div><div class="edu_atr_val"><select class="rank"><option selected disabled="disabled" label="学位"></option><option>中专</option><option>大专</option><option>本科</option><option>硕士研究生</option><option>博士研究生</option></select><input type="text" class="school" placeholder="学校的中文全称"></div><div class="edu_atr_title">专业</div><div class="edu_atr_val"><input type="text" class="eduprofession" placeholder="专业"></div></div>';
+        let zhanwei001 = document.getElementById("zhanwei001");
+        element.insertBefore(div_educase, zhanwei001);
+        document.getElementById("del_edu_btn").style.display = "inline-block";
+    }
+
+    function del_edu_case() {
+        let element = document.getElementById("educases");
+        let div_educases = document.getElementsByClassName("educase");
+        let len = div_educases.length;
+        element.removeChild(div_educases[len-1]);
+        if (len == 2) document.getElementById("del_edu_btn").style.display = "none";
+    }
+</script>
+
+            <!-- 受教育经历 -->
+            <div class="attribt_pair" id="educases">
+                <div class="attribt_key">
+                    受教育经历
+                    <div class="add" onclick="new_edu_case()" title="新增受教育经历">
+                        <img src="../source/pic/icon_add.png" alt="" width="20px">
+                    </div>
+                    <div class="del" id="del_edu_btn" onclick="del_edu_case()" title="删除受教育经历" style="display: none;">
+                        <img src="../source/pic/icon_del.png" alt="" width="20px">
+                    </div>
+                </div>
+                <div class="educase">
+                    <div class="eduevent">
+                        <div class="edu_atr_title">起始时间</div>
+                        <div class="edu_atr_val">
+                            <input type="date" class="timeyear edutime" value="2020-09-01">
+                        </div>
+                        <div class="edu_atr_title">结束时间</div>
+                        <div class="edu_atr_val">
+                            <input type="date" class="timeyear edutime" value="2021-09-01">
+                        </div>
+                        <div class="edu_atr_title">学历</div>
+                        <div class="edu_atr_val">
+                            <select class="rank">
+                                <option selected disabled="disabled" label="学位"></option>
+                                <option>中专</option>
+                                <option>大专</option>
+                                <option>本科</option>
+                                <option>硕士研究生</option>
+                                <option>博士研究生</option>
+                            </select>
+                            <input type="text" class="school" placeholder="学校的中文全称">
+                        </div>
+                        <div class="edu_atr_title">专业</div>
+                        <div class="edu_atr_val">
+                            <input type="text" class="eduprofession" placeholder="专业">
+                        </div>
+                    </div>
+                </div>
+        
+                <div id="zhanwei001"></div>
+            </div>
+
+<!-- 修改工作经历按钮事件 -->
+<script>
+    function new_work_case() {
+        let element = document.getElementById("workcases");
+        var div_educase = document.createElement("div");
+        div_educase.classList.add("workcase");
+        div_educase.innerHTML = '<div class="workevent"><div class="work_atr_title">起始时间</div><div class="work_atr_val"><input type="date" class="timeyear worktime" value="2020-09-01"></div><div class="work_atr_title">结束时间</div><div class="work_atr_val"><input type="date" class="timeyear worktime" value="2021-09-01"></div><div class="work_atr_title">工作内容</div><div class="work_atr_val"><input type="text" class="job" placeholder="职位"><input type="text" class="business" placeholder="企业的中文全称"></div></div>';
+        let zhanwei001 = document.getElementById("zhanwei002");
+        element.insertBefore(div_educase, zhanwei001);
+        document.getElementById("del_work_btn").style.display = "inline-block";
+    }
+
+    function del_work_case() {
+        let element = document.getElementById("workcases");
+        let div_educases = document.getElementsByClassName("workcase");
+        let len = div_educases.length;
+        element.removeChild(div_educases[len - 1]);
+        if (len == 1) document.getElementById("del_work_btn").style.display = "none";
+    }
+</script>
+
+            <!-- 工作经历 -->
+            <div class="attribt_pair" id="workcases">
+                <div class="attribt_key">
+                    工作经历
+                    <div class="add" onclick="new_work_case()" title="新增工作经历">
+                        <img src="../source/pic/icon_add.png" alt="" width="20px">
+                    </div>
+                    <div class="del" id="del_work_btn" onclick="del_work_case()" title="删除工作经历">
+                        <img src="../source/pic/icon_del.png" alt="" width="20px">
+                    </div>
+                </div>
+                <div class="workcase">
+                    <div class="workevent">
+                        <div class="work_atr_title">起始时间</div>
+                        <div class="work_atr_val">
+                            <input type="date" class="timeyear worktime" value="2020-09-01">
+                        </div>
+                        <div class="work_atr_title">结束时间</div>
+                        <div class="work_atr_val">
+                            <input type="date" class="timeyear worktime" value="2021-09-01">
+                        </div>
+                        <div class="work_atr_title">工作内容</div>
+                        <div class="work_atr_val">
+                            <input type="text" class="job" placeholder="职位">
+                            <input type="text" class="business" placeholder="企业的中文全称">
+                        </div>
+                    </div>
+                </div>
+        
+                <div id="zhanwei002"></div>
+            </div>
+
+<!-- 修改获奖经历按钮事件 -->
+<script>
+    function new_reward_case() {
+        let element = document.getElementById("rewardcases");
+        var div_rewardcase = document.createElement("div");
+        div_rewardcase.classList.add("rewardcase");
+        div_rewardcase.innerHTML = '<div class="rewardevent"><div class="reward_atr_title">获奖时间</div><div class="reward_atr_val"><input type="date" class="timeyear reward_time" value="2020-09-01"></div><div class="reward_atr_title">奖项内容</div><div class="reward_atr_val"><input type="text" class="reward_title" placeholder="奖项"><input type="text" class="reward_content" placeholder="获奖原因/个人特质"></div></div>';
+        let zhanwei001 = document.getElementById("zhanwei003");
+        element.insertBefore(div_rewardcase, zhanwei001);
+        document.getElementById("del_reward_btn").style.display = "inline-block";
+    }
+
+    function del_reward_case() {
+        let element = document.getElementById("rewardcases");
+        let div_rewardcases = document.getElementsByClassName("rewardcase");
+        let len = div_rewardcases.length;
+        element.removeChild(div_rewardcases[len - 1]);
+        if (len == 1) document.getElementById("del_reward_btn").style.display = "none";
+    }
+</script>
+
+            <!-- 获奖经历 -->
+            <div class="attribt_pair" id="rewardcases">
+                <div class="attribt_key">
+                    获奖经历
+                    <div class="add" onclick="new_reward_case()" title="新增获奖经历">
+                        <img src="../source/pic/icon_add.png" alt="" width="20px">
+                    </div>
+                    <div class="del" id="del_reward_btn" onclick="del_reward_case()" title="删除获奖经历">
+                        <img src="../source/pic/icon_del.png" alt="" width="20px">
+                    </div>
+                </div>
+                <div class="rewardcase">
+                    <div class="rewardevent">
+                        <div class="reward_atr_title">获奖时间</div>
+                        <div class="reward_atr_val">
+                            <input type="date" class="timeyear reward_time" value="2020-09-01">
+                        </div>
+                        <div class="reward_atr_title">奖项内容</div>
+                        <div class="reward_atr_val">
+                            <input type="text" class="reward_title" placeholder="奖项">
+                            <input type="text" class="reward_content" placeholder="获奖原因/个人特质">
+                        </div>
+                    </div>
+                </div>
+            
+                <div id="zhanwei003"></div>
+            </div>
+        
+<!-- 科研经历修改 -->
+<script>
+    function new_sci_case() {
+        let element = document.getElementById("scicases");
+        var div_scicase = document.createElement("div");
+        div_scicase.classList.add("scicase");
+        div_scicase.innerHTML = '<div class="scievent"><div class="sci_atr_title">起始时间</div><div class="sci_atr_val"><input type="date" class="timeyear sci_time" value="2020-09-01"></div><div class="sci_atr_title">结题时间</div><div class="sci_atr_val"><input type="date" class="timeyear sci_time" value="2020-09-01"></div><div class="sci_atr_title">研究内容</div><div class="sci_atr_val"><input type="text" class="sci_title" placeholder="课题"><input type="text" class="sci_content" placeholder="个人职责"></div></div>'; 
+        let zhanwei001 = document.getElementById("zhanwei004");
+        element.insertBefore(div_scicase, zhanwei001);
+        document.getElementById("del_sci_btn").style.display = "inline-block";
+    }
+
+    function del_sci_case() {
+        let element = document.getElementById("scicases");
+        let div_scicases = document.getElementsByClassName("scicase");
+        let len = div_scicases.length;
+        element.removeChild(div_scicases[len - 1]);
+        if (len == 1) document.getElementById("del_sci_btn").style.display = "none";
+    }
+</script>
+
+            <!-- 科研经历 -->
+            <div class="attribt_pair" id="scicases">
+                <div class="attribt_key">
+                    科研经历
+                    <div class="add" onclick="new_sci_case()" title="新增科研经历">
+                        <img src="../source/pic/icon_add.png" alt="" width="20px">
+                    </div>
+                    <div class="del" id="del_sci_btn" onclick="del_sci_case()" title="删除科研经历">
+                        <img src="../source/pic/icon_del.png" alt="" width="20px">
+                    </div>
+                </div>
+                <div class="scicase">
+                    <div class="scievent">
+                        <div class="sci_atr_title">起始时间</div>
+                        <div class="sci_atr_val">
+                            <input type="date" class="timeyear sci_time" value="2020-09-01">
+                        </div>
+                        <div class="sci_atr_title">结题时间</div>
+                        <div class="sci_atr_val">
+                            <input type="date" class="timeyear sci_time" value="2020-09-01">
+                        </div>
+                        <div class="sci_atr_title">研究内容</div>
+                        <div class="sci_atr_val">
+                            <input type="text" class="sci_title" placeholder="课题">
+                            <input type="text" class="sci_content" placeholder="个人职责">
+                        </div>
+                    </div>
+                </div>
+            
+                <div class="zhanwei004"></div>
+            </div>
+        
+<!-- 目标岗位修改 -->
+<script>
+    function new_target_case() {
+        let element = document.getElementById("targetcases");
+        var div_targetcase = document.createElement("div");
+        div_targetcase.classList.add("targetcase");
+
+        let len = document.getElementsByClassName("targetcase").length+1;
+
+        div_targetcase.innerHTML = '<div class="targetevent"><div class="target_atr_title">第'+len+'志愿</div><div class="target_atr_val"><input type="text" class="target_job" placeholder="目标岗位"></div></div>';
+        let zhanwei001 = document.getElementById("zhanwei005");
+        element.insertBefore(div_targetcase, zhanwei001);
+        document.getElementById("del_target_btn").style.display = "inline-block";
+    }
+
+    function del_target_case() {
+        let element = document.getElementById("targetcases");
+        let div_targetcases = document.getElementsByClassName("targetcase");
+        let len = div_targetcases.length;
+        element.removeChild(div_targetcases[len - 1]);
+        if (len == 1) document.getElementById("del_target_btn").style.display = "none";
+    }
+</script>
+
+            <!-- 目标岗位 -->
+            <div class="attribt_pair" id="targetcases">
+                <div class="attribt_key">
+                    目标岗位
+                    <div class="add" onclick="new_target_case()" title="新增目标岗位志愿">
+                        <img src="../source/pic/icon_add.png" alt="" width="20px">
+                    </div>
+                    <div class="del" id="del_target_btn" onclick="del_target_case()" title="删除目标岗位志愿">
+                        <img src="../source/pic/icon_del.png" alt="" width="20px">
+                    </div>
+                </div>
+                <div class="targetcase">
+                    <div class="targetevent">
+                        <div class="target_atr_title">第1志愿</div>
+                        <div class="target_atr_val">
+                            <input type="text" class="target_job" placeholder="目标岗位">
+                        </div>
+                    </div>
+                </div>
+            
+                <div id="zhanwei005"></div>
+            </div>
+        
+<!-- 个人技能修改 -->
+<script>
+    function new_skill_case() {
+        let element = document.getElementById("skillcases");
+        var div_skillcase = document.createElement("div");
+        div_skillcase.classList.add("skillcase");
+        div_skillcase.innerHTML = '<div class="skillevent"><div class="skill_atr_title">技能概述</div><div class="skill_atr_val"><input type="text" class="skill_content" placeholder="个人技能"></div></div>';
+        let zhanwei001 = document.getElementById("zhanwei006");
+        element.insertBefore(div_skillcase, zhanwei001);
+        document.getElementById("del_skill_btn").style.display = "inline-block";
+    }
+
+    function del_skill_case() {
+        let element = document.getElementById("skillcases");
+        let div_skillcases = document.getElementsByClassName("skillcase");
+        let len = div_skillcases.length;
+        element.removeChild(div_skillcases[len - 1]);
+        if (len == 1) document.getElementById("del_skill_btn").style.display = "none";
+    }
+</script>
+
+            <!-- 个人技能 -->
+            <div class="attribt_pair" id="skillcases">
+                <div class="attribt_key">
+                    个人技能
+                    <div class="add" onclick="new_skill_case()" title="新增个人技能">
+                        <img src="../source/pic/icon_add.png" alt="" width="20px">
+                    </div>
+                    <div class="del" id="del_skill_btn" onclick="del_skill_case()" title="删除个人技能">
+                        <img src="../source/pic/icon_del.png" alt="" width="20px">
+                    </div>
+                </div>
+                <div class="skillcase">
+                    <div class="skillevent">
+                        <div class="skill_atr_title">技能概述</div>
+                        <div class="skill_atr_val">
+                            <input type="text" class="skill_content" placeholder="个人技能">
+                        </div>
+                    </div>
+                </div>
+            
+                <div id="zhanwei006"></div>
+            </div>
+        
+            <!-- 性格自述 -->
+            <div class="attribt_pair">
+                <div class="attribt_key">性格自述</div>
+                <div class="attribt_val">
+                    <input class="inputtxt" id="person_character" type="text" placeholder="请简单描述您的个人性格">
+                </div>
+            </div>
+
+            <!-- 提交键 -->
+            <div class="submit" onclick="sendVitae()">
+                提&nbsp;&nbsp;&nbsp;交
+            </div>
+        
+            <div class="zhanwei2"></div>
+        </div>
+    </span>
+
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面面消息中心</title>
+    <link rel="stylesheet" href="../css/msgcenter.css">
+    <link rel="stylesheet" href="../css/index.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-min.js"></script>
+    <script src="../account/web_prepare01.js"></script>
+    <!-- 头部js文件 -->
+    <script>
+        // 初始化leancloud
+        const { Query, User } = AV;
+        AV.init({
+            appId: "QINFwm0ds2NuLyRCmbpmUltw-gzGzoHsz",
+            appKey: "16T8fLd7241TyCxCkCvAYPif",
+            serverURL: "https://qinfwm0d.lc-cn-n1-shared.com"
+        });
+
+        // 新建信息内容呢
+        function new_msg_case(msg_title, msg_time, msg_sender, msg_receiver, msg_content) {
+            var msg_model = document.getElementsByClassName("msg_case_model")[0];
+            var new_msg = msg_model.cloneNode(true);
+            new_msg.classList.remove("msg_case_model");
+            // new_msg.classList.add("msg_type" + msg_type);
+            msg_model.parentNode.insertBefore(new_msg, msg_model);
+
+            var msg_titles = document.getElementsByClassName("msg_case_title");
+            var msg_times = document.getElementsByClassName("msg_case_time");
+            var msg_senders = document.getElementsByClassName("msg_case_sender");
+            var msg_receivers = document.getElementsByClassName("msg_case_receiver")
+            var msg_contents = document.getElementsByClassName("msg_case_content");
+            let len = msg_titles.length;
+
+            msg_titles[len-2].innerHTML = msg_title;
+            msg_times[len-2].innerHTML = msg_time;
+            msg_senders[len-2].innerHTML = msg_sender;
+            msg_receivers[len-2].innerHTML = msg_receiver;
+            msg_contents[len-2].innerText = msg_content;
+            // msg_contents[len - 2].innerHTML = msg_content;
+        }
+
+        window.onload = function () {
+            // 暂时
+            // return;
+
+            // 检查登录状态
+            const loginQuery = new AV.Query('LoginState');
+            let client_id = cans(); // 客户端码
+            loginQuery.equalTo('client_id', client_id);
+            loginQuery.find().then((loginStates) => {
+                if (loginStates.length > 0) {
+                    // 判断是否过期
+                    let nowdate = new Date();
+                    if ((nowdate.getTime() - loginStates[0].get('createdAt').getTime()) / 1000 > 3600) {
+                        alert("登录已过期，请重新登录。");
+                        location.replace("../account/login.html");
+                    }
+                    else {
+                        const accountQuery = new AV.Query('Account');
+                        accountQuery.get(loginStates[0].get("account_id")).then((now_account) => {
+                            // 获取用户名
+                            let account_name = now_account.get("account_id");
+                            // 查询信息
+                            const messageQuery = new AV.Query('SystemMessage');
+                            messageQuery.equalTo('receivers', account_name);
+                            messageQuery.descending('createdAt'); // 按照日期排序
+                            messageQuery.find().then((systemMessages) => {
+                                for (let i=0; i<systemMessages.length; i++) {
+                                    let msg_title = systemMessages[i].get("title");
+                                    let msg_sender = "Mianmain Team";
+                                    let msg_receiver = account_name;
+                                    let msg_content = systemMessages[i].get("content");
+                                    let msg_time = systemMessages[i].get("createdAt");
+                                    new_msg_case(msg_title, msg_time, msg_sender, msg_receiver, msg_content);
+                                }
+                            });
+
+                        });
+                    }
+                } else {
+                    location.replace("../account/login.html");
+                }
+            });
+        };
+    </script>
+
+</head>
+<body>
+    <!-- 头部 -->
+    <div class="header">
+        <div class="headerzhanwei"></div>
+        <div class="head_content">
+            <!-- logo -->
+            <a href="../index.html" class="logo">
+                <img src="../source/pic/logo0.png" width="73" height="64">
+            </a>
+    
+            <!-- 导航 -->
+            <div class="nav">
+                <ul>
+                    <li><a href="../index.html" class="navpos">首页</a></li>
+                    <li><a href="../work/searchgroup.html">加入面试</a></li>
+                    <li><a href="../work/newgroup.html">发起面试</a></li>
+                    <li><a href="../account/store.html">定价与购买</a></li>
+                    <li><a href="../help/help_home.html">帮助中心</a></li>
+                </ul>
+            </div>
+    
+            <!-- 用户 -->
+            <div class="user">
+                <div></div>
+                <!-- <a href="" > -->
+                <span onclick="location.replace('./systemmsg.html')">
+                    <img class="img1" src="../source/pic/user0.png" alt="" width="17" height="22">
+                </span>
+                <!-- </a> -->
+                <!-- <a href="" > -->
+                <span onclick="location.replace('../usercenter/personal_information.html')">
+                    <img class="img2" src="../source/pic/user1.png" alt="" height="50" width="50">
+                </span>
+                <!-- </a> -->
+                <!-- <a href="../account/login.html" id="login_btn">
+                    <span>登录</span>
+                </a> -->
+            </div>
+    
+        </div>
+    
+    </div>
+
+    <!-- 下侧信息栏 -->
+    <div id="downcontent">
+        <!-- 左侧导航栏 -->
+        <span class="leftnav">
+            <div class="title">
+                <img src="../source/pic/icon_bell.png" alt="" width="20px" height="20px">
+                <span>消息中心</span>
+            </div>
+            <div class="selections">
+                <a href="systemmsg.html" class="systemmsg choseslct">
+                    <img src="../source/pic/icon_megaphone.png" width="20px" height="20px" alt="">
+                    <span>系统消息</span>
+                </a>
+                <a href="./personalmsg.html" class="personmsg">
+                    <img src="../source/pic/icon_paper-plane.png" width="20px" height="20px" alt="">
+                    <span>站内私信</span>
+                </a>
+                <a href="./groupmsg.html" class="groupmsg">
+                    <img src="../source/pic/icon_comments-qac.png" width="20px" height="20px" alt="">
+                    <span>组内信息</span>
+        
+                </a>
+            </div>
+        </span>
+
+        <!-- 右侧信息栏 -->
+        <span class="rightcontent">
+            <div class="msg_case msg_case_model" onclick="showdetails(this);">
+                <!-- <img src="../source/pic/icon_badge-check.png" alt="" class="msg_case_detail" width="20px" title="确认">
+                <img src="../source/pic/icon_telegram.png" alt="" class="msg_case_reply" width="20px" title="回复"> -->
+                <div class="msg_case_title">系统通知：欢迎</div>
+                <div class="msg_case_time">2030/12/31 23:59</div>
+                <div class="msg_case_sender_box">
+                    来自
+                    <span class="msg_case_sender">Mianmain Team</span>
+                    ，致
+                    <span class="msg_case_receiver">account_id</span>
+                </div>
+                <div class="msg_case_content">Zz是拉丁字母中的第26个字母，也是最后一个字母。这个字母的英语念法比较特别：英国念作/zɛd/，美国念作/ziː/，还有一种很古老的念法izzard。在拉丁语和西班牙语中，z被称为zeta，与希腊字母ζ的读法一样。
+                英语 数学 物理 化学 其他
+                百度百科
+                字母Z的正确发音_哔哩哔哩_bilibili
+                
+                视频时长 01:38
+                
+                2021年3月17日 - 字母Z的正确发音示范,发</div>
+            </div>
+        </span>
+
+        <!-- <div class="all">
+
+
+
+        </div> -->
+    </div>
+
+</body>
+</html>

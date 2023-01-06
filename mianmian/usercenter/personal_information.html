@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面面</title>
+    <link rel="stylesheet" href="../css/usercenter_nav.css">
+    <style>
+        /* 右侧信息主界面 */
+        .rightinfo {
+            /* min-width: 700px; */
+            min-width: 700px;
+            width: 70%;
+            /* background-color: greenyellow; */
+            margin-left: 250px;
+            height: 100%;
+            float: left;
+            display: inline;
+        }
+
+        .content .title {
+            margin-top: 50px;
+            margin-left: 30px;
+            margin-bottom: 60px;
+            font-size: 25px;
+        }
+
+        .basic, .security {
+            width: 80%;
+            /* background-color: red; */
+            height: 110px;
+            margin-left: auto;
+            margin-right: auto;
+            background-color: #fff;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 2px 1px rgb(231, 233, 234);
+        }
+
+        .edit {
+            width: 80%;
+            /* height: 110px; */
+            margin-left: auto;
+            margin-right: auto;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 2px 1px rgb(231, 233, 234);
+
+        }
+
+        .basic { height: 110px;}
+        .security {height: 170px;}
+
+        .basictitle {
+            margin-left: 20px;
+            /* margin-top: 20px; */
+            padding-top: 20px;
+            padding-bottom: 5px;
+            font-size: 15px;
+
+        }
+
+        .atribt {
+            font-size: 13px;
+            color: gray;
+            /* background-color: lightblue; */
+            margin-left: 20px;
+            margin-right: 20px;
+            width: 52px;
+            display: inline-block;
+        }
+
+        .atribt_val {
+            font-size: 13px;
+            color: black;
+            /* margin-left: 20px; */
+            /* margin-right: 20px; */
+        }
+
+        .atribt_pair {height: 30px;}
+
+        hr {
+            margin-left: 20px;
+            margin-right: 20px;
+        }
+
+        .editbutton {
+            display: inline-block;
+            /* margin-left: 40px; */
+            width: 120px;
+            height: 30px;
+            border-radius: 15px;
+            background-color: white;
+            text-align: center;
+            box-shadow: 0 0 2px 1px rgb(131, 133, 134);
+            vertical-align: bottom;
+
+            user-select: none;
+            cursor: pointer;
+        }
+        .editbutton span {
+            line-height: 30px;
+            /* width: 100px; */
+            color: #000;
+            display: inline-block;
+            vertical-align: top;
+        }
+
+        .editbutton:hover {
+            filter: invert(100%);
+            border-color: #000;
+        }
+        /* .editbutton span:hover {
+            color: lightblue;
+        } */
+        .editbutton img {
+            /* line-height: 30px; */
+            padding-top: 5px;
+            vertical-align: middle;
+        }
+
+        .editbutton span {
+            margin-left: 5px;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-min.js"></script>
+    <script src="../account/web_prepare01.js"></script>
+    <script>
+        // 初始化leancloud
+        const { Query, User } = AV;
+        AV.init({
+            appId: "QINFwm0ds2NuLyRCmbpmUltw-gzGzoHsz",
+            appKey: "16T8fLd7241TyCxCkCvAYPif",
+            serverURL: "https://qinfwm0d.lc-cn-n1-shared.com"
+        });
+        var now_account_id = "";
+
+        function resetAccountInfo() {
+            let new_email0 = document.getElementById("email_ipt").value,
+                new_email2 = document.getElementById("email2_ipt").value,
+                new_password = document.getElementById("password_ipt").value;
+            if (!email_test(new_email0)) {
+                alert("您的主邮箱地址非法，请重新输入。");
+                return;
+            } else if (new_password.length <= 8) {
+                alert("密码的长度应当大于8位。");
+                return;
+            } else if (new_email2=="" || email_test(new_email2)!=0) {
+                new_email2 = "";
+                document.getElementById("email2_ipt").value = "";
+                alert("您填写的备用邮箱地址不合法，暂不保存");
+            }
+            // 开始保存
+            let tmp_account = AV.Object.createWithoutData('Account', now_account_id);
+            tmp_account.set('email', new_email0);
+            tmp_account.set('password', new_password);
+            if (new_email2 != "") {
+                tmp_account.set('email2', new_email2);
+            }
+            tmp_account.save();
+        }
+
+        window.onload = function() {
+            document.getElementById("edit_info_window").style.marginTop = window.innerHeight/2-158 + "px";
+            // 检查登录状态
+            const loginQuery = new AV.Query('LoginState');
+            let client_id = cans(); // 客户端码
+            loginQuery.equalTo('client_id', client_id);
+            loginQuery.find().then((loginStates) => {
+                if (loginStates.length > 0) {
+                    // 判断是否过期
+                    let nowdate = new Date();
+                    if ((nowdate.getTime() - loginStates[0].get('createdAt').getTime())/1000 > 3600) {
+                        alert("登录已过期，请重新登录。");
+                        location.replace("../account/login.html");
+                    }
+                    else {
+                        const accountQuery = new AV.Query('Account');
+                        now_account_id = loginStates[0].get("account_id");
+                        accountQuery.get(loginStates[0].get("account_id")).then((now_account) => {
+                            // 初始化用户名
+                            document.getElementById("account_id").innerHTML = now_account.get("account_id");
+                            // 初始化邮箱
+                            document.getElementById("email1").innerHTML = now_account.get("email");
+                            document.getElementById("email_ipt").value = now_account.get("email");
+                            // 初始化备用邮箱
+                            if (now_account.get("email2") != undefined) {
+                                document.getElementById("email2").innerHTML = now_account.get("email2");
+                                document.getElementById("email2_ipt").value = now_account.get("email");
+                            }
+                            // 初始化密码
+                            document.getElementById("password").innerHTML = now_account.get("password");
+                            document.getElementById("password_ipt").value = now_account.get("password");
+                        });
+                    }
+                } else {
+                    location.replace("../account/login.html");
+                }
+            });
+        };
+    </script>
+</head>
+<body>
+    <!-- 左侧导航栏 -->
+    <span class="leftnav">
+        <div class="zhanwei"></div>
+        <a href="../index.html" class="logo">
+            <img src="../source/pic/logo0.png" alt=""
+             width="73px" height="64px">
+        </a>
+        <div class="selections">
+            <a href="personal_information.html" class="myinfo choseslct">
+                <img src="../source/pic/icon_user.png" width="20px" height="20px" alt="">
+                <span>个人信息</span>
+            </a>
+            <a href="../msgcenter/systemmsg.html" class="msg">
+                <img src="../source/pic/icon_bell.png" width="20px" height="20px" alt="">
+                <span>信息</span>
+            </a>
+            <a href="https://www.polyv.net/" class="mimet">
+                <img src="../source/pic/icon_comments.png" width="20px" height="20px" alt="">
+                <span>小型研讨会</span>
+                
+            </a>
+            <a href="workspace.html" class="workgroup">
+                <img src="../source/pic/icon_users.png" width="20px" height="20px" alt="">
+                <span>工作组</span>
+            </a>
+        </div>
+    </span>
+
+    <span class="rightinfo">
+        <div class="content">
+            <div class="title">
+                个人信息
+            </div>
+            <div class="basic">
+                <div class="basictitle">账户信息</div>
+                <hr>
+                <span class="atribt">用户名</span>
+                <span class="atribt_val" id="account_id"></span>
+            </div>
+            <div class="security">
+                <div class="basictitle">账户安全</div>
+                <hr>
+                <div class="atribt_pair">
+                    <span class="atribt">账号邮箱</span>
+                    <span class="atribt_val" id="email1"></span>
+                </div>
+                <div class="atribt_pair">
+                    <span class="atribt">发件邮箱</span>
+                    <span class="atribt_val" id="email2">暂无发件邮箱</span>
+                </div>
+                <div class="atribt_pair">
+                    <span class="atribt">密码</span>
+                    <span class="atribt_val" id="password"></span>
+                </div>
+            </div>
+            <div class="edit">
+                <div class="editbutton" onclick="document.getElementById('edit_info_dialog').style.display='block';">
+                    <img src="../source/pic/icon_edit.png" alt=""
+                        width="20px">
+                    <span>修改</span>
+                </div>
+            </div>
+            <div style="height: 20px; width: 200px;"></div>
+        </div>
+    </span>
+
+<style>
+    #edit_info_dialog {
+        position: fixed;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(200,200,200,0.8);
+        display: none;
+    }
+    #edit_info_window {
+        width: 350px;
+
+        background-color: rgb(250, 250, 250);
+        border-radius: 8px;
+        margin-left: auto;
+        margin-right: auto;
+
+        overflow: hidden;
+    }
+
+    #edit_info_title {
+        font-size: 20px;
+        padding: 20px;
+        padding-top: 30px;
+    }
+
+    /* 按键框 */
+    #edit_info_btnbox {
+        width: 100%;
+        padding-top: 10px;
+        padding-bottom: 10px;
+
+        /* padding-right: 20px; */
+        text-align: center;
+
+        background-color: #eee;
+    }
+    .edit_info_btn {
+        font-size: 15px;
+        text-align: center;
+
+        display: inline-block;
+        padding: 3px;
+        padding-left: 10px;
+        padding-right: 10px;
+        width: 110px;
+
+        margin-left: 5px;
+        margin-right: 5px;
+        border-radius: 8px;
+        background-color: #0178D4;
+        color: #fff;
+    }
+    .edit_info_btn:hover {
+        cursor: pointer;
+        filter: brightness(0.8);
+    }
+
+    /* 内容框 */
+    .edit_info_pair {
+        width: 250px;
+        margin-left: auto;
+        margin-right: auto;
+
+        text-align: left;
+        padding-bottom: 20px;
+    }
+    .edit_info_key {
+        font-size: 15px;
+        font-weight: 600;
+    }
+    .edit_info_val {
+        width: 100%;
+        height: 25px;
+
+        font-size: 18px;
+    }
+    .edit_info_val input {
+        height: 25px;
+        width: calc(100% - 8px);
+    }
+</style>
+    <div>
+        <div id="edit_info_dialog">
+            <div id="edit_info_window">
+                <div id="edit_info_title">信息编辑</div>
+                <div class="edit_info_pair">
+                    <div class="edit_info_key">邮箱</div>
+                    <div class="edit_info_val">
+                        <input type="text" id="email_ipt">
+                    </div>
+                </div>
+                <div class="edit_info_pair">
+                    <div class="edit_info_key">备用邮箱</div>
+                    <div class="edit_info_val">
+                        <input type="text" id="email2_ipt">
+                    </div>
+                </div>
+                <div class="edit_info_pair">
+                    <div class="edit_info_key">密码</div>
+                    <div class="edit_info_val">
+                        <input type="text" id="password_ipt" onkeyup="value=value.replace(/[\W]/g,'')"
+                            onbeforepaste="clipboardData.setData('text',clipboardData.getData('text').replace(/[^\d]/g,''))">
+                    </div>
+                </div>
+                <div id="edit_info_btnbox">
+                    <span class="edit_info_btn" onclick="resetAccountInfo();">保存</span>
+                    <span class="edit_info_btn"
+                        onclick="document.getElementById('edit_info_dialog').style.display='none';">取消</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

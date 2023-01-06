@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面面</title>
+    <link rel="stylesheet" href="../css/usercenter_nav.css">
+    <style>
+        /* 右侧信息主界面 */
+        .rightinfo {
+            /* min-width: 700px; */
+            min-width: 700px;
+            width: 70%;
+            margin-left: 250px;
+            height: 100%;
+            float: left;
+            display: inline;
+        }
+
+        .content .title {
+            margin-top: 50px;
+            margin-left: 30px;
+            margin-bottom: 60px;
+            font-size: 25px;
+        }
+
+        .workgroup_block {
+            width: 80%;
+            /* background-color: red; */
+            /* height: 110px; */
+            margin-left: auto;
+            margin-right: auto;
+            background-color: #fff;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 2px 1px rgb(231, 233, 234);
+        }
+
+        .workgroup_block {
+            /* height: 110px; */
+        }
+
+        .blocktitle {
+            /* margin-left: 20px; */
+            /* margin-top: 20px; */
+            padding-top: 20px;
+            padding-bottom: 5px;
+            font-size: 15px;
+        }
+
+        .atribt {
+            font-size: 13px;
+            color: gray;
+            /* background-color: lightblue; */
+            margin-left: 20px;
+            margin-right: 20px;
+            width: 52px;
+            display: inline-block;
+        }
+
+        .atribt_val {
+            font-size: 13px;
+            color: black;
+            /* margin-left: 20px; */
+            /* margin-right: 20px; */
+        }
+
+        .atribt_pair {
+            height: 30px;
+        }
+
+        hr {
+            margin-left: 20px;
+            margin-right: 20px;
+        }
+
+        .enterbutton {
+            display: block;
+            /* margin-left: 40px; */
+            width: 150px;
+            height: 25px;
+            border-radius: 15px;
+            background-color: white;
+            text-align: center;
+            box-shadow: 0 0 2px 1px rgb(131, 133, 134);
+            /* vertical-align: bottom; */
+            margin-left: 20px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+
+            user-select: none;
+            cursor: pointer;
+        }
+
+        .enterbutton span {
+            line-height: 25px;
+            color: #000;
+            display: inline-block;
+            vertical-align: top;
+        }
+
+        .enterbutton:hover {
+            filter: invert(100%);
+            border-color: #000;
+        }
+
+        .enterbutton img {
+            padding-top: 2px;
+            vertical-align: middle;
+        }
+
+        .enterbutton span {
+            margin-left: 10px;
+            font-size: 15px;
+        }
+
+        .zhanwei2 {
+            height: 10px;
+        }
+
+        .btn_list {
+            padding-left: 100px;
+        }
+        .btn {
+            font-size: 16px;
+            margin: 5px;
+            margin-left: 20px;
+            padding: 3px;
+            padding-left: 20px;
+            padding-right: 20px;
+
+            border-radius: 15px;
+            background-color: #fff;
+            box-shadow: 0 0 1px 2px #555;
+            cursor: pointer;
+            user-select: none;
+
+            display: inline-block;
+        }
+        .btn:hover {
+            filter: invert(100%);
+        }
+        /* 隐藏模板组 */
+        #model_group {
+            display: none;
+        }
+
+        /* .enterGroups {
+            display: inline-block;
+            height: 100%;
+            width: 100%;
+        } */
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-min.js"></script>
+    <script src="../account/web_prepare01.js"></script>
+    <script>
+        // 初始化leancloud
+        const { Query, User } = AV;
+        AV.init({
+            appId: "QINFwm0ds2NuLyRCmbpmUltw-gzGzoHsz",
+            appKey: "16T8fLd7241TyCxCkCvAYPif",
+            serverURL: "https://qinfwm0d.lc-cn-n1-shared.com"
+        });
+
+        function turnpage(web_path) {
+            location.replace(web_path);
+        }
+
+        // 初始化单个工作组
+        function newGroupBlock(group_id, group_comp, group_mems) {
+            var model_group = document.getElementById("model_group");
+            var clone_group = model_group.cloneNode(true);
+            let no_group = document.getElementsByClassName("workgroup_block").length-1;
+
+            clone_group.setAttribute("id", "group-" + no_group);
+            clone_group.style.display = "block";
+            model_group.parentNode.insertBefore(clone_group, model_group);
+            var atribt_vals = document.getElementsByClassName("atribt_val");
+            var enterGroups = document.getElementsByClassName("enterGroup");
+
+            atribt_vals[3 * no_group].innerHTML = group_id;
+            atribt_vals[3 * no_group + 1].innerHTML = group_comp;
+            atribt_vals[3 * no_group + 2].innerHTML = group_mems;
+            // alert(enterGroups[no_group].innerHTML);
+            enterGroups[no_group].href = 'workgroup.html?group_name='+group_id;
+            return;
+        }
+
+        // 初始化所有工作组
+        window.onload = function() {
+            // newGroupBlock("公司01-面试组001", "公司01", "陈明");
+
+            // 检查登录状态
+            const loginQuery = new AV.Query('LoginState');
+            let client_id = cans();
+            loginQuery.equalTo('client_id', client_id);
+            loginQuery.find().then((loginStates) => {
+                if (loginStates.length > 0) {
+                    // 判断是否过期
+                    let nowdate = new Date();
+                    if ((nowdate.getTime() - loginStates[0].get('createdAt').getTime()) / 1000 > 3600)
+                        location.replace("../account/login.html");
+                    else { // 成功登录 
+                        const accountQuery = new AV.Query('Account');
+                        accountQuery.get(loginStates[0].get("account_id")).then((now_account) => {
+                            // 获取工作组
+                            workgroup_lists = now_account.get("work_group_list");
+                            for (let i=0; i<workgroup_lists.length; i++) {
+                                // 获取工作组信息
+                                let groupQuery = new AV.Query('WorkGroup');
+                                let groupid = "", company = "", mems = "";
+                                groupQuery.equalTo("group_name", workgroup_lists[i]);
+                                groupQuery.find().then((groups) => {
+                                    groupid = groups[0].get("group_name");
+                                    company = groups[0].get("company");
+                                    mems = groups[0].get("mem_names").join(",");
+                                    newGroupBlock(groupid, company, mems);
+                                });
+                            }
+                        });
+                    }
+                } else location.replace("../account/login.html");
+            });
+        };
+
+    </script>
+</head>
+
+<body>
+    <!-- 左侧导航栏 -->
+    <span class="leftnav">
+        <div class="zhanwei"></div>
+        <a href="../index.html" class="logo">
+            <img src="../source/pic/logo0.png" alt="" width="73px" height="64px">
+        </a>
+        <div class="selections">
+            <a href="personal_information.html" class="myinfo">
+                <img src="../source/pic/icon_user.png" width="20px" height="20px" alt="">
+                <span>个人信息</span>
+            </a>
+            <a href="../msgcenter/systemmsg.html" class="msg">
+                <img src="../source/pic/icon_bell.png" width="20px" height="20px" alt="">
+                <span>信息</span>
+            </a>
+            <a href="https://www.polyv.net/" class="mimet">
+                <img src="../source/pic/icon_comments.png" width="20px" height="20px" alt="">
+                <span>小型研讨会</span>
+
+            </a>
+            <a href="workspace.html" class="workgroup choseslct">
+                <img src="../source/pic/icon_users.png" width="20px" height="20px" alt="">
+                <span>工作组</span>
+            </a>
+        </div>
+    </span>
+
+    <!-- 右侧内容 -->
+    <span class="rightinfo">
+        <div class="content">
+            <div class="title">
+                工作组详情
+            </div>
+            
+            <div class="workgroup_block" id="model_group">
+                <div class="blocktitle">
+                    <span class="atribt">工作组</span>
+                    <span class="atribt_val">workgroup_id</span>
+                </div>
+                <hr>
+                <div class="atribt_pair">
+                    <span class="atribt">企业</span>
+                    <span class="atribt_val">company_id</span>
+                </div>
+                <div class="atribt_pair">
+                    <span class="atribt">成员</span>
+                    <span class="atribt_val">administer</span>
+                </div>
+                <a class="enterbutton enterGroup" href="">
+                    <!-- <a href="" class="enterGroup"> -->
+                        <img src="../source/pic/icon_enter.png" alt="" width="15px">
+                        <span>进入工作组</span>
+                    <!-- </a> -->
+                </a>
+                <div class="zhanwei2"></div>
+                
+                
+
+            </div>
+            <!-- 按键表 -->
+            <div class="btn_list">
+                <span class="btn" onclick="turnpage('../work/newgroup.html')">创建工作组</span>
+                <span class="btn" onclick="turnpage('../work/searchgroup.html')">加入工作组</span>
+            </div>
+        </div>
+    </span>
+</body>
+
+</html>

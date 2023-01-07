@@ -24,8 +24,8 @@
 
         function reply(element) {
             let msg_id = element.getAttribute('message_id');
-            const messageQuery = new AV.Query('GroupMessage');
-            query.get(msg_id).then((now_message) => {
+            const messageQuery = new AV.Query('PersonalMessage');
+            messageQuery.get(msg_id).then((now_message) => {
                 // 获取信息
                 let msg_title = now_message.get("title");
                 let msg_sender = now_message.get("sender");
@@ -49,7 +49,9 @@
                     personalMessage.set('title', reply_title);
                     personalMessage.set('content', reply_content);
                     personalMessage.set('sender', account_name);
-                    personalMessage.set('receivers', new Array().push(msg_sender));
+                    let tmp_receivers = new Array();
+                    tmp_receivers.push(msg_sender);
+                    personalMessage.set('receivers', tmp_receivers);
                     let reply_commts = new Array();
                     reply_commts.push(account_name);
                     reply_commts.push(msg_sender);
@@ -72,47 +74,90 @@
         function run_content(element) {
             let msg_id = element.getAttribute('message_id');
             let run_type = element.getAttribute('run_type');
-            const messageQuery = new AV.Query('GroupMessage');
+            const messageQuery = new AV.Query('PersonalMessage');
             messageQuery.get(msg_id).then((now_message) => {
                 if (run_type == 0) return;
                 if (run_type == 1) { // 邀请加入工作组
-                    let group_name = now_message.get("msg_parameter");
-                    let userOption = confirm("是否加入工作组“"+group_name+"”");
+                    let group_id = now_message.get("msg_parameter");
+                    let userOption = confirm("是否加入工作组");
                     if (userOption) {
                         const userQuery = new AV.Query('Account');
                         userQuery.get(account_id).then((now_account) => {
-                            let ingroups = userQuery.get("work_group_list");
+                            let ingroups = now_account.get("work_group_list");
                             if (ingroups.indexOf("group_name")!=-1) {
                                 alert("您已经是该工作组的成员。");
                                 return;
+                            } else {
+                                ingroups.push(group_id);
+                                const tmpuser = AV.Object.createWithoutData('Account', account_id);
+                                tmpuser.set('work_group_list', ingroups);
+                                tmpuser.save().then(() => {
+                                    // alert("保存成功")
+                                    console.log("账户中保存成功");
+                                });
                             }
-                            ingroups.push(group_name);
                             // 在工作组中保存用户
                             const groupQuery = new AV.Query('WorkGroup');
-                            groupQuery.equalTo('group_name', group_name);
-                            groupQuery.find().then((groups) => {
-                                if (groups.length < 1) {
-                                    alert("加入失败，工作组不存在。");
-                                    return;
-                                }
-                                let tmpGroup = groups[0];
+                            groupQuery.get(group_id).then((tmpGroup) => {
+                                let group_name = tmpGroup.get("group_name");
+
+                                const todo = AV.Object.createWithoutData('WorkGroup', tmpGroup.get("objectId"));
                                 let member_names = tmpGroup.get("mem_names");
                                 if (member_names.indexOf(account_name) == -1) {
                                     member_names.push(account_name);
-                                    tmpGroup.save();
+                                    todo.set("mem_names", member_names);
                                 }
-
                                 let members = tmpGroup.get("members");
                                 if (members.indexOf(account_id) == -1) {
                                     members.push(account_id);
-                                    tmpGroup.save();
+                                    todo.set("members", members);
                                 }
+                                todo.save().then(function () {
+                                    alert("您已经成功加入该工作组。");
+                                });
+
                             });
 
                         });
                     }
-                } else {
+
+                }
+                else if (run_type == 2) {
                     // 其他情况
+                    // 查询工作组
+                    let group_id = now_message.get("msg_parameter");
+                    let send_account_name = now_message.get("sender");
+                    const groupQuery = new AV.Query('WorkGroup');
+                    groupQuery.get(group_id).then((todo) => {
+                        let members_list = todo.get("mem_names");
+                        let com_members = todo.get("members");
+                        if (members_list.indexOf(send_account_name) == -1) {
+                            members_list.push(send_account_name);
+                            com_members.push(send_account_name);
+
+                            const todo1 = AV.Object.createWithoutData('WorkGroup', todo.get("objectId"));
+                            todo1.set("mem_names", members_list);
+                            todo1.set("members", com_members);
+                            todo1.save().then(function (todo2) {
+                                alert("已同意申请。");
+                                console.log("tongyi_group:", todo2.get("objectId"));
+
+                                // 在个人信息中保存
+                                const person_account = new AV.Query('Account');
+                                person_account.get(account_id).then((now_person) => {
+                                    let new_list = now_person.get("work_group_list");
+                                    if (new_list.indexOf(group_id) == -1) {
+                                        const now_person1 = AV.Object.createWithoutData('Account', group_id);
+                                        new_list.push(group_id);
+                                        now_person1.set('work_group_list', new_list);
+                                        now_person1.save();
+                                    }
+                                });
+                            });
+                        } else {
+                            alert("申请者已经加入了面试工作组。");
+                        }
+                    });
                 }
             });
         }
@@ -162,7 +207,7 @@
                     let nowdate = new Date();
                     if ((nowdate.getTime() - loginStates[0].get('createdAt').getTime()) / 1000 > 3600) {
                         alert("登录已过期，请重新登录。");
-                        location.replace("../account/login.html");
+                        location.assign("../account/login.html");
                     }
                     else {
                         const accountQuery = new AV.Query('Account');
@@ -175,15 +220,17 @@
                             messageQuery.equalTo('communicators', account_name);
                             messageQuery.descending('createdAt'); // 按照日期排序
                             messageQuery.find().then((personalMessages) => {
+                                // alert("res:"+personalMessages.length);
+                                // alert("got "+personalMessages.length+" ones");
                                 for (let i = 0; i < personalMessages.length; i++) {
                                     let msg_title = personalMessages[i].get("title");
                                     let msg_sender = personalMessages[i].get("sender");
-                                    let msg_receiver = account_name;
+                                    let msg_receiver = personalMessages[i].get("receivers").join(",");
                                     let msg_content = personalMessages[i].get("content");
                                     let msg_time = personalMessages[i].get("createdAt");
                                     let msg_id = personalMessages[i].get("objectId");
                                     let run_type = personalMessages[i].get("run_type");
-
+                                    if (personalMessages[i].get("receivers").indexOf(account_name) == -1) run_type = 0;
                                     new_msg_case(msg_title, msg_time, msg_sender, msg_receiver, msg_content, msg_id, run_type);
                                 }
                             });
@@ -191,7 +238,7 @@
                         });
                     }
                 } else {
-                    location.replace("../account/login.html");
+                    location.assign("../account/login.html");
                 }
             });
         };
@@ -268,8 +315,13 @@
         </span>
 
         <!-- 右侧信息栏 -->
+        <style>
+            .group_id {
+                display: none;
+            }
+        </style>
         <span class="rightcontent">
-            <div class="msg_case msg_case_model" onclick="showdetails(this);" style="display: none;">
+            <div class="msg_case msg_case_model">
                 <img src="../source/pic/icon_badge-check.png" alt="" class="msg_case_detail" width="20px" title="确认"
                     onclick="run_content(this.parentNode);">
                 <img src="../source/pic/icon_telegram.png" alt="" class="msg_case_reply" width="20px" title="回复"

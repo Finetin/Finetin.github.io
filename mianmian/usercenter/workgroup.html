@@ -247,6 +247,7 @@
             margin-left: 5px;
         }
 
+        /* 新建消息样式 */
         .newevent .newpair .newinfo .content {
             /* background-color: blanchedalmond; */
             height: 25px;
@@ -255,7 +256,7 @@
             margin-right: 5px;
 
             font-family: 'Times New Roman', Times, serif;
-            letter-spacing: 2px;
+            /* letter-spacing: 2px; */
             font-style: 18px;
         }
 
@@ -315,6 +316,7 @@
         #model_event {
             display: none;
         }
+
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-min.js"></script>
@@ -334,10 +336,10 @@
         nowpath = urlinfo.substr(0, offset+1); // 获取当前路径
         newsidinfo = urlinfo.substr(offset, len); //取出参数字符串 这里会获得类似“id=1”这样的字符串
         newsids = newsidinfo.split("=");//对获得的参数字符串按照“=”进行分割
-        group_name = newsids[1];//得到参数值
+        group_id = newsids[1];//得到参数值
         newsname = newsids[0];//得到参数名字
 
-        var group_id = group_name;
+        var group_name = "";
         var account_name = "";
         var event_type_list = ["其他事项","招新宣传", "面试初筛", "面试安排", "面试准备", "进行面试", "面试总结", "其他事项"];
         var interview_id_list = new Array();
@@ -374,7 +376,7 @@
                 const PersonalMessage = AV.Object.extend('PersonalMessage'); // 声明class
                 let personalMessage = new PersonalMessage(); // 构建对象
 
-                let msg_content = "用户“"+account_name+"”正在邀请您加入面试工作组“"+"”。";
+                let msg_content = "用户“"+account_name+"”正在邀请您加入面试工作组“"+ group_name +"”。";
                 let msg_ps = prompt("请输入请求的备注：");
                 if (msg_ps != undefined && msg_ps != "")
                     msg_content += ('\n' + msg_ps);
@@ -383,13 +385,15 @@
                 personalMessage.set('title', "加入工作组的邀请");
                 personalMessage.set('content', msg_content);
                 personalMessage.set('sender', account_name);
-                personalMessage.set('receivers', new Array().push(member_name));
+                let receiver_arr = new Array();
+                receiver_arr.push(member_name);
+                personalMessage.set('receivers', receiver_arr);
                 personalMessage.set('run_type', 1);
-                personalMessage.set('msg_parameter', group_name);
+                personalMessage.set('msg_parameter', group_id);
                 let msg_commts = new Array();
                 msg_commts.push(account_name);
                 msg_commts.push(member_name);
-                personalMessage.set('communicators', reply_commts);
+                personalMessage.set('communicators', msg_commts);
 
                 // 将对象保存到云端
                 personalMessage.save().then((tmp_reply_msg) => {
@@ -412,6 +416,20 @@
 
             document.getElementById('window_2').style = "margin-top:"+ Math.floor(window.innerHeight / 2 - 117) + "px;";
             document.getElementById('window_3').style = "margin-top:" + Math.floor(window.innerHeight / 2 - 117) + "px;";
+            document.getElementById('window_5').style = "margin-top:" + Math.floor(window.innerHeight / 2 - 153) + "px;";
+        }
+
+        // 新建完结事项
+        function NewEndEvent(event_object) {
+            let new_div = document.createElement("div");
+            new_div.classList.add("event");
+
+            let end_timelast = dateTimeToString(event_object.get("start_date")) + " - " +
+                dateTimeToString(event_object.get("end_date"));
+            let end_content = event_object.get("content");
+            new_div.innerHTML = '<div class="zhanwei2"></div><div class="atribt_pair"><span class="atribt">日期</span><span class="atribt_val endevent_last_date">' + end_timelast + '</span></div><div class="atribt_pair"><span class="atribt">内容</span><span class="atribt_val endevent_content">' + end_content +'</span></div><div class="zhanwei2"></div>';
+            document.getElementById("end_events_box").insertBefore(new_div, 
+                document.getElementById("end_events_zhanwei"));
         }
 
         function testInit() {
@@ -449,8 +467,6 @@
                     document.getElementById("newinfo_content0").style.display = "block";
                 }
             }
-            
-            group_id = document.getElementById("group_id").innerHTML;
 
             // 检查登录状态
             const loginQuery = new AV.Query('LoginState');
@@ -471,86 +487,77 @@
                             // 保存登陆账户名
                             account_name = now_account.get("account_id"); // 获取账户名
 
-                            let groupQuery = new AV.Query('WorkGroup');
-                            if (group_name == undefined) {
+                            if (group_id == undefined || group_id == "") {
                                 alert("请输入有效的地址。");
                                 window.assign("./workspace.html");
                                 return;
                             }
-                            groupQuery.equalTo("group_name", group_name);
-                            groupQuery.find().then((groups) => {
-                                if (groups.length <= 0) {
-                                    alert("不存在该面试工作组。");
-                                    location.assign("workspace.html");
-                                    return;
-                                } else if (groups[0].get("mem_names").indexOf(now_account.get("account_id")) == -1) {
+                            let groupQuery = new AV.Query('WorkGroup');
+                            groupQuery.get(group_id).then((tmp_group) => {
+                                let groups = new Array();
+                                groups.push(tmp_group);
+                                group_name = tmp_group.get("group_name");
+
+                                if (groups[0].get("mem_names").indexOf(now_account.get("account_id")) == -1) {
                                     alert("您尚未加入该面试工作组。");
                                     location.assign("workspace.html");
                                     return;
                                 }
                                 // 判断是否有面试安排
-                                const interviewQuery = new AV.Query('InterviewGroup');
-                                interviewQuery.equalTo('group_name', group_name);
-                                interviewQuery.find().then((interviews) => {
-                                    if (interviews.length)
-                                        interview_id_list = new Array(interviews.length);
-                                    for (let i=0; i<interviews.length; i++) {
-                                        let interview_div = document.createElement("option");
-                                        interview_div.innerText = interviews[i].get("interview_group_id");
-                                        interview_div.setAttribute("interview_id", interviews[i].get('objectId'));
-                                        document.getElementById("interview_number").appendChild(interview_div);
-                                        // 保存各个工作安排地址
-                                        interview_id_list[interviews[i].get("interview_group_id")] = interviews[i].get('objectId');
-                                    }
-                                    if (interviews.length == 0) {
-                                        document.getElementById('newinfo_content1_title').setAttribute("label", "无安排");
-                                        document.getElementById('newinfo_content1_title').setAttribute("title", "请在完成面试安排后设定进行面试的事件");
-                                    } 
-                                });
-
+                                setTimeout(() => {
+                                    // alert("开始");
+                                    const interviewQuery = new AV.Query('InterviewGroup');
+                                    interviewQuery.equalTo('group_name', group_name);
+                                    interviewQuery.find().then((interviews) => {
+                                        // alert(interviews.length);
+                                        if (interviews.length)
+                                            interview_id_list = new Array(interviews.length);
+                                        for (let i=0; i<interviews.length; i++) {
+                                            let interview_div = document.createElement("option");
+                                            interview_div.innerText = interviews[i].get("interview_group_id");
+                                            interview_div.setAttribute("interview_id", interviews[i].get('objectId'));
+                                            document.getElementById("interview_number").appendChild(interview_div);
+                                            // 保存各个工作安排地址
+                                            interview_id_list[interviews[i].get("interview_group_id")] = interviews[i].get('objectId');
+                                        }
+                                        if (interviews.length != 0) {
+                                            document.getElementById('newinfo_content1_title').setAttribute("label", "面试场次");
+                                            document.getElementById('newinfo_content1_title').setAttribute("title", "请选择面试场次。");
+                                        }
+                                        // document.getElementById("btnadd1").style.display="block";
+                                    });
+                                }, 3000)
 
                                 // 保存公司
                                 let company = groups[0].get("company");
                                 
                                 // 添加管理员
-                                let admin_ids = groups[0].get("admin");
-                                for (let i=0; i<admin_ids.length; i++) {
-                                    const tmpQuery = new AV.Query('Account');
-                                    tmpQuery.get(admin_ids[i]).then((tmpAct) => {
-                                        // 添加管理员
-                                        if (i == 0)
-                                            document.getElementById("admin_mems").innerHTML = tmpAct.get("account_id");
-                                        else
-                                            document.getElementById("admin_mems").innerHTML += tmpAct.get("account_id");
-                                        if (i != admin_ids.length - 1)
-                                            document.getElementById("admin_mems").innerHTML += ',';
-                                    });
-                                }
+                                let mem_names = groups[0].get("mem_names");
+                                document.getElementById("admin_mems").innerHTML = mem_names[0];
 
                                 // 添加普通成员
-                                let mem_ids = groups[0].get("members");
-                                for (let i = 0; i < mem_ids.length; i++) {
-                                    const tmpQuery = new AV.Query('Account');
-                                    tmpQuery.get(admin_ids[i]).then((tmpAct) => {
-                                        if (i == 0)
-                                            document.getElementById("mems").innerHTML = tmpAct.get("account_id");
-                                        else
-                                            document.getElementById("mems").innerHTML += tmpAct.get("account_id");
-                                        if (i != admin_ids.length - 1)
-                                            document.getElementById("mems").innerHTML += ',';
-                                    });
+                                mem_names.splice(0,1);
+                                if (mem_names.length == 0) {
+                                    document.getElementById("mems").innerText = "暂无普通成员";
+                                } else {
+                                    document.getElementById("mems").innerHTML = mem_names.join(',');
                                 }
 
                                 // 添加待办事项
-                                let events = groups[0].get("event_list");
-                                for (let i = 0; i < events.length; i++) {
-                                    const tmpQuery = new AV.Query('Event');
-                                    tmpQuery.get(events[i]).then((tmpEvent) => {
-                                        newevent( dateTimeToString(tmpEvent.get("start_date")),
-                                            dateTimeToString(tmpEvent.get("end_date")),
-                                            tmpEvent.get("content"), events[i]);
-                                    });
-                                }
+                                // 查询事件
+                                const eventQuery = new AV.Query('Event');
+                                eventQuery.equalTo('group_name', group_name);
+                                eventQuery.ascending('start_date');
+                                eventQuery.find().then((events) => {
+                                    // alert("got " + events.length + "ones")
+                                    for (let i=0; i<events.length; i++) {
+                                        if (events[i].get("end_date") <= new Date()) {
+                                            NewEndEvent(events[i]);
+                                        } else {
+                                            newevent(events[i]);
+                                        }
+                                    }
+                                });
 
                                 document.getElementById("group_id").innerHTML = group_name;
                                 document.getElementById("company").innerHTML = company;
@@ -565,7 +572,12 @@
 
         }
 
-        function newevent(eventstart, eventend, eventcont, event_obid) {
+        function newevent(event_object) {
+            let eventstart = dateTimeToString(event_object.get("start_date"));
+            let eventend = dateTimeToString(event_object.get("end_date"));
+            let eventcont = event_object.get("content");
+            let event_obid = event_object.get("objectId");
+
             var eventmodel = document.getElementById("model_event");
             var new_event = eventmodel.cloneNode(true);
             var event_num = document.getElementsByClassName("event").length - 1;
@@ -612,12 +624,11 @@
             } else if (eventcont.substr(0, "面试总结".length) == "面试总结") {
                 start_btns[event_num].classList.add("event_step5");
                 start_btns[event_num].innerHTML =
-                    '<img src="../source/pic/icon_play.png" alt="" width="15px"><span ' +
-                    'onclick = "document.getElementById(\'newpage3\').style.display = \'block\';">面试总结</span>';
+                    '<img src="../source/pic/icon_play.png" alt="" width="15px"><span>面试总结</span>';
 
                 let interview_id = Number(eventcont.split("(")[1].split(")")[0]);
                 start_btns[event_num].onclick = function () {
-                    window.open("../work/interview_conclusion.html?interview_id="+this.parentNode.id);
+                    window.open("../work/interview_conclusion.html?interview_id="+ interview_id_list[interview_id]);
                 }
             }
             // alert(start_btns[event_num].onclick);
@@ -643,12 +654,42 @@
             }
 
             // alert(typeof(eventstart));
-            if (eventstart >= eventend) {
+            if (new Date(eventstart) >= new Date(eventend)) {
                 alert("计划开始时间与结束时间相冲突，请重新确定时间。");
                 return;
             } else if (eventcont == "") {
                 alert("计划无内容，请重新确定面试计划。");
                 return;
+            }
+
+            if (event_type == "招新宣传") {
+                const vsQuery = new AV.Query('VitaeStatistic');
+                vsQuery.equalTo('group_name', group_id);
+                vsQuery.find().then((vss) => {
+                    if (vss.length == 0) {
+                        // 声明 class
+                        const Todo = AV.Object.extend('VitaeStatistic');
+                        // 构建对象
+                        const todo = new Todo();
+
+                        // 为属性赋值
+                        todo.set('group_name', group_name);
+                        todo.set('end_date', new Date(eventend));
+
+                        // 将对象保存到云端
+                        todo.save().then((todo) => {
+                            // 成功保存之后，执行其他逻辑
+                            console.log(`保存成功。objectId：${todo.id}`);
+                        }, (error) => {
+                            // 异常处理
+                        });
+                    } else {
+                        // 或许要更新时间
+                        const todo = AV.Object.createWithoutData('VitaeStatistic', vss[0].get("objectId"));
+                        todo.set('end_date', new Date(eventend));
+                        todo.save();
+                    }
+                });
             }
 
             // 在数据库中保存数据
@@ -657,6 +698,7 @@
             event.set("start_date", new Date(eventstart));
             event.set('end_date', new Date(eventend));
             event.set("content", eventcont);
+            event.set("group_name", group_name);
             event.save().then((todo) => {
                 // 成功保存之后，执行其他逻辑
                 console.log(`账户保存成功。objectId：${todo}`);
@@ -678,9 +720,7 @@
                     }
 
                     // 在页面中显示内容
-                    eventstart = eventstart.replace('T', ' ');
-                    eventend = eventend.replace('T', ' ');
-                    newevent(eventstart, eventend, eventcont, todo.get("objectId"));
+                    newevent(todo);
 
                     // 善后处理
                     document.getElementById("newpage1").style.display = "none";
@@ -714,6 +754,41 @@
                 // location.replace("../work/vitaefilter.html?group_id=" + group_id);
             }
             return;
+        }
+
+        // 群发消息
+        function sendGroupMessage() {
+            let group_message_title = document.getElementById("group_msg_title").value;
+                group_message_content = document.getElementById("group_msg_content").value;
+
+            if (group_message_content == "" || group_message_title == "") {
+                alert("请填写完整的信息内容。");
+                return;
+            }
+            
+            // 声明 class
+            const Todo = AV.Object.extend('GroupMessage');
+            // 构建对象
+            const todo = new Todo();
+            // 为属性赋值
+            todo.set('title', group_message_title);
+            todo.set('content', group_message_content);
+            todo.set('sender', account_name);
+            todo.set('receiver_group', group_name);
+            todo.set('receiver_group_obid', group_id);
+            todo.set('receive_time', new Date());
+
+            // 将对象保存到云端
+            todo.save().then((todo) => {
+                // 成功保存之后，执行其他逻辑
+                console.log(`保存成功。objectId：${todo.id}`);
+                // 发送成功
+                alert("组群消息发送成功。");
+                disappear(newpage5);
+            }, (error) => {
+                // 异常处理
+                console.log("保存失败。", error);
+            });
         }
 
         // 修改事项
@@ -819,11 +894,11 @@
                 <hr>
                 <div class="atribt_pair">
                     <span class="atribt">工作组</span>
-                    <span class="atribt_val" id="group_id">公司01-面试组001</span>
+                    <span class="atribt_val" id="group_id"></span>
                 </div>
                 <div class="atribt_pair">
                     <span class="atribt">企业</span>
-                    <span class="atribt_val" id="company">公司01</span>
+                    <span class="atribt_val" id="company"></span>
                 </div>
                 <div class="zhanwei2"></div>
             </div>
@@ -856,6 +931,10 @@
                     <span class="btnadd" id="btnadd1">
                         <img src="../source/pic/icon_add.png" alt="" width="20px"
                             onclick="openwindow(newpage1)">
+                    </span>
+                    <span class="btnadd" id="btnadd2">
+                        <img src="../source/pic/icon_circle-envelope.png" alt="" width="20px"
+                            onclick="openwindow(newpage5)">
                     </span>
                 </div>
                 <hr>
@@ -890,6 +969,16 @@
 
             </div>
 
+            <!-- 结束事项 -->
+            <div class="workgroup_block" id="end_events_box">
+                <div class="basictitle">
+                    完结事项
+                </div>
+                <hr>
+
+                <!-- 事件列表 -->
+                <div class="zhanwei2" id="end_events_zhanwei"></div>
+            </div>
 
         </div>
         <div class="zhanwei2"></div>
@@ -948,7 +1037,7 @@
                 </div>
                 <div class="newinfo" id="newinfo_content1" style="display: none;">
                     <select id="interview_number">
-                        <option selected disabled="disabled" id="newinfo_content1_title" label="面试场次"></option>
+                        <option selected disabled="disabled" id="newinfo_content1_title" label="无安排" title="请在完成面试安排后设定进行面试的事件"></option>
                     </select>
                     <input type="text" id="interview_comment" placeholder="备注">
                 </div>
@@ -1006,7 +1095,7 @@
                 <div class="newtitle">
                     内容
                 </div>
-                <div class="newinfo" id="newinfo_content0">
+                <div class="newinfo">
                     <input class="content" id="editevent_content" type="text" placeholder="面试内容">
                 </div>
             </div>
@@ -1165,9 +1254,43 @@
         </div>
     </div>
 
-<script>
+    <!-- 编辑事项的窗口 -->
+    <div class="newevent" id="newpage5" style="display: none;">
+        <div class="window" id="window_5">
+            <div class="exit">
+                <img src="../source/pic/icon_cross.png" alt="" width="10px" height="10px" onclick="disappear(newpage5)">
+            </div>
+            <div class="title">
+                发送工作组信息
+            </div>
+            <div class="newpair">
+                <div class="newtitle">
+                    标题
+                </div>
+                <div class="newinfo">
+                    <input class="content" id="group_msg_title" type="text" placeholder="组消息标题">
+                </div>
+            </div>
+            <div class="newpair">
+                <div class="newtitle">
+                    内容
+                </div>
+                <div class="newinfo">
+                    <textarea name="" cols="30" rows="10" id="group_msg_content" class="content"
+                        style="resize: none; height: 80px; font-size: 15px;"></textarea>
+                </div>
+            </div>
+            <div class="newevent_btn_box">
+                <div class="newevent_btn" id="edit_send_btn" onclick="sendGroupMessage();">
+                    <span>确定</span>
+                </div>
+                <div class="newevent_btn" onclick="disappear(newpage5)">
+                    <span>取消</span>
+                </div>
+            </div>
+        </div>
+    </div>
 
-</script>
     <!-- 获取面试地址 -->
     <div class="newevent" id="newpage3">
         <style>

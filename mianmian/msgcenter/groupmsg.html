@@ -49,7 +49,9 @@
                     personalMessage.set('title', reply_title);
                     personalMessage.set('content', reply_content);
                     personalMessage.set('sender', account_name);
-                    personalMessage.set('receivers', new Array().push(msg_sender));
+                    let tmp_receivers = new Array();
+                    tmp_receivers.push(msg_sender);
+                    personalMessage.set('receivers', tmp_receivers);
                     let reply_commts = new Array();
                     reply_commts.push(account_name);
                     reply_commts.push(msg_sender);
@@ -57,7 +59,7 @@
 
                     // 将对象保存到云端
                     personalMessage.save().then((tmp_reply_msg) => {
-                        alert("发送成功！");
+                        alert("回复发送成功！");
                         // 成功保存之后，执行其他逻辑
                         // console.log(`保存成功。objectId：${todo.id}`);
                     }, (error) => {
@@ -141,7 +143,7 @@
                             let group_names = now_account.get("work_group_list");
                             // 查询信息
                             const messageQuery1 = new AV.Query('GroupMessage');
-                            messageQuery.equalTo('receiver_group', group_names);
+                            messageQuery1.containedIn('receiver_group_obid', group_names);
                             const messageQuery2 = new AV.Query('GroupMessage');
                             messageQuery2.lessThanOrEqualTo('receive_time', new Date());
 
@@ -150,6 +152,7 @@
                             // 处理信息
                             messageQuery.descending('receive_time'); // 按照日期排序
                             messageQuery.find().then((systemMessages) => {
+                                // alert("got:"+systemMessages.length);
                                 for (let i = 0; i < systemMessages.length; i++) {
                                     let msg_title = systemMessages[i].get("title");
                                     let msg_sender = systemMessages[i].get("sender");
@@ -243,9 +246,14 @@
             </div>
         </span>
 
+        <style>
+            .msg_case_model {
+                display: none;
+            }
+        </style>
         <!-- 右侧信息栏 -->
         <span class="rightcontent">
-            <div class="msg_case msg_case_model" onclick="showdetails(this);" style="display: none;">
+            <div class="msg_case msg_case_model" onclick="showdetails(this);">
                 <img src="../source/pic/icon_badge-check.png" alt=""
                     class="msg_case_detail" width="20px" title="确认"
                     onclick="run_content(this.parentNode);">
@@ -259,6 +267,7 @@
                     <span class="msg_case_sender">Mianmain Team</span>
                     ，致
                     <span class="msg_case_receiver">account_id</span>
+                    工作组
                 </div>
                 <div class="msg_case_content">
                     Zz是拉丁字母中的第26个字母，也是最后一个字母。这个字母的英语念法比较特别：英国念作/zɛd/，美国念作/ziː/，还有一种很古老的念法izzard。在拉丁语和西班牙语中，z被称为zeta，与希腊字母ζ的读法一样。

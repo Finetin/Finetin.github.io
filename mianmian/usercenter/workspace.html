@@ -170,7 +170,7 @@
         }
 
         // 初始化单个工作组
-        function newGroupBlock(group_id, group_comp, group_mems) {
+        function newGroupBlock(group_id, group_comp, group_mems, group_obid) {
             var model_group = document.getElementById("model_group");
             var clone_group = model_group.cloneNode(true);
             let no_group = document.getElementsByClassName("workgroup_block").length-1;
@@ -185,7 +185,7 @@
             atribt_vals[3 * no_group + 1].innerHTML = group_comp;
             atribt_vals[3 * no_group + 2].innerHTML = group_mems;
             // alert(enterGroups[no_group].innerHTML);
-            enterGroups[no_group].href = 'workgroup.html?group_name='+group_id;
+            enterGroups[no_group].href = 'workgroup.html?group_id='+ group_obid;
             return;
         }
 
@@ -210,14 +210,12 @@
                             workgroup_lists = now_account.get("work_group_list");
                             for (let i=0; i<workgroup_lists.length; i++) {
                                 // 获取工作组信息
-                                let groupQuery = new AV.Query('WorkGroup');
-                                let groupid = "", company = "", mems = "";
-                                groupQuery.equalTo("group_name", workgroup_lists[i]);
-                                groupQuery.find().then((groups) => {
-                                    groupid = groups[0].get("group_name");
-                                    company = groups[0].get("company");
-                                    mems = groups[0].get("mem_names").join(",");
-                                    newGroupBlock(groupid, company, mems);
+                                const groupQuery = new AV.Query('WorkGroup');
+                                groupQuery.get(workgroup_lists[i]).then((tmp_group) => {
+                                    let groupid = tmp_group.get("group_name");
+                                    let company = tmp_group.get("company");
+                                    let mems = tmp_group.get("mem_names").join(",");
+                                    newGroupBlock(groupid, company, mems, workgroup_lists[i]);
                                 });
                             }
                         });

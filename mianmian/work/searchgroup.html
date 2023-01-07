@@ -18,9 +18,91 @@
             serverURL: "https://qinfwm0d.lc-cn-n1-shared.com"
         });
         
+        var account_id = "example_account", group_receivers = new Array(), group_id="", account_obid;
+
         function search_group() {
-            
+            let search_group = document.getElementById("search_target_group").value;
+            const groupQuery = new AV.Query("WorkGroup");
+            groupQuery.equalTo('group_name', search_group);
+            groupQuery.find().then((search_groups) => {
+                if (search_groups.length == 0) {
+                    document.getElementById("search_res_group").style.display = "none";
+                    alert("未找到任何面试工作组。");
+                }
+                group_id = search_groups[0].get("objectId");
+                document.getElementById("group_name_show").innerText = search_groups[0].get("group_name");
+                document.getElementById("group_email_show").innerText = search_groups[0].get("email");
+                document.getElementById("group_comp_show").innerText = search_groups[0].get("company");
+                group_receivers = search_groups[0].get("admin");
+                document.getElementById("search_res_group").style.display = "block";
+
+                // 查验收件人姓名
+                for (let i=0; i<group_receivers.length; i++) {
+                    let query = new AV.Query('Account');
+                    query.get(group_receivers[i]).then((now_account) => {
+                        group_receivers[i] = now_account.get("account_id");
+                    });
+                }
+            });
         }
+
+        function sendApplication() {
+            let message_content = prompt("请输入您的申请备注：");
+            let msg_receivers = group_receivers;
+            // 声明 class
+            const person_msg = AV.Object.extend('PersonalMessage');
+
+            // 构建对象
+            const apply_msg = new person_msg();
+
+            // 为属性赋值
+            apply_msg.set('title', '加入工作组的申请');
+            apply_msg.set('content', message_content);
+            apply_msg.set('sender', account_id);
+            apply_msg.set('receivers', msg_receivers);
+            let commters = msg_receivers;
+            commters.push(account_id);
+            apply_msg.set("communicators", commters);
+            apply_msg.set("msg_parameter", group_id);
+            apply_msg.set('run_type', 2);
+
+            // 将对象保存到云端
+            apply_msg.save().then((todo) => {
+                alert("申请发送成功，请等待管理员受理请求。");
+                // 成功保存之后，执行其他逻辑
+                console.log(`保存成功。objectId：${todo.id}`);
+            }, (error) => {
+                // 异常处理
+            });
+        }
+
+        window.onload = function () {
+
+            // 检查登录状态
+            const loginQuery = new AV.Query('LoginState');
+            let client_id = cans(); // 客户端码
+            loginQuery.equalTo('client_id', client_id);
+            loginQuery.find().then((loginStates) => {
+                if (loginStates.length > 0) {
+                    // 判断是否过期
+                    let nowdate = new Date();
+                    if ((nowdate.getTime() - loginStates[0].get('createdAt').getTime()) / 1000 > 3600) {
+                        alert("登录已过期，请重新登录。");
+                        location.assign("../account/login.html");
+                    }
+                    else {
+                        const personQuery = new AV.Query('Account');
+                        personQuery.get(loginStates[0].get("account_id")).then((todo) => {
+                            account_id = todo.get("account_id");
+                            account_obid = loginStates[0].get("account_id");
+                        });
+                    }
+                } else {
+                    location.assign("../account/login.html");
+                }
+            });
+        };
+
     </script>
     <style>
         html {
@@ -81,6 +163,7 @@
         }
         .search_btn:hover {
             filter: invert(100%);
+            cursor: pointer;
         }
 
         /* 新建工作组链接 */
@@ -145,6 +228,7 @@
         }
         .joinin_btn:hover {
             filter: invert(100%);
+            cursor: pointer;
         }
     </style>
     <link rel="stylesheet" href="../css/index.css">
@@ -196,12 +280,12 @@
             </div>
             <div class="search">
                 <span>
-                    <input class="search_ipt" type="text" placeholder="请输入面试工作组组名" maxlength="10">
+                    <input class="search_ipt" type="text" placeholder="请输入面试工作组组名" maxlength="10" id="search_target_group">
                 </span>
-                <span class="search_btn">搜索</span>
+                <span class="search_btn" onclick="search_group();">搜索</span>
             </div>
             <div class="res_groups">
-                <div class="res_group" style="display: none;">
+                <div class="res_group" id="search_res_group" style="display: none;">
                     <div class="group_val_pair">
                         <div class="group_val_title">组名</div>
                         <div class="group_val_val" id="group_name_show"></div>
@@ -215,7 +299,7 @@
                         <div class="group_val_val" id="group_comp_show"></div>
                     </div>
                     <div class="group_val_pair">
-                        <span class="joinin_btn">加入群组</span>
+                        <span class="joinin_btn" onclick="sendApplication();">加入群组</span>
                     </div>
                 </div>
             </div>

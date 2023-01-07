@@ -168,20 +168,12 @@
         };
 
         function person_head() {
-            if (localStorage.getItem("login_state") == null || localStorage.getItem("login_state") == "null") {
-                location.replace('./account/login.html');
-            } else {
-                window.location.href = "./usercenter/personal_information.html";
-            }
+            location.assign("account/login.html");
             return;
         }
 
         function msg_center() {
-            if (localStorage.getItem("login_state") == null || localStorage.getItem("login_state") == "null") {
-                window.location.href = "./account/login.html";
-            } else {
-                window.location.href = "./msgcenter/systemmsg.html";
-            }
+            location.assign("./msgcenter/systemmsg.html");
         }
     </script>
 </head>
@@ -210,12 +202,12 @@
             <div class="user">
                 <div></div>
                 <!-- <a href="" > -->
-                    <span onclick="msg_center()">
+                    <span onclick="location.assign('./msgcenter/systemmsg.html');">
                         <img class="img1" src="source/pic/user0.png" alt="" width="17" height="22">
                     </span>
                 <!-- </a> -->
                 <!-- <a href="" > -->
-                    <span onclick="person_head()">
+                    <span onclick="location.assign('usercenter/personal_information.html');">
                         <img class="img2" src="source/pic/user1.png" alt="" height="50" width="50">
                     </span>
                 <!-- </a> -->

@@ -96,29 +96,28 @@
                         tmpArray2.push(now_account.get("account_id"));
                         tmpGroup.set('mem_names', tmpArray2);
 
-                        // 在账户信息中记录
-                        const tmp_account = AV.Object.createWithoutData('Account', now_account.get("objectId"));
-                        let work_group_list = now_account.get("work_group_list");
-                        work_group_list.push(group_id);
-                        tmp_account.set("work_group_list", work_group_list);
-                        tmp_account.save();
-
                         // 保存组
-                        tmpGroup.save();
+                        tmpGroup.save().then((tmp_newgroup) => {
+                            // 在账户信息中记录
+                            const tmp_account = AV.Object.createWithoutData('Account', now_account.get("objectId"));
+                            let work_group_list = now_account.get("work_group_list");
+                            work_group_list.push(tmp_newgroup.get("objectId"));
+                            tmp_account.set("work_group_list", work_group_list);
+                            tmp_account.save().then(()=>{
+                                alert("新建工作组成功");
 
-                        alert("新建工作组成功");
+                                document.getElementById("group_id").value = "",
+                                    document.getElementById("company").value = "",
+                                    document.getElementById("email_address").value = "",
+                                    document.getElementById("qqemailconf").value = "",
+                                    document.getElementById("telnum").value = "";
+                                location.assign("../usercenter/workspace.html");
+                            });
+                        });
 
-                        document.getElementById("group_id").value = "",
-                        document.getElementById("company").value = "",
-                        document.getElementById("email_address").value = "",
-                        document.getElementById("qqemailconf").value = "",
-                        document.getElementById("telnum").value = "";
                     });
                 }
             });
-
-            // alert("工作组添加成功");
-            location.assign("../usercenter/workspace.html");
         }
     </script>
     <style>

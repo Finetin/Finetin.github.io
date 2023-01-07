@@ -18,27 +18,207 @@
             serverURL: "https://qinfwm0d.lc-cn-n1-shared.com"
         });
 
+        urlinfo = window.location.href; //获取当前页面的url
+        len = urlinfo.length;//获取url的长度
+        offset = urlinfo.indexOf("?");//设置参数字符串开始的位置
+        nowpath = urlinfo.substr(0, offset + 1); // 获取当前路径
+        newsidinfo = urlinfo.substr(offset, len); //取出参数字符串 这里会获得类似“id=1”这样的字符串
+        newsids = newsidinfo.split("=");//对获得的参数字符串按照“=”进行分割
+        interview_tmp_name = newsids[1];//得到参数值
+        newsname = newsids[0];//得到参数名字
+
         var account_id = "";
+        var interview_group_number = interview_tmp_name, candidate_arr = new Array();
+        var interview_start = new Date();
+        var nowpage_assess = 0;
+
+        // 时间转化为字符串
+        function dateTimeToString(date) {
+            var y = date.getFullYear();
+            var M = date.getMonth() + 1;
+            var d = date.getDate();
+            var H = date.getHours();
+            var m = date.getMinutes();
+            var s = date.getSeconds();
+            return y + '-' + (M < 10 ? ('0' + M) : M) + '-' + (d < 10 ? ('0' + d) : d) + " " + (H < 10 ? ('0' + H) : H) + ":" + (m < 10 ? ('0' + m) : m) + ":" + (s < 10 ? ('0' + s) : s);
+        }
+
+        function turnAssessPage() {
+            let target_page = Math.floor(Number(document.getElementById("go_candidate_ipt").value)-1);
+            getPersonAssess(target_page);
+        }
+
+        function getPersonAssess(person_number) {
+            if (person_number<0) person_number = candidate_arr.length-1;
+            if (person_number >= candidate_arr.length) person_number == 0;
+            if (candidate_arr.length ==0) {
+                alert("面试者缺失。");
+                return;
+            }
+            nowpage_assess = person_number;
+            document.getElementById("go_candidate_ipt").value = nowpage_assess+1;
+
+            document.getElementById('candidate_person_name').innerText = candidate_arr[person_number];
+            // 获取简历信息
+            const vitaeQuery = new AV.Query('Vitae');
+            vitaeQuery.equalTo('person_name', candidate_arr[person_number]);
+            vitaeQuery.find().then((tmp_persons) => {
+                if (tmp_persons.length == 0) {
+                    console.log("应聘者不存在。");
+                    return;
+                } else {
+                    let interview_signin_time = tmp_persons[0].get("interview_signin_state");
+                    let interview_going_time = tmp_persons[0].get("interview_going_state");
+                    if (interview_signin_time > interview_start)
+                        document.getElementById("interview_check_time").innerText = dateTimeToString(interview_signin_time) + " 迟到入会";
+                    else if (interview_start.getTime() - interview_signin_time.getTime() >= 1000*60*120)
+                        document.getElementById("interview_check_time").innerText = dateTimeToString(interview_signin_time) + " 未签到";
+                    else document.getElementById("interview_check_time").innerText = dateTimeToString(interview_signin_time) + " 准时入会";
+
+                    if (interview_going_time <= interview_start)
+                        document.getElementById("interview_going_time").innerText = dateTimeToString(interview_going_time) + " 未参加或提前面试";
+                    else
+                        document.getElementById("interview_going_time").innerText = dateTimeToString(interview_going_time);
+                    document.getElementById('candidate_vitae_link').href = "./vitaedetail.html?person_id="+tmp_persons[0].get("objectId");
+                }
+            });
+
+            // 获取评价
+            let assessQuery1 = new AV.Query('InterviewAssess');
+            assessQuery1.equalTo('interview_group_number', interview_group_number);
+            let assessQuery2 = new AV.Query('InterviewAssess');
+            assessQuery2.equalTo('person_name', candidate_arr[person_number]);
+
+            const assessQuery = AV.Query.or(assessQuery1, assessQuery2);
+            assessQuery.find().then((assesses_arr) => {
+                let former_assesses = document.getElementsByClassName("assess_box");
+                for (let i= former_assesses.length-1; i>=0; i--) {
+                    former_assesses[i].parentNode.removeChild(former_assesses[i]);
+                }
+
+                // 新建信息
+                for (let i=0; i<assesses_arr.length; i++) {
+                    let ability_score = assesses_arr[i].get("ability_score");
+                    let communicate_score = assesses_arr[i].get("communicate_score");
+                    let quality_score = assesses_arr[i].get("quality_score");
+
+                    let person_superiority = assesses_arr[i].get('person_superiority');
+                    let person_inferiority = assesses_arr[i].get('person_inferiority');
+                    let person_conclusion = assesses_arr[i].get('person_conclusion');
+
+                    let assess_worker = assesses_arr[i].get('account_name');
+
+                    // attribute_box assess_box
+                    let new_div = document.createElement("div");
+                    new_div.classList.add("attribute_box");
+                    new_div.classList.add("assess_box");
+
+                    new_div.innerHTML =
+                    '<div class="attribute_box_title">面试官评价：' + assess_worker + '</div>'+
+                    '<hr>'+
+                    '<div class="attribute_pair">'+
+                    '<span class="attribute_key">沟通交流</span>'+
+                    '<span class="attribute_val">' + communicate_score + '</span>'+
+                    '</div>'+
+                    '<div class="attribute_pair">'+
+                    '<span class="attribute_key">个人能力</span>' +
+                    '<span class="attribute_val">' + ability_score + '</span>'+
+                    '</div>'+
+                    '<div class="attribute_pair">'+
+                    '<span class="attribute_key">工作素养</span>' +
+                    '<span class="attribute_val">' + quality_score + '</span>'+
+                    '</div>'+
+                    '<div class="attribute_pair">'+
+                    '<span class="attribute_key">优势</span>' +
+                    '<span class="attribute_val">' + person_superiority + '</span>'+
+                    '</div>'+
+                    '<div class="attribute_pair">'+
+                    '<span class="attribute_key">劣势</span>' +
+                    '<span class="attribute_val">' + person_inferiority + '</span>'+
+                    '</div>'+
+                    '<div class="attribute_pair">'+
+                    '<span class="attribute_key">总结</span>' +
+                    '<span class="attribute_val">' + person_conclusion + '</span>'+
+                    '</div>'+
+                    '<div class="zhanwei_010"></div>';
+                    document.getElementById('main_content_box').insertBefore(new_div,
+                        document.getElementById('person_assess_lastline'));
+                }
+                if (assesses_arr.length == 0) {
+                    let new_div = document.createElement("div");
+                    new_div.classList.add("attribute_box");
+                    new_div.classList.add("assess_box");
+                    new_div = '<div class="attribute_box_title">暂无评价<hr></div>';
+                    document.getElementById('main_content_box').insertBefore(new_div,
+                        document.getElementById('person_assess_lastline'));
+                }
+            });
+        }
 
         // 初始化加载
         window.onload = function () {
-            return;
-            // 检查登录状态
-            const loginQuery = new AV.Query('LoginState');
-            let client_id = cans();
-            loginQuery.equalTo('client_id', client_id);
-            loginQuery.find().then((loginStates) => {
-                if (loginStates.length > 0) {
-                    // 判断是否过期
-                    let nowdate = new Date();
-                    if ((nowdate.getTime() - loginStates[0].get('createdAt').getTime()) / 1000 > 3600)
-                        location.assign("../account/login.html");
-                    else {
-                        account_id = loginStates[0].get("account_id");
-                    } // 成功登录 
-                } else location.assign("../account/login.html");
-            });
+            document.getElementById("candidate_list_window").style.marginTop = window.innerHeight/2-138 + "px";
+
+            if (interview_group_number == "" || interview_group_number == undefined) {
+                alert("网址异常。");
+                location.assign("../index.html");
+                return;
+            } else {
+                const interviewQuery = new AV.Query('InterviewGroup');
+                interviewQuery.get(interview_group_number).then((now_interview) => {
+                    candidate_arr = now_interview.get("candidate_arr");
+                    document.getElementById('interview_time_box').innerText =
+                        dateTimeToString(now_interview.get('start_time')) + " - " +
+                        dateTimeToString(now_interview.get('end_time'));
+
+                    getPersonAssess(0);
+
+                    let interview_result_arr = now_interview.get("interview_result_arr");
+                    if (interview_result_arr.length != candidate_arr.length) {
+                        let tmp_interview = AV.Object.createWithoutData('InterviewGroup', now_interview.get("objectId"));
+                        interview_result_arr = new Array();
+                        for (let i=0; i< interview_result_arr.length; i++) {
+                            interview_result_arr[i] = false;
+                        }
+                        tmp_interview.set('interview_result_arr', interview_result_arr);
+                        tmp_interview.save();
+                        setCandidateList(interview_result_arr);
+                    } else {
+                        // alert(interview_result_arr);
+                        setCandidateList(interview_result_arr);
+                    }
+                });
+            }
         };
+
+        // 加载面试人列表
+        function setCandidateList(candidate_in_list) {
+            for (let i=0; i<candidate_arr.length; i++) {
+                let new_div = document.createElement("div");
+                new_div.classList.add("candidate_list_pair");
+                new_div.innerHTML = '<span class="candidate_name">' + candidate_arr[i] + '</span>'+
+                    '<input type = "checkbox" name = "" class="candidate_in_chose">';
+                document.getElementById("candidate_list_box").appendChild(new_div);
+            }
+
+            let candidate_in_chose_ipts = document.getElementsByClassName("candidate_in_chose");
+            for (let i=0; i< candidate_in_chose_ipts.length; i++) {
+                candidate_in_chose_ipts[i].title = "应聘者是否入围";
+                candidate_in_chose_ipts[i].checked = candidate_in_list[i];
+            }
+        }
+        // 入围情况保存
+        function saveCandidateIn() {
+            let candidate_in_box = document.getElementsByClassName("candidate_in_chose");
+            let candidate_in_arr = new Array();
+            for (let i=0; i<candidate_arr.length; i++) {
+                candidate_in_arr.push(candidate_in_box[i].checked);
+            }
+            let tmp_interview = AV.Object.createWithoutData('InterviewGroup', interview_group_number);
+            alert(candidate_in_arr)
+            tmp_interview.set('interview_result_arr', candidate_in_arr);
+            tmp_interview.save();
+        }
 
         // 头像
         function person_head() {
@@ -94,13 +274,49 @@
             padding-bottom: 30px;
         }
 
+        /* 设定详情框样式 */
         .attribute_box {
             width: 800px;
             margin-left: auto;
             margin-right: auto;
+            margin-top: 10px;
+            margin-bottom: 10px;
 
             border-radius: 8px;
             border: 1px solid #aaa;
+        }
+        .attribute_box hr{
+            margin-left: 25px;
+            margin-right: 25px;
+        }
+        .attribute_box_title {
+            width: 750px;
+            padding-top: 15px;
+            margin-left: auto;
+            margin-right: auto;
+
+            font-size: 20px;
+            text-align: left;
+        }
+        .attribute_pair {
+            width: 750px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left;
+            padding-top: 5px;
+            padding-bottom: 5px;
+        }
+        .attribute_key {
+            width: 80px;
+            font-size: 15px;
+            display: inline-block;
+        }
+        .attribute_val {
+            margin-left: 20px;
+            width: 620px;
+
+            font-size: 18px;
+            font-family: 'Times New Roman', Times, serif;
         }
 
 
@@ -109,6 +325,10 @@
         /* 杂项 */
         .zhanwei2 {
             height: 20px;
+        }
+        .zhanwei_010 {
+            height: 20px;
+            width: 100%;
         }
 
     </style>
@@ -152,7 +372,7 @@
     </div>
 
     <span class="mainshell">
-        <div class="mainpage">
+        <div class="mainpage" id="main_content_box">
             <div class="maintitle">
                 面试总结
             </div>
@@ -161,27 +381,263 @@
                 <hr>
                 <div class="attribute_pair">
                     <span class="attribute_key">应聘者</span>
-                    <span class="attribute_val">xxx</span>
+                    <span class="attribute_val" id="candidate_person_name"></span>
                 </div>
                 <div class="attribute_pair">
-                    <span class="attribute_key">面试场次时间</span>
+                    <span class="attribute_key">面试时间</span>
+                    <span class="attribute_val" id="interview_time_box"></span>
+                </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">签到时间</span>
+                    <span class="attribute_val" id="interview_check_time"></span>
+                </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">入场时间</span>
+                    <span class="attribute_val" id="interview_going_time"></span>
+                </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">简历</span>
+                    <a href="" class="attribute_val" id="candidate_vitae_link"> 点击跳转 ></a>
+                </div>
+                <div class="zhanwei_010"></div>
+            </div>
+            <div class="attribute_box assess_box">
+                <div class="attribute_box_title">暂无评价<hr></div>
+            </div>
+            <div class="attribute_box assess_box">
+                <div class="attribute_box_title">面试官评价：</div>
+                <hr>
+                <div class="attribute_pair">
+                    <span class="attribute_key">沟通交流</span>
                     <span class="attribute_val"></span>
                 </div>
                 <div class="attribute_pair">
-                    <span class="attribute_key">应聘者</span>
-                    <span class="attribute_val">xxx</span>
+                    <span class="attribute_key">个人能力</span>
+                    <span class="attribute_val"></span>
                 </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">工作素养</span>
+                    <span class="attribute_val"></span>
+                </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">优势</span>
+                    <span class="attribute_val"></span>
+                </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">劣势</span>
+                    <span class="attribute_val"></span>
+                </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">总结</span>
+                    <span class="attribute_val"></span>
+                </div>
+                <div class="zhanwei_010"></div>
             </div>
 
-
-            <!-- 提交键 -->
-            <div id="new_group_btn" onclick="checkGroupValid()">
-                确定
-            </div>
-
+            <div id="person_assess_lastline" style="height: 10px; width: 100%;"></div>
             <div class="zhanwei2"></div>
         </div>
     </span>
+
+<!-- 悬浮标签的样式 -->
+<style>
+    .floatbtn {
+        position: fixed;
+        right: 5px;
+        bottom: 50px;
+        height: 240px;
+        width: 60px;
+        background-color: #eee;
+        border-radius: 8px;
+        opacity: 0.9;
+        vertical-align: bottom;
+        text-align: center;
+    }
+
+    .page_btn {
+        margin: 10px;
+        margin-left: auto;
+        margin-right: auto;
+        /* filter: invert(100%); */
+        /* filter: brightness(1.5); */
+
+        width: 36px;
+        height: 36px;
+
+        border-radius: 18px;
+        background-color: #aaa;
+    }
+
+    .page_btn:hover {
+        background-color: #ddd;
+    }
+
+    .page_btn img {
+        margin-top: auto;
+        
+        /* border-radius: 50%; */
+        /* background-color: #555; */
+        cursor: pointer;
+    }
+
+    #turn_page_ipt_box  #go_candidate_ipt {
+        border: 0;
+        font-size: 20px;
+        width: 50px;
+        height: 22px;
+
+        margin-left: -10px;
+        margin-top: 6px;
+
+        background-color: rgba(255,255,255,0);
+        text-align: center;
+    }
+
+    #turn_page_btn_box img, #person_list_btn_box img{
+        margin-top: 7px;
+    }
+</style>
+    <!-- 浮动的标签 -->
+    <span class="floatbtn" title="在圆形输入框中输入面试分组号进行跳转。">
+        <div class="page_btn" onclick="getPersonAssess(nowpage_assess-1);">
+            <img src="../source/pic/icon_arrow-small-left.png" alt="" width="35px" title="上一个面试分组">
+        </div>
+        <div class="page_btn" id="turn_page_ipt_box" title="圆形输入框">
+            <!-- <img class="score_btn" src="../source/pic/icon_circle-1.png" alt="" width="35px"> -->
+            <input type="text" id="go_candidate_ipt" onkeyup="value=value.replace(/[^\d]/g,'') "
+                style="outline:none;">
+        </div>
+        <div class="page_btn" id="turn_page_btn_box" title="跳转至指定分组页面。"
+            onclick="turnAssessPage();">
+            <img class="score_btn" src="../source/pic/icon_rocket-lunch.png" alt="" width="22px">
+        </div>
+        <div class="page_btn" onclick="getPersonAssess(nowpage_assess+1);">
+            <img src="../source/pic/icon_arrow-small-right.png" alt="" width="35px" title="下一个面试分组">
+        </div>
+        <div class="page_btn" id="person_list_btn_box" onclick="document.getElementById('candidate_list_dialog').style.display = 'block';">
+            <img class="score_btn" src="../source/pic/icon_ballot.png" alt="" width="22px" title="面试名单">
+        </div>
+    </span>
+
+<!-- 对话框样式文件 -->
+<style>
+    .conclusion_dialog {
+        position: fixed;
+
+        width: 100%;
+        height: 100%;
+        background-color: rgba(200, 200, 200, 0.8);
+        display: none;
+    }
+
+    #candidate_list_window {
+        width: 350px;
+        margin: auto;
+
+        background-color: rgb(250, 250, 250);
+        border-radius: 8px;
+
+        overflow: hidden;
+    }
+
+    .candidate_list_title {
+        font-size: 20px;
+        padding: 20px;
+        padding-top: 30px;
+    }
+
+    /* 按键框 */
+    .candidate_list_btnbox {
+        width: 100%;
+        padding-top: 10px;
+        padding-bottom: 10px;
+
+        /* padding-right: 20px; */
+        text-align: center;
+
+        background-color: #eee;
+    }
+
+    .candidate_list_btn {
+        font-size: 15px;
+        text-align: center;
+
+        display: inline-block;
+        padding: 3px;
+        padding-left: 10px;
+        padding-right: 10px;
+        width: 110px;
+
+        margin-left: 5px;
+        margin-right: 5px;
+        border-radius: 8px;
+        background-color: #0178D4;
+        color: #fff;
+    }
+
+    .candidate_list_btn:hover {
+        cursor: pointer;
+        filter: brightness(0.8);
+    }
+
+    /* 名单内容 */
+    #candidate_list_box {
+        width: 280px;
+        height: 130px;
+        margin-left: auto;
+        margin-right: auto;
+        text-align: center;
+
+        overflow-y: scroll;
+        background-color: rgb(255, 255, 254);
+    }
+    .candidate_list_pair {
+        width: 100%;
+        background-color: floralwhite;
+        padding-top: 3px;
+        padding-bottom: 3px;
+
+    }
+    .candidate_list_pair :hover {
+        filter: brightness(0.8);
+    }
+    .candidate_name {
+        width: 230px;
+        display: inline-block;
+        font-size: 18px;
+    }
+    .candidate_in_chose {
+        text-align: center;
+        display: inline-block;
+        width: 20px;
+    }
+
+
+</style>
+    <!-- 面试总结名单 -->
+    <div class="conclusion_dialog" id="candidate_list_dialog">
+        <div id="candidate_list_window">
+            <div class="candidate_list_title">
+                面试者名单
+            </div>
+            <div id="candidate_list_box">
+                <!-- <div class="candidate_list_pair">
+                    <span class="candidate_name"></span>
+                    <input type="checkbox" name="" class="candidate_in_chose" checked="false">
+                </div> -->
+            </div>
+            <div style="height: 15px; width: 100%;" id="candidate_list_dialog_zhanwei"></div>
+            <div class="candidate_list_btnbox" style="margin-top: 10px;">
+                <span class="candidate_list_btn" id="sign_in_btn" onclick="saveCandidateIn();">
+                    确定
+                </span>
+                <span class="candidate_list_btn" id="sign_exit_btn" onclick="document.getElementById('candidate_list_dialog').style.display = 'none';">
+                    关闭
+                </span>
+            </div>
+        </div>
+
+    </div>
 
 </body>
 

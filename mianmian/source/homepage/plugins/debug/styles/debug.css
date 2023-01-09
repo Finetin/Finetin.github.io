@@ -1,8 +1,8 @@
 ﻿#debugHost {
     display: flex;
     flex-direction: column;
-    /*font-size: 13px;*/
-    /*color: #4a4a4a;*/
+    font-size: 13px;
+    color: #4a4a4a;
     height: 100%;
 }
 
@@ -19,7 +19,7 @@
 }
 
 #debugToolbar {
-    /*margin-left: 8px;*/
+    margin-left: 8px;
 }
 
 #variablesClearLink {
@@ -27,8 +27,8 @@
     margin-bottom: 15px;
 }
 
-#variablesClearLink:hover, #traceClear:hover, #traceToggle:hover {
-    color: #1482C5;
+#variablesClearLink:hover {
+    color: #0a6cd6;
 }
 
 #traceClearLink {
@@ -37,7 +37,7 @@
 }
 
 #traceClearLink:hover {
-    color: #1482C5;
+    color: #0a6cd6;
 }
 
 #debugScrollContainer 
@@ -54,8 +54,7 @@
 
 #consoleTitle {
     clear: right;
-    /*margin: 12px 0px;*/
-    padding: 10px 15px;
+    margin: 12px 0px;
 }
 
 .variableName
@@ -76,13 +75,13 @@
 }
 
 #variablesContainer {
-    /*border-bottom: solid 1px #e7e7e7;*/
-    padding: 0px 15px 12px 15px;
+    border-bottom: solid 1px #e7e7e7;
+    padding: 0px 10px 12px 10px;
 }
 
 #traceContainer {
     margin-bottom: 5px;
-    padding: 5px 15px 0px 15px;
+    padding: 15px 10px 0px 10px;
 }
 
 #variablesTitle {
@@ -90,7 +89,7 @@
 }
 
 .sectionTitle {
-    font-size: 12px;
+    font-size: 11px;
     color: #2c2c2c;
     display: inline-block;
 }
@@ -106,17 +105,17 @@
     width: 100%;
     margin: 5px 0px 5px 0px;
     line-height: 21px;
-    /*border-bottom: solid 5px #e7e7e7;*/
+    border-bottom: solid 5px #e7e7e7;
 }
 
 .axEventContainer {
-    /*background-color: #e7e7e7;*/
-    padding: 0px 15px 0px 15px;
+    background-color: #e7e7e7;
+    padding: 0px 10px 0px 10px;
 }
 
 .axTime {
     margin: 0px 0px 0px 5px;
-    font-size: 12px;
+    font-size: 10px;
     color: #575757;
     display: inline-block;
     float: right;
@@ -124,43 +123,31 @@
 
 .axLabel {
     display: inline-block;
-    color: #1482C5;
 }
 
 .axEvent {
-    /*margin: 0px 0px 2px 0px;*/    
-    /*font-size: 15px;*/
+    margin: 0px 0px 2px 0px;    
+    font-size: 15px;
     font-weight: bold;
     overflow: hidden;
     text-overflow: ellipsis;
-    text-transform: uppercase;
 }
 
-.axCaseContainer {
+.axCaseContainer, .axActionContainer, .axInfoContainer {
     justify-content: space-between;
-    padding: 0px 15px 0px 25px;
-}
-
-.axActionContainer {
-    justify-content: space-between;
-    padding: 0px 15px 0px 35px;
-}
-
-.axInfoContainer {
-    justify-content: space-between;
-    padding: 0px 15px 0px 45px;
+    padding: 0px 10px 0px 10px;
 }
     .axCaseContainer {
-        /*border-top: solid 2px #e7e7e7;*/
+        border-top: solid 2px #e7e7e7;
         /*background-color: #47b6b5;*/
-        /*background-color: #e7e7e7;*/
+        background-color: #e7e7e7;
         /*color: #ffffff;*/
     }
     .axActionContainer {
-        /*border-top: solid 3px #e7e7e7;*/
+        border-top: solid 3px #e7e7e7;
     }
     .axInfoContainer {
-        /*border-top: solid 1px #e7e7e7;*/
+        border-top: solid 1px #e7e7e7;
     }
 
 .axCaseItem, .axActionItem, .axInfoItem {
@@ -168,20 +155,20 @@
     text-overflow: ellipsis; 
 }
     .axCaseItem {
-        /*font-size: 15px;*/
+        font-size: 15px;
         font-weight: bold;
     }
     .axActionItem {
         font-weight: bold;
     }
     .axInfoItem {
-        /*color: #8c8c8c;*/
+        color: #8c8c8c;
     }
 
 .axCaseDescription {
     flex: 5 0 33%;
-    /*padding-left: 10px;*/
-    /*text-align: right;*/
+    margin-left: 10px;
+    text-align: right;
 }
 /*.axActionDescription, .axInfoDescription {
     flex: 5 0 33%;
@@ -202,7 +189,7 @@
     width: 55%;
     line-height: 0.92;
     text-align: left;
-    /*color: #0891b3;*/
+    color: #0891b3;
     display: inline-block;
     word-wrap: break-word;
     vertical-align: top;
@@ -230,6 +217,10 @@
     text-align: center
 }
 
+#traceEmptyState.emptyStateContainer {
+    margin-top: 0px;
+}
+
 .variableList{
     width: 100%;
     margin-bottom: 4px;
@@ -240,35 +231,35 @@
     height: 16px;
     float: right;
     font-size: 12px;
-    /*font-style: italic;*/
+    font-style: italic;
     line-height: 1.45;
     text-align: right;
-    /*color: #8c8c8c;*/
+    color: #8c8c8c;
     text-decoration: underline;
     display: inline-block;
 }
 
-#traceEmptyState {
+.startInstructions {
     margin: auto;
     width: 179px;
     font-size: 11px;
     text-align: center;
-    /*color: #666666;*/
+    color: #666666;
+}
+
+.startButton {
+    margin: auto;
+    margin-top: 10px;
+    width: 181px;
+    height: 24px;
+    border-radius: 2px;
+    border: solid 1px #008fe0;
+    text-align: center;
+    line-height: 24px;
+    color: #008fe0;
+    cursor: pointer;
 }
 
 .debugLinksContainer {
     text-align: right;
-}
-
-.axEventCounter {
-    display: inline-block;
-    width: 21px;
-    height: 21px;
-    font-size: 12px;
-    border-radius: 50%;
-    text-align: center;
-    color: #ffffff;
-    background-color: rgba(30, 152, 215, 1);
-    margin-left: 5px;
-    float: right;
 }

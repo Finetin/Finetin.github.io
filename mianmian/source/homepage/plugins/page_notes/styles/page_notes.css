@@ -28,7 +28,7 @@
 }
 
 .pageNoteContainer {
-    padding: 0px 15px 8px 15px;
+    padding: 0px 12px 8px 12px;
 }
 
 .mobileMode .pageNoteContainer {
@@ -38,14 +38,14 @@
 .pageNoteName {
     font-size: 13px;
     font-weight: bold;
-    /*color: #2c2c2c;*/
+    color: #2c2c2c;
     margin: 15px 0px 5px 0px;
     white-space: nowrap;
 }
 
 .pageNote {
     font-size: 13px;
-    color: #081222;
+    color: #2a2e38;
     line-height: 1.67;
     word-wrap: break-word;
 }
@@ -76,18 +76,10 @@
 }
 
 .widgetNoteContainer {
-    padding: 15px;
+    padding: 12px;
     border-bottom: 1px solid transparent;
     border-top: 1px solid transparent;
     cursor: pointer;
-}
-
-.widgetNoteContainer:hover {
-    background-color: #f7f8fb;
-}
-
-.notesDialog .widgetNoteContainer:hover {
-    background-color: transparent;
 }
 
 .mobileMode .widgetNoteContainer {
@@ -96,12 +88,8 @@
 
 .widgetNoteContainerSelected {
     background-color: white;
-    border-bottom: 1px solid #CBD5E5;
-    border-top: 1px solid #CBD5E5;
-}
-
-.widgetNoteContainerSelected:hover {
-    background-color: white;
+    border-bottom: 1px solid #c2c2c2;
+    border-top: 1px solid #c2c2c2;
 }
 
 .widgetNoteFootnote {
@@ -127,7 +115,7 @@ div.annnoteline {
 .widgetNoteLabel {
     font-size: 13px;
     font-weight: 600;
-    /*color: #1482C5;*/
+    color: #58167d;
     margin-top: 4px;
     float: right;
 }
@@ -142,11 +130,11 @@ div.annnoteline {
 }
 
 .notesSectionHeader {
-    margin: 0px 15px 4px 15px;
+    margin: 0px 8px 0px 12px;
 }
 
 .notesPageNameHeader {
-    margin: 8px 15px 15px 15px;
+    margin: 8px 8px 15px 12px;
 }
 
 .mobileMode .notesPageNameHeader {
@@ -188,7 +176,7 @@ div.resizeNotesDialog {
 div.notesDialog {
     position: absolute;
     padding: 16px 3px 10px 3px;
-    background-color: #FCFDFF;
+    background-color: #efefef;
     width: 300px;
     height: 300px;
     line-height: normal;

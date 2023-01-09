@@ -3,9 +3,13 @@
 $axure.internal(function($ax) {
     var _features = $ax.features = {};
     var _supports = _features.supports = {};
+    _supports.touchstart = typeof window.ontouchstart !== 'undefined';
+    _supports.touchmove = typeof window.ontouchmove !== 'undefined';
+    _supports.touchend = typeof window.ontouchend !== 'undefined';
 
+    _supports.mobile = _supports.touchstart && _supports.touchend && _supports.touchmove;
     // Got this from http://stackoverflow.com/questions/11381673/javascript-solution-to-detect-mobile-browser
-    let isMobile = navigator.userAgent.match(/Android/i)
+    var check = navigator.userAgent.match(/Android/i)
         || navigator.userAgent.match(/webOS/i)
         || navigator.userAgent.match(/iPhone/i)
         || navigator.userAgent.match(/iPad/i)
@@ -14,24 +18,19 @@ $axure.internal(function($ax) {
         || navigator.userAgent.match(/Tablet PC/i)
         || navigator.userAgent.match(/Windows Phone/i);
 
-    if(isMobile || navigator.maxTouchPoints || navigator.msMaxTouchPoints) {
-        _supports.touchstart = typeof window.ontouchstart !== 'undefined';
-        _supports.touchmove = typeof window.ontouchmove !== 'undefined';
-        _supports.touchend = typeof window.ontouchend !== 'undefined';
-
-        _supports.pointerdown = typeof window.onpointerdown !== 'undefined';
-        _supports.pointerup = typeof window.onpointerup !== 'undefined';
-        _supports.pointermove = typeof window.onpointermove !== 'undefined';
-    }
-    
-    _supports.mobile = _supports.touchstart && _supports.touchend && _supports.touchmove;
-                    // || _supports.pointerdown && _supports.pointerup && _supports.pointermove;
     _supports.windowsMobile = navigator.userAgent.match(/Tablet PC/i) || navigator.userAgent.match(/Windows Phone/i);
-    
+
+    if(!check && _supports.mobile) {
+        _supports.touchstart = false;
+        _supports.touchmove = false;
+        _supports.touchend = false;
+        _supports.mobile = false;
+    }
+
     var _eventNames = _features.eventNames = {};
-    _eventNames.mouseDownName = _supports.touchstart ? 'touchstart' : _supports.pointerdown ? 'pointerdown' : 'mousedown';
-    _eventNames.mouseUpName = _supports.touchend ? 'touchend' : _supports.pointerup ? 'pointerup' : 'mouseup';
-    _eventNames.mouseMoveName = _supports.touchmove ? 'touchmove' : _supports.pointermove ? 'pointermove' : 'mousemove';
+    _eventNames.mouseDownName = _supports.touchstart ? 'touchstart' : 'mousedown';
+    _eventNames.mouseUpName = _supports.touchend ? 'touchend' : 'mouseup';
+    _eventNames.mouseMoveName = _supports.touchmove ? 'touchmove' : 'mousemove';
 });
 
 // ******* EVENT MANAGER ******** //
@@ -42,8 +41,7 @@ $axure.internal(function ($ax) {
 
     // Every time Debug begins/ends tracing or a new Debug.js file finishes loading this value will be updated
     $axure.messageCenter.addStateListener("isTracing", function (key, value) {
-        isTempStop = value === 'tempStop';
-        isConsoleTracing = !isTempStop && value;
+        isConsoleTracing = value;
         isPageLoading = false;
 
         if (isConsoleTracing) {
@@ -52,7 +50,7 @@ $axure.internal(function ($ax) {
             }
         }
 
-        if (!isTempStop) savedMessages = [];
+        savedMessages = [];
     });
 
     var postMessage = function (message, data) {
@@ -186,7 +184,7 @@ $axure.internal(function ($ax) {
 
     };
 
-    var _eventTypeToKey = { 'OnFocus': 'onFocus', 'OnLostFocus': 'onLostFocus' };
+    var _descriptionToKey = { 'OnFocus': 'onFocus', 'OnLostFocus': 'onLostFocus' };
     var _createProxies = function(diagramObject, elementId) {
         var createFocus = _needsProxy(diagramObject, elementId, 'onFocus');
         var createLostFocus = _needsProxy(diagramObject, elementId, 'onLostFocus');
@@ -194,8 +192,8 @@ $axure.internal(function ($ax) {
         if(!createFocus && !createLostFocus) return;
 
         if(!diagramObject.interactionMap) diagramObject.interactionMap = {};
-        if(createFocus) diagramObject.interactionMap.onFocus = { proxy: true, eventType: 'OnFocus' };
-        if (createLostFocus) diagramObject.interactionMap.onLostFocus = { proxy: true, eventType: 'OnLostFocus' };
+        if(createFocus) diagramObject.interactionMap.onFocus = { proxy: true, description: 'OnFocus' };
+        if(createLostFocus) diagramObject.interactionMap.onLostFocus = { proxy: true, description: 'OnLostFocus' };
     }
 
     var preventDefaultEvents = ['OnContextMenu', 'OnKeyUp', 'OnKeyDown', 'OnPageContextMenu', 'OnPageKeyUp', 'OnPageKeyDown'];
@@ -208,8 +206,7 @@ $axure.internal(function ($ax) {
         if(_canClick) _startScroll = [$(window).scrollLeft(), $(window).scrollTop()];
     };
 
-    var _getCanClick = function () {
-        if(_startScroll.length == 0) return _canClick;
+    var _getCanClick = function() {
         var endScroll = [$(window).scrollLeft(), $(window).scrollTop()];
         return _canClick && _startScroll[0] == endScroll[0] && _startScroll[1] == endScroll[1];
     };
@@ -286,10 +283,10 @@ $axure.internal(function ($ax) {
     var eventNestingTime = new Date().getTime();
 
     var _handleEvent = $ax.event.handleEvent = function (elementId, eventInfo, axEventObject, skipShowDescriptions, synthetic) {
-        var eventType = axEventObject.eventType;
-        if(_enteredWidgets[elementId] && eventType == 'OnMouseEnter') return; // Suppress entering a widget when already in widget (ie only)
-        if(_isSuppressedEvent(elementId, eventType)) {
-            _removeSuppressedEvent(elementId, eventType);
+        var eventDescription = axEventObject.description;
+        if(_enteredWidgets[elementId] && eventDescription == 'OnMouseEnter') return; // Suppress entering a widget when already in widget (ie only)
+        if(_isSuppressedEvent(elementId, eventDescription)) {
+            _removeSuppressedEvent(elementId, eventDescription);
             return;
         }
 
@@ -297,7 +294,7 @@ $axure.internal(function ($ax) {
             var firingId = _widgetToFocusParent[elementId];
             if(firingId) {
                 var firingObj = $obj(firingId);
-                var nextEventObj = firingObj.interactionMap && firingObj.interactionMap[_eventTypeToKey[eventType]];
+                var nextEventObj = firingObj.interactionMap && firingObj.interactionMap[_descriptionToKey[eventDescription]];
                 if(!nextEventObj) nextEventObj = axEventObject;
                 _handleEvent(firingId, eventInfo, nextEventObj, skipShowDescriptions, synthetic);
             }
@@ -319,9 +316,9 @@ $axure.internal(function ($ax) {
 
         eventNesting += 1;
 
-        if (!synthetic && !_getCanClick() && (eventType == 'OnClick' || eventType == 'OnPageClick')) return;
+        if(!_getCanClick() && (eventDescription == 'OnClick' || eventDescription == 'OnPageClick')) return;
         // If you are supposed to suppress, do that right away.
-        if(suppressedEventStatus[eventType]) {
+        if(suppressedEventStatus[eventDescription]) {
             return;
         }
 
@@ -333,7 +330,7 @@ $axure.internal(function ($ax) {
         var axObj = $obj(elementId);
         var axObjLabel = axObj ? axObj.label : eventInfo.label;
         var axObjType = axObj ? axObj.friendlyType : eventInfo.friendlyType;
-        if (!skipShowDescriptions || eventType == 'OnPageLoad') postMessage('axEvent', { 'label': axObjLabel, 'type': axObjType, 'event': axEventObject, 'elementId': $ax.repeater.getScriptIdFromElementId(elementId) });
+        if (!skipShowDescriptions || eventDescription == 'OnPageLoad') postMessage('axEvent', { 'label': axObjLabel, 'type': axObjType, 'event': axEventObject });
 
         var bubble = true;
         var showCaseDescriptions = !skipShowDescriptions && _shouldShowCaseDescriptions(axEventObject);
@@ -385,7 +382,7 @@ $axure.internal(function ($ax) {
             firingId = _widgetToFocusParent[elementId];
             if(firingId) {
                 firingObj = $obj(firingId);
-                nextEventObj = firingObj.interactionMap && firingObj.interactionMap[_eventTypeToKey[eventType]];
+                nextEventObj = firingObj.interactionMap && firingObj.interactionMap[_descriptionToKey[axEventObject.description]];
                 if(!nextEventObj) nextEventObj = axEventObject;
                 _handleEvent(firingId, eventInfo, nextEventObj, skipShowDescriptions, synthetic);
             }
@@ -393,8 +390,8 @@ $axure.internal(function ($ax) {
         }
 
         // Only trigger a supression if it handled this event
-        if(!bubble && suppressingEvents[eventType]) {
-            suppressedEventStatus[suppressingEvents[eventType]] = true;
+        if(!bubble && suppressingEvents[eventDescription]) {
+            suppressedEventStatus[suppressingEvents[eventDescription]] = true;
         }
 
         $ax.action.flushAllResizeMoveActions(eventInfo);
@@ -405,11 +402,11 @@ $axure.internal(function ($ax) {
         for(i = 0; i < repeaters.length; i++) $ax.repeater.refreshRepeater(repeaters[i], eventInfo);
 
         if(currentEvent && currentEvent.originalEvent) {
-            currentEvent.originalEvent.handled = !synthetic && !bubble && allowBubble.indexOf(eventType) == -1;
+            currentEvent.originalEvent.handled = !synthetic && !bubble && allowBubble.indexOf(eventDescription) == -1;
             //currentEvent.originalEvent.donotdrag = currentEvent.donotdrag || (!bubble && eventDescription == 'OnMouseDown');
 
             // Prevent default if necessary
-            if (currentEvent.originalEvent.handled && preventDefaultEvents.indexOf(eventType) != -1) {
+            if(currentEvent.originalEvent.handled && preventDefaultEvents.indexOf(eventDescription) != -1) {
                 currentEvent.preventDefault();
             }
         }
@@ -594,26 +591,14 @@ $axure.internal(function ($ax) {
     };
 
     var _attachDefaultObjectEvent = function(elementIdQuery, elementId, eventName, fn) {
-        var func = function (e) {
-            var inputIndex = elementId.indexOf('_input');
-            if (inputIndex == -1) {
-                if ($ax.style.IsWidgetDisabled(elementId) || _shouldIgnoreLabelClickFromCheckboxOrRadioButton(e)) return true;
-            } else {
-                if ($ax.style.IsWidgetDisabled(elementId.substring(0, inputIndex)) || _shouldIgnoreLabelClickFromCheckboxOrRadioButton(e)) return false;
-            }
-            return fn.apply(this, arguments);
+        var func = function() {
+            if(!$ax.style.IsWidgetDisabled(elementId)) return fn.apply(this, arguments);
+            return true;
         };
+
         var bind = !elementIdQuery[eventName];
         if(bind) elementIdQuery.bind(eventName, func);
         else elementIdQuery[eventName](func);
-    };
-
-    var _shouldIgnoreLabelClickFromCheckboxOrRadioButton = function(e) {
-        return (((_hasParentWithMatchingSelector(e.target, '.checkbox') && $(e.target).closest('label').length != 0) ||
-            _hasParentWithMatchingSelector(e.target, '.radio_button') && $(e.target).closest('label').length != 0)) && e.type == 'click';
-    };
-    var _hasParentWithMatchingSelector = function(target, selector) {
-        return $(target).parents(selector).length != 0;
     };
 
     var _attachCustomObjectEvent = function(elementId, eventName, fn) {
@@ -725,13 +710,10 @@ $axure.internal(function ($ax) {
 
     // TODO: It may be a good idea to split this into multiple functions, or at least pull out more similar functions into private methods
     var _initializeObjectEvents = function(query, refreshType) {
-        var skipSelectedIds = new Set();
         query.each(function (dObj, elementId) {
             if (dObj == null) return;       // TODO: Update expo items that pass here to potentially remove this logic
             var $element = $jobj(elementId);
             var itemId = $ax.repeater.getItemIdFromElementId(elementId);
-
-            const isItem = itemId && $ax.public.fn.IsRepeater(dObj.type);
 
             // Focus has to be done before on focus fires
             // Set up focus
@@ -767,35 +749,25 @@ $axure.internal(function ($ax) {
             _attachIxStyleEvents(dObj, elementId, $element);
 
             var $axElement = $ax('#' + elementId);
-            // Base case is set up selected disabled error based on the default in the axobj, for non, repeaters and resetting repeaters
+            // Base case is set up selected disabled based on the default in the axobj, for non, repeaters and resetting repeaters
             var itemReset = refreshType == $ax.repeater.refreshType.reset;
             if(!itemId || itemReset) {
-                //initialize selected and error before disabled or else style state dictionaries will be incorrect
+                //initialize disabled elements, do this first before selected, cause if a widget is disabled, we don't want to apply selected style anymore
                 if ($ax.public.fn.IsVector(dObj.type) || $ax.public.fn.IsImageBox(dObj.type) || isDynamicPanel || $ax.public.fn.IsLayer(dObj.type)
                     || $ax.public.fn.IsTextBox(dObj.type) || $ax.public.fn.IsTextArea(dObj.type) || $ax.public.fn.IsComboBox(dObj.type) || $ax.public.fn.IsListBox(dObj.type)
                     || $ax.public.fn.IsCheckBox(dObj.type) || $ax.public.fn.IsRadioButton(dObj.type)) {
 
-                    // Initialize selected elements
-                    // only set one member of selection group selected since subsequent calls
-                    // will unselect the previous one anyway
-                    if(dObj.error) $axElement.error(true);
-
-                    if(dObj.selected && !skipSelectedIds.has(elementId)) {
-                        var group = $('#' + elementId).attr('selectiongroup');
-                        if(group) for(var item of $("[selectiongroup='" + group + "']")) skipSelectedIds.add(item.id);
-                        $axElement.selected(true);
-                    }
-
                     if (dObj.disabled) $axElement.enabled(false);
+
+                    // Initialize selected elements
+                    if(dObj.selected) $axElement.selected(true);
                 }
             } else if(refreshType == $ax.repeater.refreshType.preEval) {
-                // Otherwise everything should be set up correctly by pre-eval, want to set up selected/disabled/error dictionaries (and disabled status)
-                const isSelected = $element.hasClass('selected');
-                const isError = $element.hasClass('error');
-                const isDisabled = $element.hasClass('disabled');
-                if(isSelected) $axElement.selected(true);
-                if(isError) $axElement.error(true);
-                if(isDisabled) $axElement.enabled(false);
+                // Otherwise everything should be set up correctly by pre-eval, want to set up selected disabled dictionaries (and disabled status)
+                // Disabled layer/dynamic panel don't have the disabled class, but they do have the disabled attr written out, so use that in that case
+                if ($element.hasClass('disabled') ||
+                    (($ax.IsLayer(dObj.type) || $ax.IsDynamicPanel(dObj.type)) && $element.attr('disabled'))) $axElement.enabled(false);
+                if($element.hasClass('selected')) $axElement.selected(true);
             } else {
                 // Persist means we want to leave it as is, but we want to make sure we use selected based off of the backing data, and not some class that exists because of the reset
                 $element.removeClass('selected');
@@ -807,31 +779,13 @@ $axure.internal(function ($ax) {
             //    }
             //};
 
-            const isInput = $ax.public.fn.IsTextArea(dObj.type) || $ax.public.fn.IsTextBox(dObj.type);
-            if(isInput) {
-                var inputJobj = $jobj($ax.INPUT(elementId));
-                inputJobj.bind('keyup', function(e) {
-                    //prevents triggering player shortcuts
-                    e.preventDefault();
-                });
-            }
-
-            const clearPlaceholderTextIfNeeded = function(elementId) {
-                if(!dObj.HideHintOnFocused) {
-                    var inputIndex = elementId.indexOf('_input');
-                    if(inputIndex == -1) return;
-                    var inputId = elementId.substring(0, inputIndex);
-                    if(!$ax.placeholderManager.isActive(inputId)) return;
-                    $ax.placeholderManager.updatePlaceholder(inputId, false, true);
-                }
-            }
-
             // Initialize Placeholders. Right now this is text boxes and text areas.
             // Also, the assuption is being made that these widgets with the placeholder, have no other styles (this may change...)
             var hasPlaceholder = dObj.placeholderText == '' ? true : Boolean(dObj.placeholderText);
-            if(isInput && hasPlaceholder) {
+            if(($ax.public.fn.IsTextArea(dObj.type) || $ax.public.fn.IsTextBox(dObj.type)) && hasPlaceholder) {
                 // This is needed to initialize the placeholder state
-                inputJobj.on('focus', function () {
+                var inputJobj = $jobj($ax.INPUT(elementId));
+                inputJobj.bind('focus', function () {
                     if(dObj.HideHintOnFocused) {
                         var id = this.id;
                         var inputIndex = id.indexOf('_input');
@@ -842,58 +796,65 @@ $axure.internal(function ($ax) {
                         $ax.placeholderManager.updatePlaceholder(inputId, false, true);
                     }
                     $ax.placeholderManager.moveCaret(this.id);
-                }).on('mouseup', function() {
+                }).bind('mouseup', function() {
                     $ax.placeholderManager.moveCaret(this.id);
-                }).on('blur', function() {
+                }).bind('blur', function() {
                     var id = this.id;
                     var inputIndex = id.indexOf('_input');
                     if(inputIndex == -1) return;
                     var inputId = id.substring(0, inputIndex);
-                    var $input = $jobj(id);
-                    var invalidInput = !$input[0].validity.valid;
-                    if($input.val() || invalidInput) return;
+
+                    if($jobj(id).val()) return;
                     $ax.placeholderManager.updatePlaceholder(inputId, true);
                 });
 
-                inputJobj.on('input', function () {
-                    if (!dObj.HideHintOnFocused) { //hide on type
+                if(ANDROID) {
+                    //input fires before keyup, to avoid flicker, supported in ie9 and above
+                    inputJobj.bind('input', function() {
+                        if(!dObj.HideHintOnFocused) { //hide on type
+                            var id = this.id;
+                            var inputIndex = id.indexOf('_input');
+                            if(inputIndex == -1) return;
+                            var inputId = id.substring(0, inputIndex);
+
+                            if($ax.placeholderManager.isActive(inputId)) {
+                                $ax.placeholderManager.updatePlaceholder(inputId, false, true);
+                            } else if(!$jobj(id).val()) {
+                                $ax.placeholderManager.updatePlaceholder(inputId, true, false);
+                                $ax.placeholderManager.moveCaret(id, 0);
+                            }
+                        }
+                    });
+                } else {
+                    inputJobj.bind('keydown', function() {
+                        if(!dObj.HideHintOnFocused) {
+                            var id = this.id;
+                            var inputIndex = id.indexOf('_input');
+                            if(inputIndex == -1) return;
+                            var inputId = id.substring(0, inputIndex);
+
+                            if(!$ax.placeholderManager.isActive(inputId)) return;
+                            $ax.placeholderManager.updatePlaceholder(inputId, false, true);
+                        }
+                    }).bind('keyup', function(e) {
                         var id = this.id;
                         var inputIndex = id.indexOf('_input');
                         if(inputIndex == -1) return;
                         var inputId = id.substring(0, inputIndex);
 
-                        var $input = $jobj(id);
-                        var emptyInputValue = !$input.val();
-                        var validInput = $input[0].validity.valid;
-                        if ($ax.placeholderManager.isActive(inputId)) {
-                            // clear text if emptyInputValue is true and input is valid;
-                            $ax.placeholderManager.updatePlaceholder(inputId, false, emptyInputValue && validInput);
-                        }
-                        else if (emptyInputValue && validInput) {
+                        if($ax.placeholderManager.isActive(inputId)) return;
+                        if(!dObj.HideHintOnFocused && !$jobj(id).val()) {
                             $ax.placeholderManager.updatePlaceholder(inputId, true);
                             $ax.placeholderManager.moveCaret(id, 0);
                         }
-                    };
-                });
 
-                inputJobj.on('keydown', function () {
-                    clearPlaceholderTextIfNeeded(this.id);
-                }).on('beforeinput', function () {
-                    clearPlaceholderTextIfNeeded(this.id);
-                }).on('paste', function () {
-                    clearPlaceholderTextIfNeeded(this.id);
-                });
+                        //prevents triggering player shortcuts
+                        e.preventDefault();
+                    });
+                }
 
                 $ax.placeholderManager.registerPlaceholder(elementId, dObj.placeholderText, inputJobj.attr('type') == 'password');
-
-                // Reset placeholders when the "Back/next to previous page" browser event was fired.
-                // It's need because we use input value with some style and js hacks as placeholder
-                // And browsers save values of input elements in their history.
-                // More info - RP-2077
-                if (!$ax.placeholderManager.isActive(elementId) && inputJobj.val() === dObj.placeholderText) {
-                    inputJobj.val('');
-                }
-                $ax.placeholderManager.updatePlaceholder(elementId, !inputJobj.val());
+                $ax.placeholderManager.updatePlaceholder(elementId, !($jobj($ax.repeater.applySuffixToElementId(elementId, '_input')).val()));
             }
 
             // Initialize assigned submit buttons
@@ -979,7 +940,7 @@ $axure.internal(function ($ax) {
             }
 
             // Attach handles for dynamic panels that propagate styles to inner items.
-            if ((isDynamicPanel || $ax.public.fn.IsLayer(dObj.type) || isItem) && dObj.propagate) {
+            if ((isDynamicPanel || $ax.public.fn.IsLayer(dObj.type)) && dObj.propagate) {
                 $element.mouseenter(function() {
                     dynamicPanelMouseOver(this.id);
                 }).mouseleave(function() {
@@ -1055,23 +1016,11 @@ $axure.internal(function ($ax) {
             var map = dObj.interactionMap;
             // Attach synthetic drag and swipe events
             if(map && (map.onDragStart || map.onDrag || map.onDragDrop || map.onSwipeLeft || map.onSwipeRight || map.onSwipeUp || map.onSwipeDown)) {
-                if(isDynamicPanel) {
-                    var diagrams = dObj.diagrams;
-                    for(var i = 0; i < diagrams.length; i++) {
-                        var panelId = $ax.repeater.applySuffixToElementId(elementId, '_state' + i);
-                        var panel = document.getElementById(panelId);
-                        panel.addEventListener($ax.features.eventNames.mouseDownName, function (e) {
-                            $ax.drag.StartDragWidget(e, elementId);
-                        });
-                    }
-                } else {
-                    $element.bind($ax.features.eventNames.mouseDownName,
-                        function (e) {
-                            $ax.drag.StartDragWidget(e.originalEvent, elementId);
-                            // if (!e.originalEvent.donotdrag) $ax.registerTouchCount(e);
-                            // $ax.drag.StartDragWidget(e.originalEvent, elementId);
-                        });
-                }
+                $element.bind($ax.features.eventNames.mouseDownName,
+                    function (e) {
+                        if (!e.originalEvent.donotdrag) $ax.registerTouchCount(e);
+                        $ax.drag.StartDragWidget(e.originalEvent, elementId);
+                    });
             }
 
             // Attach dynamic panel synthetic scroll event
@@ -1162,13 +1111,10 @@ $axure.internal(function ($ax) {
                 $ax.updateElementText(elementId, element.val());
                 //Key down needed because when holding a key down, key up only fires once, but keydown fires repeatedly.
                 //Key up because last mouse down will only show the state before the last character.
-                element.on('keydown', function(e) {
+                element.bind('keydown', function(e) {
                     $ax.setjBrowserEvent(e);
                     $ax.event.TryFireTextChanged(elementId);
-                }).on('keyup', function(e) {
-                    $ax.setjBrowserEvent(e);
-                    $ax.event.TryFireTextChanged(elementId);
-                }).on('input', function(e) {
+                }).bind('keyup', function(e) {
                     $ax.setjBrowserEvent(e);
                     $ax.event.TryFireTextChanged(elementId);
                 });
@@ -1182,8 +1128,7 @@ $axure.internal(function ($ax) {
                     if(input.prop('selected')) {
                         $ax.updateRadioButtonSelected(radioGroupName, elementId);
                     }
-                    var onClick = function(e) {
-                        if ($ax.style.IsWidgetDisabled(elementId)) return;
+                    var onClick = function() {
                         if(radioGroupName !== elementId) {
                             var radioGroup = $("input[name='" + radioGroupName + "']").parent();
                             for(var i = 0; i < radioGroup.length; i++) {
@@ -1191,16 +1136,11 @@ $axure.internal(function ($ax) {
                             }
                         }
                         $ax.style.SetWidgetSelected(elementId, true, true);
-                        e.originalEvent.handled = true;
                     };
                 } else {
-                    var selected = $ax.style.IsWidgetSelected(elementId);
-                    if (selected) $ax.style.SetWidgetSelected(elementId, selected, true);
-
-                    onClick = function(e) {
+                    onClick = function () {
                         $ax.style.SetWidgetSelected(elementId, !$ax.style.IsWidgetSelected(elementId), true);
-                        if(!$ax.style.IsWidgetDisabled(elementId)) e.originalEvent.handled = true;
-                    };
+                    };                                        
                 }
                 input.click(onClick);
 
@@ -1379,11 +1319,9 @@ $axure.internal(function ($ax) {
                 }
 
                 $(document).off("mouseup", clearMouseDownIxStyle);
+                $("#" + _event.mouseDownObjectId).off("dragend", clearMouseDownIxStyle);
 
-                if(_event.mouseDownObjectId) {
-                    $("#" + _event.mouseDownObjectId).off("dragend", clearMouseDownIxStyle);
-                    _event.mouseDownObjectId = '';
-                }
+                _event.mouseDownObjectId = '';
                 if(!$ax.style.ObjHasMouseDown(elementId)) return;
 
                 $ax.style.SetWidgetMouseDown(elementId, false, e.checkMouseOver);
@@ -1474,12 +1412,6 @@ $axure.internal(function ($ax) {
                             break;
                         case 190:
                             $ax.messageCenter.postMessage('nextPage');
-                            break;
-                        case 27:
-                            $ax.messageCenter.postMessage('exitCommentMode');
-                            break;
-                        case 67:
-                            $ax.messageCenter.postMessage('toogleCommentMode');
                             break;
                         default:
                             return; // exit this handler for other keys
@@ -1603,8 +1535,7 @@ $axure.internal(function ($ax) {
         if(!e) return;
 
         if(IE_10_AND_BELOW && typeof (e.type) == 'unknown') return;
-        if(e.type != 'mousemove' && e.type != 'touchstart' && e.type != 'touchmove' && e.type != 'touchend'
-            && e.type != 'pointermove' && e.type != 'pointerdown' && e.type != 'pointerup') return;
+        if(e.type != 'mousemove' && e.type != 'touchstart' && e.type != 'touchmove' && e.type != 'touchend') return;
 
         var newX;
         var newY;
@@ -1653,29 +1584,17 @@ $axure.internal(function ($ax) {
     };
     $ax.event.raiseSelectedEvents = _raiseSelectedEvents;
 
-    var _raiseErrorEvents = function(elementId, value) {
-        if(value) $ax.event.raiseSyntheticEvent(elementId, 'onErrorSet');
-        else $ax.event.raiseSyntheticEvent(elementId, 'onErrorRemoved');
-    }
-    $ax.event.raiseErrorEvents = _raiseErrorEvents;
-
-    var _raiseSyntheticEvent = function (elementId, eventName, skipShowDescription, eventInfo, nonSynthetic) {
-        if ($ax.style.IsWidgetDisabled(elementId) && _shouldStopOnDisabledWidget(eventName)) return;
+    var _raiseSyntheticEvent = function(elementId, eventName, skipShowDescription, eventInfo, nonSynthetic) {
         // Empty string used when this is an event directly on the page.
         var dObj = elementId === '' ? $ax.pageData.page : $ax.getObjectFromElementId(elementId);
         var axEventObject = dObj && dObj.interactionMap && dObj.interactionMap[eventName];
-        if (!axEventObject) return;
-        
+        if(!axEventObject) return;
+
         eventInfo = eventInfo || $ax.getEventInfoFromEvent($ax.getjBrowserEvent(), skipShowDescription, elementId);
         //        $ax.recording.maybeRecordEvent(elementId, eventInfo, axEventObject, new Date().getTime());
         _handleEvent(elementId, eventInfo, axEventObject, false, !nonSynthetic);
     };
     $ax.event.raiseSyntheticEvent = _raiseSyntheticEvent;
-
-    var _shouldStopOnDisabledWidget = function (eventName) {
-        var blackList = ["onLongClick"];
-        return blackList.some(x => x === eventName);
-    }
 
     var _hasSyntheticEvent = function(scriptId, eventName) {
         var dObj = $ax.getObjectFromScriptId(scriptId);
@@ -1791,6 +1710,28 @@ $axure.internal(function ($ax) {
         return map && map.onClick;
     };
 
+    var _tryFireCheckedChanged = $ax.event.TryFireCheckChanged = function(elementId, value) {
+        var isRadio = $ax.public.fn.IsRadioButton($obj(elementId).type);
+        if(isRadio) {
+            if(!value) {
+                $ax.updateRadioButtonSelected($jobj($ax.INPUT(elementId)).attr('name'), undefined);
+            } else {
+                var last = $ax.updateRadioButtonSelected($jobj($ax.INPUT(elementId)).attr('name'), elementId);
+
+                // If no change, this should not fire
+                if(last == elementId) return;
+
+                // Initially selecting one, last may be undefined
+                if(last) {
+                    //here last is the previouse selected elementid
+                    $ax.event.raiseSelectedEvents(last, false);
+                }
+            }
+        }
+
+        $ax.event.raiseSelectedEvents(elementId, value);
+    };
+
     //onload everything now, not only dp and master
     var _loadDynamicPanelsAndMasters = function(objects, path, itemId) {
         fireEventThroughContainers('onLoad', objects, true, [$ax.constants.PAGE_TYPE, $ax.constants.REFERENCE_DIAGRAM_OBJECT_TYPE, $ax.constants.DYNAMIC_PANEL_TYPE],
@@ -1891,7 +1832,7 @@ $axure.internal(function ($ax) {
             if(_callFilterCheck(callFilter, $ax.constants.PAGE_TYPE)) {
                 //if scrolling, set direction, later master will know
                 if(eventName === "onScroll") {
-                    var currentScrollTop = ((SAFARI && IOS) || SHARE_APP) ? $('#ios-safari-html').scrollTop() : $(window).scrollTop();
+                    var currentScrollTop = $(window).scrollTop();
                     _event.windowScrollingUp = currentScrollTop < lastScrollTop;
                     _event.windowScrollingDown = currentScrollTop > lastScrollTop;
                 }
@@ -1993,10 +1934,10 @@ $axure.internal(function ($ax) {
             PAGE_AXURE_TO_JQUERY_EVENT_NAMES.onMouseMove = ['html', 'mousemove'];
         } else {
             _event.initMobileEvents($win, $win, '');
-        }
 
-        $win.bind($ax.features.eventNames.mouseDownName, _updateMouseLocation);
-        $win.bind($ax.features.eventNames.mouseUpName, function(e) { _updateMouseLocation(e, true); });
+            $win.bind($ax.features.eventNames.mouseDownName, _updateMouseLocation);
+            $win.bind($ax.features.eventNames.mouseUpName, function(e) { _updateMouseLocation(e, true); });
+        }
         
         $win.scroll(function () { _setCanClick(false); });
         $win.bind($ax.features.eventNames.mouseDownName, function () { _setCanClick(true); });
@@ -2016,7 +1957,6 @@ $axure.internal(function ($ax) {
                 if ((SAFARI && IOS) || SHARE_APP) jObj = '#ios-safari-html';
 
                 $(jObj)[actionName](function (e) {
-                    if(_shouldIgnoreLabelClickFromCheckboxOrRadioButton(e)) return;
                     $ax.setjBrowserEvent(e);
                     return fireEventThroughContainers(axureName, undefined, false, [$ax.constants.PAGE_TYPE, $ax.constants.REFERENCE_DIAGRAM_OBJECT_TYPE, $ax.constants.DYNAMIC_PANEL_TYPE, $ax.constants.REPEATER],
                         [$ax.constants.PAGE_TYPE, $ax.constants.REFERENCE_DIAGRAM_OBJECT_TYPE]);

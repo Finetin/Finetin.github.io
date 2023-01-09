@@ -167,6 +167,7 @@
                 const interviewQuery = new AV.Query('InterviewGroup');
                 interviewQuery.get(interview_group_number).then((now_interview) => {
                     candidate_arr = now_interview.get("candidate_arr");
+                    interview_start = now_interview.get('start_time');
                     document.getElementById('interview_time_box').innerText =
                         dateTimeToString(now_interview.get('start_time')) + " - " +
                         dateTimeToString(now_interview.get('end_time'));
@@ -249,9 +250,9 @@
 
         .mainshell {
             float: left;
-            height: calc(100% - 90px);
 
             min-height: 700px;
+            min-height: calc(100% - 90px);
             width: 100%;
             text-align: center;
         }
@@ -445,7 +446,7 @@
         position: fixed;
         right: 5px;
         bottom: 50px;
-        height: 240px;
+        height: 290px;
         width: 60px;
         background-color: #eee;
         border-radius: 8px;
@@ -493,7 +494,7 @@
         text-align: center;
     }
 
-    #turn_page_btn_box img, #person_list_btn_box img{
+    #turn_page_btn_box img, #person_list_btn_box img, #total_statistic_btn img{
         margin-top: 7px;
     }
 </style>
@@ -516,6 +517,10 @@
         </div>
         <div class="page_btn" id="person_list_btn_box" onclick="document.getElementById('candidate_list_dialog').style.display = 'block';">
             <img class="score_btn" src="../source/pic/icon_ballot.png" alt="" width="22px" title="面试名单">
+        </div>
+        <div class="page_btn" id="total_statistic_btn"
+            onclick="location.assign('./assess_statistic.html?interview='+interview_tmp_name)">
+            <img class="score_btn" src="../source/pic/icon_search-alt.png" alt="" width="22px" title="评分统计">
         </div>
     </span>
 

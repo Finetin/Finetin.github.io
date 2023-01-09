@@ -52,6 +52,17 @@ $axure.internal(function($ax) {
             return $ax.public.fn.IsRepeater(obj.type);
         }).each(function(obj, repeaterId) {
             _refreshRepeater(repeaterId, undefined, _refreshType.reset, !fullRefresh[repeaterId]);
+            //// Fix selected and default if necessary
+            //var states = obj.evaluatedStates[repeaterId];
+            //if(!states) return; // If there are no evaluated states the repeater id key could not be mapped to an array of states.
+
+            //for(var i = 0; i < states.length; i++) {
+            //    var state = states[i];
+
+            //    $ax.style.SetWidgetEnabled(state.id, true); // So selected will take place. If disabled, selected wouldn't happen.
+            //    $ax.style.SetWidgetSelected(state.id, state.selected);
+            //    $ax.style.SetWidgetEnabled(state.id, !state.disabled);
+            //}
         });
     };
     _repeaterManager.initRefresh = _initRepeaters;
@@ -112,7 +123,6 @@ $axure.internal(function($ax) {
 
         var obj = $ax.getObjectFromScriptId(repeaterId);
         var propMap = obj.repeaterPropMap;
-        var previousItemCount = _repeaterManager.getItemCount(repeaterId);
 
         //If there is no wrap, then set it to be above the number of rows
         var viewId = $ax.adaptive.currentViewId || '';
@@ -185,15 +195,7 @@ $axure.internal(function($ax) {
                 itemElementId = _createElementId(repeaterId, itemId);
                 var jobj = $jobj(itemElementId);
                 if(jobj.hasClass('preeval')) refreshType = _refreshType.preEval;
-                for(var i = 0; i < templateIds.length; i++) {
-                    const elementId = _createElementId(templateIds[i], itemId);
-
-                    $ax.initializeObjectEvents($ax('#' + elementId), refreshType);
-                    if (refreshType != _refreshType.preEval || elementId == itemElementId) continue;
-                    const elJobj = $jobj(elementId);
-                    $ax.visibility.setResizedSize(elementId, $ax.getNumFromPx(elJobj.css('width')), $ax.getNumFromPx(elJobj.css('height')));
-                    $ax.visibility.setMovedLocation(elementId, $ax.getNumFromPx(elJobj.css('left')), $ax.getNumFromPx(elJobj.css('top')));
-                }
+                for(var i = 0; i < templateIds.length; i++) $ax.initializeObjectEvents($ax('#' + _createElementId(templateIds[i], itemId)), refreshType);
                 if(refreshType == _refreshType.preEval) {
                     preevalMap[itemId] = true;
                     jobj.removeClass('preeval');
@@ -320,27 +322,12 @@ $axure.internal(function($ax) {
         $ax.messageCenter.startCombineEventMessages();
         $ax.cacheRepeaterInfo(repeaterId, $ax.getWidgetInfo(repeaterId));
 
-        //RP-1824 The Item Loaded interaction does not fire when last item of repeater is deleted
-        //Fire item looded event when all items are removed
-        var currentItemCount = _repeaterManager.getItemCount(repeaterId);
-        var deleteLastItems = previousItemCount > 0 && currentItemCount === 0;
-
         //$ax.style.startSuspendTextAlignment();
         // Now load
-        for(pos = start; pos < end || deleteLastItems; pos++) {
+        for(pos = start; pos < end; pos++) {
             itemId = orderedIds[pos];
             itemElementId = _createElementId(repeaterId, itemId);
-            if (!preevalMap[orderedIds[pos]]) {
-                // Hide OnBeforeItemLoad event from the user
-                const wasTracing = $ax.messageCenter.getState('isTracing') === true;
-                // Make sure isTracing is false in case it was undefined
-                // Send 'tempStop' state to not clear accumulated events (during page loading)
-                $ax.messageCenter.setState('isTracing', 'tempStop');
-                $ax.event.raiseSyntheticEvent(itemElementId, 'onBeforeItemLoad', true);
-                if(wasTracing) $ax.messageCenter.setState('isTracing', wasTracing);
-                $ax.event.raiseSyntheticEvent(itemElementId, 'onItemLoad', true);
-            }
-            deleteLastItems = false;
+            if(!preevalMap[orderedIds[pos]]) $ax.event.raiseSyntheticEvent(itemElementId, 'onItemLoad', true);
             $ax.loadDynamicPanelsAndMasters(obj.objects, path, itemId);
         }
         //$ax.style.resumeSuspendTextAlignment();
@@ -360,64 +347,6 @@ $axure.internal(function($ax) {
         $ax.action.refreshEnd();
     };
     _repeaterManager.refreshRepeater = _refreshRepeater;
-
-    _getRepeaterElementOffset = _repeaterManager.getRepeaterElementOffset = function (repeaterId, elementId) {
-        var viewId = $ax.adaptive.currentViewId || '';
-        var robj = $ax.getObjectFromScriptId(repeaterId);
-
-        var propMap = robj.repeaterPropMap;
-        var vertical = _getAdaptiveProp(propMap, 'vertical', viewId, repeaterId, robj);
-        var wrap = _getAdaptiveProp(propMap, 'wrap', viewId, repeaterId, robj);
-        var shownCount = propMap.itemIds.length;
-        var primaryCount = wrap == -1 ? shownCount : Math.min(shownCount, wrap);
-        var secondaryCount = wrap == -1 ? 1 : Math.ceil(shownCount / wrap);
-        var widthCount = vertical ? secondaryCount : primaryCount;
-        var heightCount = vertical ? primaryCount : secondaryCount;
-        var repeaterObj = $jobj(repeaterId);
-        var repeaterOffset = { x: $ax.getNumFromPx(repeaterObj.css('left')), y: $ax.getNumFromPx(repeaterObj.css('top')) };
-        var paddingTop = _getAdaptiveProp(propMap, 'paddingTop', viewId, repeaterId, robj);
-        var paddingLeft = _getAdaptiveProp(propMap, 'paddingLeft', viewId, repeaterId, robj);
-        var offset = propMap[_getViewIdFromPageViewId(viewId, repeaterId, robj)];
-        var spacingX = _getAdaptiveProp(propMap, 'horizontalSpacing', viewId, repeaterId, robj);
-        var xOffset = offset.width + spacingX;
-        var spacingY = _getAdaptiveProp(propMap, 'verticalSpacing', viewId, repeaterId, robj);
-        var yOffset = offset.height + spacingY;
-
-        //first symbol after '-'
-        var repeaterNumber = elementId.split('-')[1][0];
-        var elementIndex = 0;
-        while (propMap.itemIds[elementIndex] != repeaterNumber) {
-            elementIndex++;
-        }
-
-        var multiplier = { y: 0, x: 0 };
-        if (vertical) {
-            multiplier.y = elementIndex % heightCount;
-            multiplier.x = Math.floor(elementIndex / heightCount);
-
-        } else {
-            multiplier.y = Math.floor(elementIndex / widthCount);
-            multiplier.x = elementIndex % widthCount;
-        }
-
-        var firstTopLeftOffset = { x: paddingLeft + repeaterOffset.x, y: paddingTop + repeaterOffset.y };
-
-        var fitToContentOffset = { x: 0, y: 0 };
-
-        var elementContainerId = repeaterId + '-' + repeaterNumber;
-        var elementContainerDomElement = document.getElementById(elementContainerId);
-        if (elementContainerDomElement.style.top) {
-            fitToContentOffset.y = paddingTop + multiplier.y * yOffset - $ax.getNumFromPx(elementContainerDomElement.style.top);
-        }
-        if (elementContainerDomElement.style.left) {
-            fitToContentOffset.x = paddingLeft + multiplier.x * xOffset - $ax.getNumFromPx(elementContainerDomElement.style.left);
-        }
-
-        return {
-            y: firstTopLeftOffset.y + multiplier.y * yOffset - fitToContentOffset.y,
-            x: firstTopLeftOffset.x + multiplier.x * xOffset - fitToContentOffset.x,
-        };
-    }
 
     var _getItemQuery = function(repeaterId, preevalMap) {
         var query = $ax(function (diagramObject, elementId) {
@@ -639,13 +568,6 @@ $axure.internal(function($ax) {
         return active;
     };
 
-    const SORT_TYPE_NUMERIC = 0x1;
-    const SORT_TYPE_ALPHA = 0x2;
-    const SORT_TYPE_ALPHA_CASE = 0x3;
-    const SORT_TYPE_ALPHANUMERIC = 0x4;
-    const SORT_TYPE_DATE1 = 0x10;
-    const SORT_TYPE_DATE2 = 0x11;
-
     var getOrderedIds = function(repeaterId, eventInfo) {
         var data = repeaterToActiveDataSet[repeaterId] = getActiveDataSet(repeaterId);
 
@@ -686,7 +608,7 @@ $axure.internal(function($ax) {
                     var text2 = (row2[columnName] && row2[columnName].text) || '';
 
                     // This means we are case insensitive, so lowercase everything to kill casing
-                    if(type == SORT_TYPE_ALPHA) {
+                    if(type == 'Text') {
                         text1 = text1.toLowerCase();
                         text2 = text2.toLowerCase();
                     }
@@ -697,12 +619,10 @@ $axure.internal(function($ax) {
                         // Actually a tie.
                         return 0;
                     }
-                    if (type == SORT_TYPE_ALPHANUMERIC) {
-                        return text1.localeCompare(text2, undefined, { numeric: true }) < 0 ^ ascending ? 1 : -1;
-                    } else if(type == SORT_TYPE_ALPHA || type == SORT_TYPE_ALPHA_CASE) {
+                    if(type == 'Text' || type == 'Text (Case Sensitive)') {
                         if(text1 < text2 ^ ascending) return 1;
                         else return -1;
-                    } else if(type == SORT_TYPE_NUMERIC) {
+                    } else if(type == 'Number') {
                         var num1 = text1 == '' ? NaN : Number(text1);
                         var num2 = text2 == '' ? NaN : Number(text2);
 
@@ -710,8 +630,8 @@ $axure.internal(function($ax) {
                         if(isNaN(num1) || isNaN(num2)) return isNaN(num1) ? 1 : -1;
                         if(num1 < num2 ^ ascending) return 1;
                         else return -1;
-                    } else if(type == SORT_TYPE_DATE1 || type == SORT_TYPE_DATE2) {
-                        var func = type == SORT_TYPE_DATE1 ? getDate1 : getDate2;
+                    } else if(type == 'Date - YYYY-MM-DD' || type == 'Date - MM/DD/YYYY') {
+                        var func = type == 'Date - YYYY-MM-DD' ? getDate1 : getDate2;
                         var date1 = func(text1);
                         var date2 = func(text2);
                         if(!date1.valid && !date2.valid) return 0;
@@ -775,128 +695,50 @@ $axure.internal(function($ax) {
         return year % 400 == 0 ? 29 : 28;
     };
 
-    const SMART_FILTER_COMBO = 0x0, ALL_FILTER_COMBO = 0x1, ANY_FILTER_COMBO = 0x2;
+    var applyFilter = function(repeaterId, data, eventInfo) {
+        var dataFiltered = [];
+        var filters = repeaterToFilters[repeaterId] || [];
+        if (filters.length != 0) {
+            if(!eventInfo) eventInfo = $ax.getBasicEventInfo();
+            var oldTarget = eventInfo.targetElement;
+            var oldSrc = eventInfo.srcElement;
+            var oldThis = eventInfo.thiswidget;
+            var oldItem = eventInfo.item;
 
-    var applyFilter = function (repeaterId, data, eventInfo) {
-        const dataFiltered = [];
-        const filters = repeaterToFilters[repeaterId] || [];
-        if (filters.length < 1) return;
-        if (!eventInfo) eventInfo = $ax.getBasicEventInfo();
-        const oldTarget = eventInfo.targetElement;
-        const oldSrc = eventInfo.srcElement;
-        const oldThis = eventInfo.thiswidget;
-        const oldItem = eventInfo.item;
-        const filterType = filters[filters.length - 1].comboType;
-        const filtersByColumnData = SMART_FILTER_COMBO == filterType ? _filtersByColumn(filters) : {};
+            var idToWidgetInfo = {};
 
-        const idToWidgetInfoCache = {};
-        for (let itemIndex = 1; itemIndex <= data.length; itemIndex++) {
-            if (!_passedFilters(repeaterId, filters, eventInfo, idToWidgetInfoCache, itemIndex, filterType, filtersByColumnData)) continue;
-            dataFiltered[dataFiltered.length] = data[itemIndex - 1];
-        }
+            outer:
+            for(var i = 1; i <= data.length; i++) {
+                for(var j = 0; j < filters.length; j++) {
+                    eventInfo.targetElement = _createElementId(repeaterId, i);
+                    eventInfo.srcElement = filters[j].thisId;
+                    if(!idToWidgetInfo[eventInfo.srcElement]) idToWidgetInfo[eventInfo.srcElement] = $ax.getWidgetInfo(eventInfo.srcElement);
+                    eventInfo.thiswidget = idToWidgetInfo[eventInfo.srcElement];
+                    eventInfo.item = $ax.getItemInfo(eventInfo.srcElement);
 
-        for (i = 0; i < dataFiltered.length; i++) data[i] = dataFiltered[i];
-        while (data.length > dataFiltered.length) data.pop();
-
-        eventInfo.targetElement = oldTarget;
-        eventInfo.srcElement = oldSrc;
-        eventInfo.thiswidget = oldThis;
-        eventInfo.item = oldItem;
-    };
-
-    var _passedFilters = function (repeaterId, filters, eventInfo, idToWidgetInfo, itemIndex, comboType, filtersByColumnData) {
-        if (SMART_FILTER_COMBO === comboType) {
-            return _filterSmart(repeaterId, filtersByColumnData, eventInfo, idToWidgetInfo, itemIndex);
-        } else if (ALL_FILTER_COMBO === comboType) {
-            return _filterAll(repeaterId, filters, eventInfo, idToWidgetInfo, itemIndex);
-        } else if (ANY_FILTER_COMBO === comboType) {
-            return _filterAny(repeaterId, filters, eventInfo, idToWidgetInfo, itemIndex);
-        }
-        console.log("INVALID FILTER COMBINATION");
-        return false;
-    };
-
-    var _filterAll = function (repeaterId, filters, eventInfo, idToWidgetInfo, itemIndex) {
-        for (let i = 0; i < filters.length; i++) {
-            const filter = filters[i];
-            _updateEventInfoForFilter(repeaterId, filter, eventInfo, idToWidgetInfo, itemIndex);
-            if (!_evaluateFilter(filter, eventInfo)) return false;
-        }
-        return true;
-    };
-
-    var _filterAny = function (repeaterId, filters, eventInfo, idToWidgetInfo, itemIndex) {
-        for (let i = 0; i < filters.length; i++) {
-            const filter = filters[i];
-            _updateEventInfoForFilter(repeaterId, filter, eventInfo, idToWidgetInfo, itemIndex);
-            if (_evaluateFilter(filter, eventInfo)) return true;
-        }
-        return false;
-    };
-
-    var _filterSmart = function (repeaterId, filtersByColumnData, eventInfo, idToWidgetInfo, itemIndex) {
-        const columnNames = filtersByColumnData.columnNames;
-        const columnNamesToFilters = filtersByColumnData.columnNamesToFilters;
-        const expressionFilters = filtersByColumnData.expressionFilters;
-
-        for (var i = 0; i < columnNames.length; ++i) {
-            const filtersForColumn = columnNamesToFilters[columnNames[i]];
-            if (!_filterAny(repeaterId, filtersForColumn, eventInfo, idToWidgetInfo, itemIndex)) return false;
-        }
-
-        return _filterAll(repeaterId, expressionFilters, eventInfo, idToWidgetInfo, itemIndex);
-    };
-
-    var _filtersByColumn = function (filters) {
-        const columnNames = [];
-        const columnNamesToFilters = {};
-        const expressionFilters = [];
-        for (var i = 0; i < filters.length; ++i) {
-            const filter = filters[i];
-            const columnName = filter.columnName;
-            if (!columnName || columnName == "") {
-                expressionFilters.push(filter);
-                continue;
+                    if($ax.expr.evaluateExpr(filters[j].filter, eventInfo) != 'true') continue outer;
+                }
+                dataFiltered[dataFiltered.length] = data[i - 1];
             }
-            if (!columnNamesToFilters[columnName]) {
-                columnNames.push(columnName);
-                columnNamesToFilters[columnName] = [];
-            }
-            columnNamesToFilters[columnName].push(filter);
+
+            for(i = 0; i < dataFiltered.length; i++) data[i] = dataFiltered[i];
+            while(data.length > dataFiltered.length) data.pop();
+
+            eventInfo.targetElement = oldTarget;
+            eventInfo.srcElement = oldSrc;
+            eventInfo.thiswidget = oldThis;
+            eventInfo.item = oldItem;
         }
-        return {
-            columnNames: columnNames,
-            columnNamesToFilters: columnNamesToFilters,
-            expressionFilters: expressionFilters
-        };
-    }
-
-    var _evaluateFilter = function (filter, eventInfo) {
-        const result = $ax.expr.evaluateExpr(filter.filter ? filter.filter : filter.condition, eventInfo);
-        if (result === true) return true;
-        return result == 'true';
     };
 
-    var _updateEventInfoForFilter = function (repeaterId, filter, eventInfo, idToWidgetInfo, itemIndex) {
-        eventInfo.targetElement = _createElementId(repeaterId, itemIndex);
-        eventInfo.srcElement = filter.thisId;
-        if (!idToWidgetInfo[eventInfo.srcElement]) idToWidgetInfo[eventInfo.srcElement] = $ax.getWidgetInfo(eventInfo.srcElement);
-        eventInfo.thiswidget = idToWidgetInfo[eventInfo.srcElement];
-        eventInfo.item = $ax.getItemInfo(eventInfo.srcElement);
-    };
-
-    var _addFilter = function (repeaterId, removeOtherFilters, label, filter, condition, columnName, comboType, thisId) {
-        if (removeOtherFilters) _removeFilter(repeaterId);
+    var _addFilter = function(repeaterId, removeOtherFilters, label, filter, thisId) {
+        if(removeOtherFilters) _removeFilter(repeaterId);
         
-        const filterList = repeaterToFilters[repeaterId];
-        if (!filterList) repeaterToFilters[repeaterId] = filterList = [];
+        var filterList = repeaterToFilters[repeaterId];
+        if(!filterList) repeaterToFilters[repeaterId] = filterList = [];
 
-        const filterObj = { thisId: thisId };
-        if (label) filterObj.label = label;
-        if (filter) filterObj.filter = filter;
-        if (condition) filterObj.condition = condition;
-        if (columnName) filterObj.columnName = columnName;
-        filterObj.comboType = comboType;
+        var filterObj = { filter: filter, thisId: thisId };
+        if(label) filterObj.label = label;
         filterList[filterList.length] = filterObj;
     };
     _repeaterManager.addFilter = _addFilter;
@@ -919,7 +761,7 @@ $axure.internal(function($ax) {
     };
     _repeaterManager.removeFilter = _removeFilter;
 
-    var _addSort = function(repeaterId, label, columnName, ascending, toggle, sortType, removeAllSorts) {
+    var _addSort = function(repeaterId, label, columnName, ascending, toggle, sortType) {
         var sortList = repeaterToSorts[repeaterId];
         if(!sortList) repeaterToSorts[repeaterId] = sortList = [];
 
@@ -934,8 +776,7 @@ $axure.internal(function($ax) {
         var sortObj = { columnName: columnName, ascending: ascending, sortType: sortType };
 
         if(label) sortObj.label = label;
-        if(removeAllSorts) repeaterToSorts[repeaterId] = [sortObj];
-        else sortList[sortList.length] = sortObj;
+        sortList[sortList.length] = sortObj;
     };
     _repeaterManager.addSort = _addSort;
 
@@ -1018,7 +859,6 @@ $axure.internal(function($ax) {
         for(var i = 0; i < itemId.length; i++) $jobj(_createElementId(repeaterId, itemId[i])).remove();
         $ax.visibility.clearLimboAndHiddenIds(elementIds);
         $ax.visibility.clearMovedAndResizedIds(elementIds);
-        $ax.expr.clearAutoFittedIds(elementIds);
         $ax.clearItemsForRepeater(repeaterId);
     };
 
@@ -1576,7 +1416,7 @@ $axure.internal(function($ax) {
         $ax.adaptive.removeNiceScroll(stateQuery, blockResetScroll);
         
         //check if the page is in mobile mode
-        if(!$ax.adaptive.isDeviceMode() || MOBILE_DEVICE) {
+        if (!$ax.adaptive.isDeviceMode()) {
             stateQuery.css('cursor', '');
             return false;
         }
@@ -1593,7 +1433,7 @@ $axure.internal(function($ax) {
             var headerHeight = obj.headerHeight ? obj.headerHeight : 0;
             var footerHeight = obj.footerHeight ? obj.footerHeight : 0;
 
-            $ax.adaptive.addNiceScroll(stateQuery, { emulatetouch: true, bouncescroll: false, grabcursorenabled: false, railmargin: { top: headerHeight, bottom: footerHeight }, scrollbarid: stateId + "-sb" });
+            $ax.adaptive.addNiceScroll(stateQuery, { touchbehavior: true, bouncescroll: false, grabcursorenabled: false, railmargin: { top: headerHeight, bottom: footerHeight }, scrollbarid: stateId + "-sb" });
             stateQuery.find('.nicescroll-rails').css('margin-top', headerHeight + 'px');
         } else {
             $ax.adaptive.addNiceScroll(stateQuery, { emulatetouch: true, horizrailenabled: obj.scrollbars != 'verticalAsNeeded' }, blockResetScroll);
@@ -1614,7 +1454,7 @@ $axure.internal(function($ax) {
         for (var i = scrollable.length - 1; i >= 0; i--) {
             var panelId = scrollable[i];
             var stateId = $ax.repeater.applySuffixToElementId(panelId, '_state0');
-            _updateMobileScroll(panelId, stateId, true);
+            _updateMobileScroll(panelId, stateId);
         }
     };
     
@@ -2000,9 +1840,6 @@ $axure.internal(function($ax) {
 
         var isPercentWidth = $obj(panelId).percentWidth;
         if(!isPercentWidth) stateQuery.width(size.width);
-
-        var oldBoundingRect = $ax('#' + panelId).offsetBoundingRect(true);
-        $ax.visibility.setResizingRect(panelId, oldBoundingRect);
         stateQuery.height(size.height);
 
         //updatePercentWidth on all child panels
@@ -2011,10 +1848,7 @@ $axure.internal(function($ax) {
         );
 
         //do the following only if it is the current state
-        if (stateId != $ax.visibility.GetPanelState(panelId)) {
-            $ax.visibility.clearResizingRects();
-            return false;
-        }
+        if(stateId != $ax.visibility.GetPanelState(panelId)) return false;
 
         //var panelQuery = $jobj(panelId);
         //if (!isPercentWidth) panelQuery.attr('data-width', size.width);
@@ -2024,7 +1858,6 @@ $axure.internal(function($ax) {
         _adjustFixed(panelId, oldWidth, oldHeight, size.width, size.height);
         
         $ax.event.raiseSyntheticEvent(panelId, 'onResize');
-        $ax.visibility.clearResizingRects();
         $ax.flyoutManager.updateFlyout(panelId);
 
         return true;
@@ -2209,51 +2042,22 @@ $axure.internal(function($ax) {
         return info;
     };
 
-    var panelSizeChanges = {};
-
-    var getPanelStateSizeDelta = function (oldState, newState) {
-        var oldQuery = $jobj(oldState);
-        var newQuery = $jobj(newState);
-        return { 'width': Math.abs(newQuery.width() - oldQuery.width()), 'height': Math.abs(newQuery.height() - oldQuery.height()) };
-    }
-    _dynamicPanelManager.getPanelStateSizeDelta = getPanelStateSizeDelta;
-
-    var setPanelSizeChange = function (scriptId, size) {
-        panelSizeChanges[scriptId] = size;
-    }
-    _dynamicPanelManager.setPanelSizeChange = setPanelSizeChange;
-
-
-    var getPanelSizeChange = function (scriptId) {
-        return panelSizeChanges[scriptId];
-    }
-    _dynamicPanelManager.getPanelSizeChange = getPanelSizeChange;
-
-
-    var clearPanelSizeChanges = function() {
-        panelSizeChanges = {};
-    }
-    _dynamicPanelManager.clearPanelSizeChanges = clearPanelSizeChanges;
-
     // Show isn't necessary if this is always done before toggling (which is currently true), but I don't want that
     //  change (if it happened) to break this.
-    var _compressToggle = function (id, vert, show, easing, duration, delta = NaN) {
+    var _compressToggle = function (id, vert, show, easing, duration) {
         var layer = $ax.getTypeFromElementId(id) == $ax.constants.LAYER_TYPE;
         var locProp = vert ? 'top' : 'left';
         var dimProp = vert ? 'height' : 'width';
 
         var threshold;
-        var dimVal;
+        var delta;
 
         threshold = $ax('#' + id)[locProp](true);
-        dimVal = layer ? $ax('#' + id)[dimProp]() : _getShownStateObj(id)[dimProp]();
-        if (isNaN(delta)) {
-            delta = dimVal;
-        }
+        delta = layer ? $ax('#' + id)[dimProp]() : _getShownStateObj(id)[dimProp]();
 
         if(!show) {
             // Need to make threshold bottom/right
-            threshold += dimVal;
+            threshold += delta;
             // Delta is in the opposite direction
             delta *= -1;
         }
@@ -2263,7 +2067,7 @@ $axure.internal(function($ax) {
     _dynamicPanelManager.compressToggle = _compressToggle;
 
     // Used when setting state of dynamic panel
-    var _compressDelta = function (id, oldState, newState, vert, easing, duration, delta = NaN) {
+    var _compressDelta = function(id, oldState, newState, vert, easing, duration) {
         var oldQuery = $jobj(oldState);
         var newQuery = $jobj(newState);
 
@@ -2272,14 +2076,8 @@ $axure.internal(function($ax) {
         var threshold = $ax('#' + id)[thresholdProp](true);
         threshold += oldQuery[thresholdOffset]();
 
-        var magnitude = newQuery[thresholdOffset]() - oldQuery[thresholdOffset]();
+        var delta = newQuery[thresholdOffset]() - oldQuery[thresholdOffset]();
 
-        if (isNaN(delta)) {
-            delta = magnitude;
-        } else if(Math.sign(delta) != Math.sign(magnitude)) {
-            //ensures larger state pushes, smaller state pulls, equal state noops
-            delta *= -1;
-        }
         var clampOffset = vert ? 'width' : 'height';
         var clampWidth = Math.max(oldQuery[clampOffset](), newQuery[clampOffset]());
          
@@ -2287,33 +2085,7 @@ $axure.internal(function($ax) {
     };
     _dynamicPanelManager.compressDelta = _compressDelta;
 
-    //for compressing based on a widget's size change
-    var _compressMove = function (id, vert, isResize, targetRect, easing, duration, delta = NaN, complimentaryDelta = 0) {
-        var newQuery = $jobj(id);
-
-        var thresholdOffset = vert ? 'height' : 'width';
-        var oldThresholdOffset = targetRect[thresholdOffset];
-
-        var threshold = vert ? targetRect.top : targetRect.left;
-        //threshold += oldQuery[thresholdOffset]();
-
-        var magnitude = isResize ? newQuery[thresholdOffset]() - oldThresholdOffset : 1;
-        var magSign = Math.sign(magnitude);
-
-        if (magSign < 0) threshold = vert ? targetRect.bottom : targetRect.right; 
-
-        if (isNaN(delta)) {
-            delta = magnitude;
-        } else {
-            delta *= magSign;
-        }
-        var clampWidth = Math.max(vert ? targetRect.width : targetRect.height, newQuery[vert ? 'width' : 'height']());
-
-        _compress(id, vert, threshold, delta, easing, duration, clampWidth, complimentaryDelta);
-    }
-    _dynamicPanelManager.compressMove = _compressMove;
-
-    var _compress = function (id, vert, threshold, delta, easing, duration, clampWidth, complimentaryDelta = 0) {
+    var _compress = function (id, vert, threshold, delta, easing, duration, clampWidth) {
         // If below, a horizantal clamp, otherwise a vertical clamp
         var clamp = {
             prop: vert ? 'left' : 'top',
@@ -2328,17 +2100,7 @@ $axure.internal(function($ax) {
             var clampLoc = $jobj(id);
             if(typeof clampWidth == 'undefined') clampWidth = _getClamp(id)[clamp.offset]();
 
-            var clampPropValueCss = clampLoc.css(clamp.prop);
-            var clampPropValue = clampPropValueCss.endsWith('%') ? 
-                (vert ? clampLoc.width() : clampLoc.height()) * (Number(clampPropValueCss.replace('%', '')) / 100) :
-                $ax.getNumFromPx(clampPropValueCss);
-
-            var clampPropMarginCss = clampLoc.css('margin-' + clamp.prop);
-            var clampPropMargin = clampPropMarginCss.endsWith('%') ?
-                (vert ? clampLoc.width() : clampLoc.height()) * (Number(clampPropMarginCss.replace('%', '')) / 100) :
-                $ax.getNumFromPx(clampPropMarginCss);
-
-            clamp.start = clampPropValue + clampPropMargin;
+            clamp.start = $ax.getNumFromPx(clampLoc.css(clamp.prop));
             clamp.end = clamp.start + clampWidth;
         }
 
@@ -2346,8 +2108,8 @@ $axure.internal(function($ax) {
         if (isNaN(clamp.start) || isNaN(clamp.end) || isNaN(threshold) || isNaN(delta)) return;
 
         // Update clamp if fixed, to account for body position (only necessary when page centered)
-        if ($jobj(id).css('position') == 'fixed' && $jobj(id).css('display') != 'none') {
-            var clampDelta = document.getElementById('base').getBoundingClientRect().left;
+        if($jobj(id).css('position') == 'fixed') {
+            var clampDelta = $('#base').position().left;
             clamp.start -= clampDelta;
             clamp.end -= clampDelta;
         }
@@ -2397,29 +2159,10 @@ $axure.internal(function($ax) {
             }
         }
 
-        var scrollParentObj = parent ? $('#' + parent) : undefined;
-        var parentScrollLeft = parent ? scrollParentObj.scrollLeft() : 0;
-        var parentScrollTop = parent ? scrollParentObj.scrollTop() : 0;
-
         // Note: If parent is body, some of these aren't widgets
         if(parent && $jobj(parent + '_content').length > 0) parent = parent + '_content';
         if(parent && $jobj(parent + '_container').length > 0) parent = parent + '_container';
-
-        var windowObj = $(window);
-        var scrollLeft = windowObj.scrollLeft();
-        var scrollTop = windowObj.scrollTop();
-        var parentObj = $(parent ? '#' + parent : '#base');
-        // hide parent to prevent layout thrashing 
-        parentObj.hide();
-
-        _compressChildrenHelper(id, parentObj.children(), vert, threshold, delta, clamp, easing, duration, null, complimentaryDelta);
-
-        parentObj.show();
-        // restore scroll if hide/show parent caused it to change
-        if(0 != parentScrollLeft) scrollParentObj.scrollLeft(parentScrollLeft);
-        if(0 != parentScrollTop) scrollParentObj.scrollTop(parentScrollTop);
-        if(windowObj.scrollLeft() != scrollLeft) windowObj.scrollLeft(scrollLeft);
-        if(windowObj.scrollTop() != scrollTop) windowObj.scrollTop(scrollTop);
+        _compressChildrenHelper(id, $(parent ? '#' + parent : '#base').children(), vert, threshold, delta, clamp, easing, duration);
 
         if(layer) $ax.visibility.popContainer(layer, false);
 
@@ -2435,32 +2178,9 @@ $axure.internal(function($ax) {
         if(!obj.repeaterPropMap.fitToContent) $ax.repeater.pushItems(repeaterId, itemId, delta, vert);
     };
 
-    var _layerMayNeedCompress = function (layerId, vert, threshold, clamp, parentLayer) {
-        var boundingRect = $ax('#' + layerId).offsetBoundingRect();
-        var marker, layerClamp;
-
-        marker = (vert ? boundingRect.top : boundingRect.left) + (vert ? boundingRect.height : boundingRect.width);
-        layerClamp = clamp.prop == 'left' ? [boundingRect.left] : [boundingRect.top];
-        layerClamp[1] = layerClamp[0] + (clamp.offset == 'width' ? boundingRect.width : boundingRect.height);
-
-        if (parentLayer) {
-            var axParent = $ax('#' + parentLayer);
-            marker -= Number(axParent[vert ? 'top' : 'left'](true));
-            layerClamp[0] -= Number(axParent[clamp.prop](true));
-        }
-
-        if (isNaN(marker) || isNaN(layerClamp[0]) || isNaN(layerClamp[1]) ||
-            marker < threshold || layerClamp[1] <= clamp.start || layerClamp[0] >= clamp.end) {
-            return false;
-        }
-        return true;
-    }
-
-    //complimentaryDelta allows a move in the non-compress direction
-    var _compressChildrenHelper = function (id, children, vert, threshold, delta, clamp, easing, duration, parentLayer, complimentaryDelta = 0) {
+    var _compressChildrenHelper = function (id, children, vert, threshold, delta, clamp, easing, duration, parentLayer) {
         var toMove = [];
         var allMove = true;
-        if (isNaN(complimentaryDelta)) complimentaryDelta = 0;
         for (var i = 0; i < children.length; i++) {
             var child = $(children[i]);
 
@@ -2479,12 +2199,6 @@ $axure.internal(function($ax) {
             }
 
             if ($ax.getTypeFromElementId(childId) == $ax.constants.LAYER_TYPE) {
-                // containerizing children can cause layout thrashing, if no children will possibly need to be moved based on layer position/size then don't do it
-                if (!_layerMayNeedCompress(childId, vert, threshold, clamp, parentLayer)) {
-                    allMove = false;
-                    continue;
-                }
-
                 $ax.visibility.pushContainer(childId, false);
                 var addSelf;
                 var container = $ax.visibility.applyWidgetContainer(childId, true, true);
@@ -2495,10 +2209,9 @@ $axure.internal(function($ax) {
                 var clampProp = clamp.prop == 'left' ? offsetX : offsetY;
                 var threshProp = clamp.prop == 'left' ? offsetY : offsetX;
                 var layerClamp = { prop: clamp.prop, offset: clamp.offset, start: clamp.start + clampProp, end: clamp.end + clampProp };
-                
-                if($ax.getLayerParentFromElementId(id) != childId && _objectNeedsCompress(childId, vert, threshold, clamp, parentLayer)) addSelf = true;
-                else addSelf = _compressChildrenHelper(id, layerChildren, vert, threshold + threshProp, delta, layerClamp, easing, duration, childId);
-                
+                addSelf = _compressChildrenHelper(id, layerChildren, vert, threshold + threshProp, delta, layerClamp, easing, duration, childId);
+                //} else addSelf = _compressChildrenHelper(id, layerChildren, vert, threshold, delta, clamp, easing, duration, childId);
+
                 if(addSelf) toMove.push(childId);
                 else allMove = false;
                 $ax.visibility.popContainer(childId, false);
@@ -2508,47 +2221,44 @@ $axure.internal(function($ax) {
             var numbers = childId.substring(1).split('-');
             if(numbers.length < 1 || isNaN(Number(numbers[0])) || (numbers.length == 2 && isNaN(Number(numbers[1]))) || numbers.length > 2) continue;
 
-            if(_objectNeedsCompress(childId, vert, threshold, clamp, parentLayer)) toMove.push(childId);
-            else allMove = false;
+            var marker, childClamp;
+
+            var axChild = $ax('#' + childId);
+            var markerProp = vert ? 'top' : 'left';
+            marker = Number(axChild[markerProp](true));
+            childClamp = [Number(axChild[clamp.prop](true))];
+
+            if(parentLayer) {
+                var axParent = $ax('#' + parentLayer);
+                marker -= Number(axParent[markerProp](true));
+                childClamp[0] -= Number(axParent[clamp.prop](true));
+            }
+
+            // Dynamic panels are not reporting correct size sometimes, so pull it from the state. Get shown state just returns the widget if it is not a dynamic panel.
+            var sizeChild = _getShownStateObj(childId);
+            childClamp[1] = childClamp[0] + sizeChild[clamp.offset]();
+
+            if(isNaN(marker) || isNaN(childClamp[0]) || isNaN(childClamp[1]) ||
+                marker < threshold || childClamp[1] <= clamp.start || childClamp[0] >= clamp.end) {
+                allMove = false;
+                continue;
+            }
+
+            toMove.push(childId);
         }
 
         if (allMove && parentLayer) {
             return true;
         } else {
-            for (var i = 0; i < toMove.length; i++) {
-                $ax('#' + toMove[i]).moveBy(vert ? complimentaryDelta : delta, vert ? delta : complimentaryDelta, easing == 'none' ? {} : { duration: duration, easing: easing });
+            for(var i = 0; i < toMove.length; i++) {
+                $ax('#' + toMove[i]).moveBy(vert ? 0 : delta, vert ? delta : 0, easing == 'none' ? {} : { duration: duration, easing: easing });
             }
         }
         return false;
     };
 
-    var _objectNeedsCompress = function(id, vert, threshold, clamp, parentLayer) {
-        var marker, childClamp;
-
-        var axChild = $ax('#' + id);
-        var markerProp = vert ? 'top' : 'left';
-        marker = Number(axChild[markerProp](true));
-        childClamp = [Number(axChild[clamp.prop](true))];
-
-        if(parentLayer) {
-            var axParent = $ax('#' + parentLayer);
-            marker -= Number(axParent[markerProp](true));
-            childClamp[0] -= Number(axParent[clamp.prop](true));
-        }
-
-        // Dynamic panels are not reporting correct size sometimes, so pull it from the state. Get shown state just returns the widget if it is not a dynamic panel.
-        var sizeChild = _getShownStateObj(id);
-        childClamp[1] = childClamp[0] + sizeChild[clamp.offset]();
-
-        if(isNaN(marker) || isNaN(childClamp[0]) || isNaN(childClamp[1]) ||
-            marker < threshold || childClamp[1] <= clamp.start || childClamp[0] >= clamp.end) {
-            return false;
-        }
-        return true;
-    }
-
     var _parentHandlesStyles = function(id) {
-        var parents = $ax('#' + id).getParents(true, ['dynamicPanel', 'layer', 'item'])[0];
+        var parents = $ax('#' + id).getParents(true, ['dynamicPanel', 'layer'])[0];
         if(!parents) return false;
         var directParent = true;
         for(var i = 0; i < parents.length; i++) {
@@ -2585,7 +2295,7 @@ $axure.internal(function($ax) {
                     obj = $obj(elementId);
                 }
                 if(obj == null) continue;
-                if (($ax.public.fn.IsDynamicPanel(obj.type) || $ax.public.fn.IsLayer(obj.type) || $ax.public.fn.IsRepeater(obj.type)) && !obj.propagate) continue;
+                if (($ax.public.fn.IsDynamicPanel(obj.type) || $ax.public.fn.IsLayer(obj.type)) && !obj.propagate) continue;
 
                 if(hover) $ax.style.SetWidgetHover(elementId, value);
                 else $ax.style.SetWidgetMouseDown(elementId, value);

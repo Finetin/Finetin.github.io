@@ -49,11 +49,10 @@ ul.sitemapTree {
     width: 129px;
     font-size: 12px;
     text-align: center;
-    color: #718096;
+    color: #8c8c8c;
     margin: 0 auto;
     padding: 12px 0px;
     line-height: 20px;
-    opacity: .8;
 }
 
 .sitemapMinus, .sitemapPlus {
@@ -110,10 +109,6 @@ ul.sitemapTree {
     background-size: contain;
 }
 
-.sitemapFlowIcon {
-    background: url('images/flow.svg') no-repeat center center, linear-gradient(transparent,transparent);
-}
-
 .sitemapFolderOpenIcon {
     background: url('images/folder_open.png') no-repeat center center;
     background: url('images/folder_open.svg') no-repeat center center, linear-gradient(transparent,transparent);
@@ -121,8 +116,8 @@ ul.sitemapTree {
 
 .sitemapPageName {
     font-size: 14px;
-    line-height: 2.1;
-    /*color: #4a4a4a;*/
+    line-height: 1.93;
+    color: #4a4a4a;
 }
 
 .sitemapPageName.mobileText {
@@ -143,14 +138,7 @@ ul.sitemapTree {
 }
 
 .sitemapHighlight {
-    background-color: #E3F2FC !important;
-}
-
-.sitemapHover {
-}
-
-.sitemapHover:hover {
-    background-color: #F5FAFE;
+    background-color: #e6e6e6;
 }
 
 .sitemapGreyedName
@@ -159,9 +147,9 @@ ul.sitemapTree {
 }
 
 .sitemapPluginNameHeader {
-    margin: 10px 9px 6px 9px;
-    /*font-size: 14px;*/
-    /*color: #444444;*/
+    margin: 13px 9px 5px 9px;
+    font-size: 14px;
+    color: #444444;
 }
 
 .sitemapHeader {
@@ -189,7 +177,7 @@ ul.sitemapTree {
 
 .hashover .sitemapToolbarButton:hover {
     border-radius: 3px;
-    background-color: #EDEFF1 !important;
+    background-color: #e6e6e6 !important;
 }
 
 .sitemapToolbarButton.sitemapToolbarButtonSelected, .sitemapToolbarButton.sitemapToolbarButtonSelected:hover{
@@ -257,25 +245,17 @@ ul.sitemapTree {
     top: 36px;
 }
 
-.vpZoomValue + #interfaceScaleListContainer {
-    padding-top: 5px;
-    margin-top: 5px;
-    border-top: solid 1px #bdbcbc;
-}
-
 #interfaceScaleListContainer {
-    padding: 0 9px 5px 16px;
+    padding: 7.5px 9px 12px 16px;
+    margin-top: 9px;
+    border-top: solid 1px #bdbcbc;
     order: 10;
 }
 
 .adaptiveViewOption, .vpPresetOption, .vpScaleOption {
-    padding: 5px 0px 5px 0px;
-    /*color: #3B3B3B;*/
+    padding: 3px 0px 3px 0px;
+    color: #3B3B3B;
     display: flex;
-}
-
-.vpScaleOption[hidden] {
-    display: none !important;
 }
 
 .projectOptionsScaleRow, .projectOptionsAdaptiveViewRow, .projectOptionsHotspotsRow {
@@ -312,13 +292,13 @@ ul.sitemapTree {
 }
 
 .selectedRadioButton {
-    border: solid 1px #75BB43;
+    border: solid 1px #20aca9;
 }
 
-.selectedRadioButtonFill {
+.selectedRadioButtonFill { 
     position: relative;
     display: none;
-    background-color: #75BB43;
+    background-color: #20aca9;
     margin: auto;
     width: 8px;
     height: 8px;
@@ -349,8 +329,6 @@ ul.sitemapTree {
     border-bottom: solid 1px #cccccc;
     border-left: none;
     -webkit-appearance: none;
-    font-family: 'Source Sans Pro', 'Trebuchet MS', Arial;
-    color: #718096;
 }
 
 #searchBox:focus {

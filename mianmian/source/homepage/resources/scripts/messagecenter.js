@@ -82,23 +82,48 @@ var BROWSER_VERSION = 5000;
     IE = IE_10_AND_BELOW || IE_11_AND_ABOVE;
 
     var _supports = $axure.mobileSupport = {};
+    _supports.touchstart = typeof window.ontouchstart !== 'undefined';
+    _supports.touchmove = typeof window.ontouchmove !== 'undefined';
+    _supports.touchend = typeof window.ontouchend !== 'undefined';
+    _supports.mobile = _supports.touchstart && _supports.touchend && _supports.touchmove;
 
-    if(MOBILE_DEVICE || navigator.maxTouchPoints || navigator.msMaxTouchPoints) {
-        _supports.touchstart = typeof window.ontouchstart !== 'undefined';
-        _supports.touchmove = typeof window.ontouchmove !== 'undefined';
-        _supports.touchend = typeof window.ontouchend !== 'undefined';
-
-        _supports.pointerdown = typeof window.onpointerdown !== 'undefined';
-        _supports.pointerup = typeof window.onpointerup !== 'undefined';
-        _supports.pointermove = typeof window.onpointermove !== 'undefined';
+    if (!MOBILE_DEVICE && _supports.mobile) {
+        _supports.touchstart = false;
+        _supports.touchmove = false;
+        _supports.touchend = false;
+        _supports.mobile = false;
     }
 
-    _supports.mobile = _supports.touchstart && _supports.touchend && _supports.touchmove;
-    
     var _eventNames = $axure.eventNames = {};
-    _eventNames.mouseDownName = _supports.touchstart ? 'touchstart' : _supports.pointerdown ? 'pointerdown' : 'mousedown';
-    _eventNames.mouseUpName = _supports.touchend ? 'touchend' : _supports.pointerup ? 'pointerup' : 'mouseup';
-    _eventNames.mouseMoveName = _supports.touchmove ? 'touchmove' : _supports.pointermove ? 'pointermove' : 'mousemove';
+    _eventNames.mouseDownName = _supports.touchstart ? 'touchstart' : 'mousedown';
+    _eventNames.mouseUpName = _supports.touchend ? 'touchend' : 'mouseup';
+    _eventNames.mouseMoveName = _supports.touchmove ? 'touchmove' : 'mousemove';
+
+    //Used by sitemap and variables.js getLinkUrl functions so that they know
+    //whether to embed global variables in URL as query string or hash string
+    //_shouldSendVars persists the value for sitemap instead of re-checking every time
+    var _shouldSendVars;
+    var _shouldSendVarsToServer = function(url) {
+        if(typeof _shouldSendVars != 'undefined') {
+            return _shouldSendVars;
+        }
+
+        if(SAFARI || (IE_10_AND_BELOW && BROWSER_VERSION < 10)) {
+            var urlToCheck = typeof url != 'undefined' ? url : window.location.href;
+            var serverRegex = /http:\/\/127\.0\.0\.1:[0-9]{5}/g;
+            var serverMatch = serverRegex.exec(urlToCheck);
+            var previewRegex = /[0-9]{2}\.[0-9]{2}\.[0-9]{2}/g;
+            var previewMatch = previewRegex.exec(urlToCheck);
+            if(Boolean(serverMatch) && Boolean(previewMatch)) {
+                _shouldSendVars = true;
+                return _shouldSendVars;
+            }
+        }
+
+        _shouldSendVars = false;
+        return _shouldSendVars;
+    };
+    $axure.shouldSendVarsToServer = _shouldSendVarsToServer;
 })();
 
 (function () {
@@ -301,7 +326,7 @@ var BROWSER_VERSION = 5000;
 
     _messageCenter.postMessage = function (message, data) {
         if(_combineEventMessages) {
-            if(message == 'axEvent' || message == 'axCase' || message == 'axAction' || message == 'axEventComplete' || message == 'axInfo') {
+            if(message == 'axEvent' || message == 'axCase' || message == 'axAction' || message == 'axEventComplete') {
                 _compositeEventMessageData.push({ 'message': message, 'data': data });
                 if(_compositeEventMessageData.length >= 10) _messageCenter.sendCompositeEventMessage();
                 return;

@@ -1,4 +1,7 @@
-﻿var PLUGIN_VAR_NAME = 'g';
+﻿var PAGE_ID_NAME = 'id';
+var PAGE_URL_NAME = 'p';
+var SITEMAP_COLLAPSE_VAR_NAME = 'c';
+var PLUGIN_VAR_NAME = 'g';
 var FOOTNOTES_VAR_NAME = 'fn';
 var ADAPTIVE_VIEW_VAR_NAME = 'view';
 var SCALE_VAR_NAME = 'sc';
@@ -8,10 +11,15 @@ var CLOUD_VAR_NAME = 'cl';
 var TRACE_VAR_NAME = 'tr';
 var RP_VERSION = 9;
 var lastLeftPanelWidth = 220;
-var lastRightPanelWidth = 290;
+var lastRightPanelWidth = 220;
 var lastLeftPanelWidthDefault = 220;
-var lastRightPanelWidthDefault = 290;
+var lastRightPanelWidthDefault = 220;
 var toolBarOnly = true;
+// TODO: need to find a way to get rid of iphone X hacks!!!
+// - could possibly have app detect iphone and send information back to player, but currently, that information would arrive too late
+var iphoneX = false;
+var iphoneXFirstPass = true;
+
 
 // isolate scope
 (function () {
@@ -33,6 +41,7 @@ var toolBarOnly = true;
     var isCloud = $axure.player.isCloud = getHashStringVar(CLOUD_VAR_NAME);
     if (isCloud) {
         $("#topPanel").css('display', 'none');
+        lastRightPanelWidthDefault = 290;
     }else {
         $("#topPanel").css('display', '');
     }
@@ -49,8 +58,8 @@ var toolBarOnly = true;
         _settings.loadSitemap = configuration.loadSitemap;
         _settings.loadFeedbackPlugin = configuration.loadFeedbackPlugin;
         var cHash = getHashStringVar(SITEMAP_COLLAPSE_VAR_NAME);
-        _settings.startCollapsed = cHash == SITEMAP_COLLAPSE_VALUE;
-        if (cHash == SITEMAP_CLOSE_VALUE) closePlayer();
+        _settings.startCollapsed = cHash == "1";
+        if (cHash == "2") closePlayer();
         var gHash = getHashStringVar(PLUGIN_VAR_NAME);
         _settings.startPluginGid = gHash;
 
@@ -107,16 +116,8 @@ var toolBarOnly = true;
         if (CHROME_5_LOCAL && !$('body').attr('pluginDetected')) {
             window.location = 'resources/chrome/chrome.html';
         }
+    });
 
-        if (FIREFOX && BROWSER_VERSION >= 68 && document.location.href.indexOf('file://') >= 0) { //detecting firefox and local
-            window.location = 'resources/chrome/firefox.html';
-        }
-    });
-    
-    $(window).on('hashchange', function() {
-        window.location.reload();
-    });
-    
     function appendOutOfDateNotification() {
         var toAppend = '';
         toAppend += '<div id="browserOutOfDateNotification">';
@@ -190,7 +191,6 @@ var toolBarOnly = true;
         $('#interfacePageNameContainer').on($axure.eventNames.mouseDownName, toggleSitemap);
         $('#interfaceAdaptiveViewsContainer').on($axure.eventNames.mouseDownName, toggleAdaptiveViewsPopup);
         $('#overflowMenuButton').on($axure.eventNames.mouseDownName, toggleOverflowMenuPopup);
-        $('#scaleMenuButton').on($axure.eventNames.mouseDownName, toggleScaleMenuPopup);
 
         if (!MOBILE_DEVICE) {
             $('#maximizePanel').mouseenter(function () {
@@ -259,6 +259,7 @@ var toolBarOnly = true;
             // IOS often does not complete updating innerHeight and innerWidth
             // until after calling orientation changed and resized window
             // Also, cannot use $(window).height() call since iOS11 needs padding amount
+            iphoneXFirstPass = false
             if (IOS && isMobileMode()) setTimeout(function () { $axure.player.resizeContent(true); }, 250);
         });
 
@@ -292,8 +293,7 @@ var toolBarOnly = true;
         }
 
         if($axure.player.settings != null && !$axure.player.settings.isExpo) {
-            const linkUrlWithVars = $axure.getLinkUrlWithVars(getInitialUrl());
-            mainFrame.contentWindow.location.href = linkUrlWithVars;
+            mainFrame.contentWindow.location.href = getInitialUrl();
         }
     }
 
@@ -320,7 +320,7 @@ var toolBarOnly = true;
         // map devices to their corresponding frame/bezel/overlays
     }
     var wasMobile = false;
-    var isMobileMode = $axure.player.isMobileMode = function () { return $axure.utils.isShareApp() || (MOBILE_DEVICE && $(window).width() < 420); }
+    var isMobileMode = $axure.player.isMobileMode = function () { return isShareApp() || (MOBILE_DEVICE && $(window).width() < 420); }
     var isMobileTextEntry = false;
 
     var isViewOverridden = $axure.player.isViewOverridden = function() {
@@ -377,13 +377,15 @@ var toolBarOnly = true;
 
         if (isMobileMode()) {
             $container.addClass('mobileMode');
+            $('.noDiscussionText span').text('Comments added in Axure Cloud will appear here');
         } else {
             $container.removeClass('mobileMode');
+            $('.noDiscussionText span').text('Either select the button above to post to a location on the page, or use the field to post without location.');
         }
     }
 
     $axure.player.updatePlugins = function updatePlugins() {
-        if (MOBILE_DEVICE && !$axure.utils.isShareApp()) {
+        if (MOBILE_DEVICE && !isShareApp()) {
             var hostPanelPadding = isMobileMode() ? '8px 15px 0px 15px' : '';
             $('.rightPanel .leftPanel .mobileOnlyPanel').css('padding', hostPanelPadding);
         }
@@ -411,7 +413,7 @@ var toolBarOnly = true;
 
     function deactivateMobileTextEntry() {
         newHeight = window.innerHeight;
-        var newControlHeight = newHeight - (!$axure.utils.isShareApp() ? 140 : IOS ? 157 : 138);
+        var newControlHeight = newHeight - (!isShareApp() ? 140 : IOS ? 157 : 138);
 
         if (!$('.leftPanel').hasClass('popup')) {
             $('.leftPanel').height(newControlHeight);
@@ -425,8 +427,8 @@ var toolBarOnly = true;
         $('#mobileControlFrameContainer').hide();
 
         newHeight = window.innerHeight;
-        var newControlHeight = newHeight - (!$axure.utils.isShareApp() ? 140 : IOS ? 157 : 138);
-        newControlHeight = newControlHeight + (!$axure.utils.isShareApp() ? 61 : IOS ? 72 : 60);
+        var newControlHeight = newHeight - (!isShareApp() ? 140 : IOS ? 157 : 138);
+        newControlHeight = newControlHeight + (!isShareApp() ? 61 : IOS ? 72 : 60);
 
         if (!$('.leftPanel').hasClass('popup')) {
             $('.leftPanel').height(newControlHeight);
@@ -447,6 +449,9 @@ var toolBarOnly = true;
 
     $axure.player.resizeContent = function (noViewport) {
         var isMobile = isMobileMode();
+
+        var $left = $('.leftPanel');
+        var $right= $('.rightPanel');
 
         if (wasMobile && !isMobile) {
             $('#clippingBoundsScrollContainer').show();
@@ -492,10 +497,20 @@ var toolBarOnly = true;
 
         var newHeight = 0;
         var newWidth = 0;
-        if (IOS && $axure.utils.isShareApp()) {
+        if (iphoneX && isShareApp()) {
             // Hack for Iphone X
-            newHeight = iosInnerHeight();
+            newHeight = $(window).height() - ((!isMobile && $('#topPanel').is(':visible')) ? $('#topPanel').height() : 0);
             newWidth = $(window).width();
+            // This does not need to make sense, since it is Iphone X
+            var notchAndHomeOffsetPortrait = iphoneXFirstPass ? 35 : 5;
+            var notchOffsetLandscape = iphoneXFirstPass ? 45 : 10;
+            var homeButtonOffsetLandscape = iphoneXFirstPass ? 21 : 10;
+            if (newHeight > newWidth) {
+                newHeight = newHeight + notchAndHomeOffsetPortrait;
+            } else {
+                newWidth = newWidth + notchOffsetLandscape * 2;
+                newHeight = newHeight + homeButtonOffsetLandscape;
+            }
         } else {
             // innerHeight includes padding for window -- needed in iOS 11 to have prototype stretch to bottom of screen (could put in -- if (iOS) -- block if needed)
             //var newHeight = $(window).height() - ((!isMobile && $('#topPanel').is(':visible'))? $('#topPanel').height() : 0);
@@ -510,12 +525,12 @@ var toolBarOnly = true;
         if (isMobile) {
             $('#mobileControlFrameContainer').height(newHeight);
             $('#mobileControlFrameContainer').width(newWidth);
-            var newControlHeight = newHeight - (!MOBILE_DEVICE ? 112 : !$axure.utils.isShareApp() ? 140 : IOS ? 157 : 138);
+            var newControlHeight = newHeight - (!MOBILE_DEVICE ? 112 : !isShareApp() ? 140 : IOS ? 157 : 138);
             // Screen resize is only way through browser to catch mobile device keyboard expand and collapse
             if ($('#mHideSidebar').is(':visible') && !$('#mobileControlFrameContainer').is(':visible')) {
                 $('#mobileControlFrameContainer').delay(150).show();
             } else if (isMobileTextEntry) {
-                newControlHeight = newControlHeight + (!$axure.utils.isShareApp() ? 61 : IOS ? 72 : 60);
+                newControlHeight = newControlHeight + (!isShareApp() ? 61 : IOS ? 72 : 60);
                 $('#mobileControlFrameContainer').hide();
             }
 
@@ -530,24 +545,15 @@ var toolBarOnly = true;
             }
             $('.rightPanel').css('height', '');
             if ($('.rightPanel').is(':visible')) {
-                var lastRightPanelWidthDefaultSub = ($(window).width() - lastRightPanelWidthDefault || 0);
-                var rightPanelWidth = ($('.rightPanel').width() || 0);
-                var leftPanelPanelWidthSub = ($(window).width() - $('.leftPanel').width()) || 0;
-
-                var newWidth = Math.min(lastRightPanelWidthDefaultSub, rightPanelWidth, leftPanelPanelWidthSub);
+                var newWidth = Math.min($(window).width() - lastRightPanelWidthDefault, $('.rightPanel').width(), $(window).width() - $('.leftPanel').width());
                 lastRightPanelWidth = Math.max(lastRightPanelWidthDefault, newWidth);
-                $('.rightPanel').width(lastRightPanelWidth ? lastRightPanelWidth : lastRightPanelWidthDefault);
+                $('.rightPanel').width(lastRightPanelWidth != 0 ? lastRightPanelWidth : lastRightPanelWidthDefault);
                 $('#rsplitbar').css('left', $(window).width() - $('.rightPanel').width());
             }
             if ($('.leftPanel').is(':visible')) {
-                var lastLeftPanelWidthSub = ($(window).width() - lastLeftPanelWidthDefault || 0);
-                var leftPanelWidth = ($('.leftPanel').width() || 0);
-                var rightPanelWidthSub = ($(window).width() - $('.rightPanel').width()) || 0;
-
-                var newWidth = Math.min(lastLeftPanelWidthSub, leftPanelWidth, rightPanelWidthSub);
-
+                var newWidth = Math.min($(window).width() - lastLeftPanelWidthDefault, $('.leftPanel').width(), $(window).width() - $('.rightPanel').width());
                 lastLeftPanelWidth = Math.max(lastLeftPanelWidthDefault, newWidth);
-                $('.leftPanel').width(lastLeftPanelWidth ? lastLeftPanelWidth : lastLeftPanelWidthDefault);
+                $('.leftPanel').width(lastLeftPanelWidth != 0 ? lastLeftPanelWidth : lastLeftPanelWidthDefault);
                 $('#lsplitbar').css('left', $('.leftPanel').width() - 4);
             }
         }
@@ -569,737 +575,21 @@ var toolBarOnly = true;
 
     function contentDocument_onload() {
         (function setRepositionWhenReady() {
-            var $iframe = $('#mainFrame')[0];
+            var $iframe = $('#mainPanel').find('iframe')[0];
             if ($($iframe.contentWindow.document.body).length === 0 || $iframe.contentWindow.document.URL === "about:blank") {
                 setTimeout(setRepositionWhenReady, 50);
             } else {
-                var $iframe = $($('#mainFrame')[0].contentWindow.document);
+                var $iframe = $($('#mainPanel').find('iframe')[0].contentWindow.document);
                 $iframe.scroll(function () {
                     repositionClippingBoundsScroll();
                 });
             }
-            common_contentDocument_onload();
         })();
     }
 
-    // self-destruction timeouts
-    var dragOverlayTimeout;
-    var zoomOverlayTimeout;
-    var selfDestructionTimeoutDuration = 1000; // ms
-
-    var forcePanZoomDisabled = false;
-    function disablePanZoomFeature() {
-        forcePanZoomDisabled = true;
-        $('.vpZoomValue').remove();
-        $('#scaleValue').text('Scale');
-    }
-
-    function panAndZoomKeydownHandler(e) {
-        // if space key down
-        if (e.key == " ") {
-            var $iframe = $('#mainFrame')[0];
-            var iframeBody = $iframe.contentWindow.document.body;
-            var dimStr = $('.currentAdaptiveView').attr('data-dim');
-            var dim = dimStr ? dimStr.split('x') : { w: '0', h: '0' };
-            var isDevice = dim[1] != '0' ? true : false;
-            var focusableElements = ["textarea", "input", "button", "select"];
-            if ((e.target !== iframeBody
-                && (iframeBody.contains(e.target) || tabbableElements.lastIndexOf(e.target.tagName.toLowerCase()) !== -1))
-                || isDevice
-            ) {
-                return;
-            }
-            e.preventDefault();
-            // clear self-destruction timeout if exist
-            if (dragOverlayTimeout) {
-                clearTimeout(dragOverlayTimeout);
-            }
-            toggleDragMode(true);
-            // self-destruction
-            dragOverlayTimeout = setTimeout(function() {toggleDragMode(false)}, selfDestructionTimeoutDuration);
-        }
-        // if hotkey zooming
-        if (e.ctrlKey || e.metaKey) {
-            if (e.key == "+" || e.key == "=") {
-                e.preventDefault();
-                zoomIn();
-            }
-            if (e.key == "-") {
-                e.preventDefault();
-                zoomOut();
-            }
-            if (e.key == "0") {
-                e.preventDefault();
-                dropScaleAndZoomPage(100);
-            }
-        }
-        // if ctrl key down
-        if (e.key == "Control" || e.key == "Meta") {
-            // clear self-destruction timeout if exist     
-            if (zoomOverlayTimeout) {
-                clearTimeout(zoomOverlayTimeout);
-            }                                      
-            toggleZoomOverlay(true);
-            // self-destruction
-            zoomOverlayTimeout = setTimeout(function() {toggleZoomOverlay(false)}, selfDestructionTimeoutDuration);
-        }
-    };
-
-    function panAndZoomKeyupHandler(e) {
-        // if space key up
-        if (e.key == " ") {
-            // clear self-destruction timeout if exist
-            if (dragOverlayTimeout) {
-                clearTimeout(dragOverlayTimeout);
-            }
-            toggleDragMode(false);
-        }                    
-        // if ctrl key up
-        if (e.key == "Control" || e.key == "Meta") {
-            // clear self-destruction timeout if exist
-            if (zoomOverlayTimeout) {
-                clearTimeout(zoomOverlayTimeout);
-            }
-            toggleZoomOverlay(false);
-        }
-    };
-
-    
-    var zoomLastTimestamp = 0;
-    var zoomLastDirection = 0;
-    var disableChunkedZoomEvents = false;
-    function zoomWheelHandler(event) {
-        if (event.ctrlKey || event.metaKey) {
-            event.stopPropagation();
-            event.preventDefault();
-            const wheelEvent = event.originalEvent ? event.originalEvent : event;
-            if (wheelEvent) {
-                const { deltaY } = normalizeZoomWheelEvent(wheelEvent);
-
-                let timestamp = wheelEvent.timeStamp / 1e3;
-                const direction = Math.sign(deltaY);
-                if (disableChunkedZoomEvents && timestamp - zoomLastTimestamp < .4 && direction == zoomLastDirection) {
-                    // ignore chunked events
-                    return;
-                } else {
-                    // disable stickiness
-                    disableChunkedZoomEvents = false;
-                }
-                zoomLastTimestamp = timestamp;
-                zoomLastDirection = direction;
-
-                const zoom = getCurrentZoom();
-                const zoomStep = deltaY < 0 ? zoom * 0.0409 + 0.0415 : zoom * 0.0394 + 0.0367;
-                let newZoom = roundZoomValue(zoom + zoomStep * -deltaY);
-                
-                if ((zoom > 100 && newZoom <= 100) || (zoom < 100 && newZoom >= 100)) {
-                    // enable stickiness
-                    newZoom = 100;
-                    disableChunkedZoomEvents = true;
-                }
-
-                const zoomPositionX = wheelEvent.clientX * zoom / 100 - zoom / 100;
-                const zoomPositionY = wheelEvent.clientY * zoom / 100 - zoom / 100;
-                const zoomPosition = { x: zoomPositionX, y: zoomPositionY };
-                dropScaleAndZoomPage(newZoom, zoomPosition);
-            }
-        }
-    }
-
-    var gestureStartZoom = 0;
-    var gesturePrevZoom = 0;
-    var gestureRaf;
-    function zoomGestureStart(e) {
-        e.preventDefault();
-        gestureStartZoom = gesturePrevZoom = getCurrentZoom();
-    };
-
-    function zoomGestureChange(e) {
-        e.preventDefault();
-        if (gestureRaf !== undefined) {
-            cancelAnimationFrame(gestureRaf)
-        }
-        gestureRaf = requestAnimationFrame(function () {
-            let timestamp = e.timeStamp / 1e3;
-            const direction = Math.sign(e.scale - 1);            
-            if (disableChunkedZoomEvents && timestamp - zoomLastTimestamp < .5 && direction == zoomLastDirection) {
-                // ignore chunked events
-                return;
-            } else {
-                // disable stickiness
-                disableChunkedZoomEvents = false;
-            }
-            zoomLastTimestamp = timestamp;
-            zoomLastDirection = direction;
-
-            var zoom = roundZoomValue(gestureStartZoom * e.scale);
-            
-            if ((gesturePrevZoom > 100 && zoom <= 100) || (gesturePrevZoom < 100 && zoom >= 100)) {                
-                // enable stickiness
-                zoom = 100;
-                disableChunkedZoomEvents = true;
-            }
-            gesturePrevZoom = zoom;
-
-            var zoomPosition = { x: e.pageX, y: e.pageY };
-            dropScaleAndZoomPage(zoom, zoomPosition);
-        });
-    }
-
-    var zoomGestureEnd = function (e) {
-        e.preventDefault();
-    }
-
-    function scrollWheelHandler(event) {
-        if (!event.ctrlKey && !event.metaKey) {
-            var dimStr = $('.currentAdaptiveView').attr('data-dim');
-            var dim = dimStr ? dimStr.split('x') : { w: '0', h: '0' };
-            var isDevice = dim[1] != '0' ? true : false;
-            if (!isDevice) return;
-            // we should scroll iframe programmatically for custom devices
-            // if wheel event fires outside of the iframe
-            const wheelEvent = event.originalEvent ? event.originalEvent : event;
-            if (wheelEvent) {
-                event.preventDefault();
-
-                const scrollStep = isTrackPadDetected(event) ? 13 : 100;
-                const deltaFactor = getDeltaWheelFactor();
-
-                let deltaY = wheelEvent.deltaY ? -wheelEvent.deltaY * deltaFactor * scrollStep : 0;
-                let deltaX = wheelEvent.deltaX ? -wheelEvent.deltaX * deltaFactor * scrollStep : 0;
-                if (wheelEvent.shiftKey) {
-                    const temp = deltaX;
-                    deltaX = deltaY;
-                    deltaY = temp;
-                }
-                let pagePosition = getPagePosition();
-                pagePosition.x += deltaX;
-                pagePosition.y += deltaY;
-                setPagePosition({ x: pagePosition.x, y: pagePosition.y });
-            }
-        }
-    }    
-    
-    function panAndZoomMouseUpHandler() {
-        stopDrag();
-    };
-
-    function common_contentDocument_onload() {
-        (function bindHandlersWhenReady() {
-            var $iframe = $('#mainFrame')[0];
-            currentIframeHtml = null;
-
-            // Intentionally disable pan/zoom for mobile mode.
-            // That's to not interfere with native gesture interactions.
-            if (isMobileMode()) {
-                disablePanZoomFeature();
-                return;
-            }
-
-            // Check for locally running prototype.
-            // Disable pan and zoom feature if not supported.
-            try {
-                var _iframeDocument = $iframe.contentWindow.document;
-            }
-            catch(ex) {
-                disablePanZoomFeature();
-                return;
-            }
-            if ($($iframe.contentWindow.document.body).length === 0 || $iframe.contentWindow.document.URL === "about:blank") {
-                setTimeout(bindHandlersWhenReady, 50);
-            } else {
-                const mainPanel = $('#mainPanel')[0];
-                const iframeWindow = $('#mainFrame')[0].contentWindow;
-
-                // remove already added listeners
-                window.removeEventListener("mouseup", panAndZoomMouseUpHandler);
-                window.removeEventListener("keydown", panAndZoomKeydownHandler);
-                window.removeEventListener("keyup", panAndZoomKeyupHandler);
-                mainPanel.removeEventListener("keydown", panAndZoomKeydownHandler);
-                mainPanel.removeEventListener("keyup", panAndZoomKeyupHandler);
-                mainPanel.removeEventListener("wheel", zoomWheelHandler, { passive: false });
-                mainPanel.removeEventListener("wheel", scrollWheelHandler, { passive: false });
-
-                // add pan and zoom listeners
-                window.addEventListener("mouseup", panAndZoomMouseUpHandler);
-                window.addEventListener("keydown", panAndZoomKeydownHandler);
-                window.addEventListener("keyup", panAndZoomKeyupHandler);
-
-                mainPanel.addEventListener("keydown", panAndZoomKeydownHandler);
-                mainPanel.addEventListener("keyup", panAndZoomKeyupHandler);
-                mainPanel.addEventListener("wheel", zoomWheelHandler, { passive: false });
-                mainPanel.addEventListener("wheel", scrollWheelHandler, { passive: false });
-
-                iframeWindow.addEventListener("keydown", panAndZoomKeydownHandler);
-                iframeWindow.addEventListener("keyup", panAndZoomKeyupHandler);
-                iframeWindow.addEventListener("wheel", zoomWheelHandler, { passive: false, capture: true });
-
-                if (iframeWindow) {
-                    // Safari specific
-                    // Safari emit gesture event instead of wheel event if touchpad used.
-
-                    // remove already added listeners
-                    window.removeEventListener("gesturestart", zoomGestureStart, { capture: true });
-                    window.removeEventListener("gesturechange", zoomGestureChange, { capture: true });
-                    window.removeEventListener("gestureend", zoomGestureEnd, { capture: true });
-
-                    // attaching to both window and iframeWindow as sometimes events
-                    // this is because how weirdly iframe is positioned in Safari
-                    // and doesn't occupy the full space, thus gesture events trigger only on parent window
-                    window.addEventListener("gesturestart", zoomGestureStart, { capture: true });
-                    window.addEventListener("gesturechange", zoomGestureChange, { capture: true });
-                    window.addEventListener("gestureend", zoomGestureEnd, { capture: true });
-
-                    iframeWindow.addEventListener("gesturestart", zoomGestureStart, { capture: true });
-                    iframeWindow.addEventListener("gesturechange", zoomGestureChange, { capture: true });
-                    iframeWindow.addEventListener("gestureend", zoomGestureEnd, { capture: true });
-                }
-            }
-        })();
-    }
-
-
-    var zoomValues = $axure.player.zoomValues = [25, 50, 75, 100, 150, 200, 250, 300, 400];
-    var roundZoomValue = function(value) {
-        let zoom = Math.round(value);
-        if (zoom < zoomValues[0]) {
-          [zoom] = zoomValues;
-        } else if (zoom > zoomValues[zoomValues.length - 1]) {
-          zoom = zoomValues[zoomValues.length - 1];
-        }
-        return zoom;
-      }
-
-      
-    var getPageSize = function () {
-        const currentZoom = getCurrentZoom() / 100;
-        var documentContainer = $($('#mainFrame')[0].contentDocument);
-        return {
-            height: (documentContainer.height() || 0) * currentZoom,
-            width: ($($('#mainFrame')[0].contentDocument).find("body").width() || 0) * currentZoom,
-        }
-    }
-    
-
-    var getPagePosition = $axure.player.getPagePosition = function() {
-        const currentZoom = getCurrentZoom() / 100;
-        var viewerContainer = $('#mainPanel');
-        const viewerSize = {
-            height: viewerContainer.height() || 0,
-            width: viewerContainer.width() || 0,
-        };
-        const pageSize = getPageSize();
-
-        var screenContainerPosition = getPageScrollPosition();
-        var pageX = -screenContainerPosition.x * currentZoom - (viewerSize.width > pageSize.width ? pageSize.width / 2 : viewerSize.width / 2);
-        var pageY = -screenContainerPosition.y * currentZoom - viewerSize.height / 2;
-
-        return { x: pageX, y: pageY };
-    }
-
-    var setPagePosition = $axure.player.setPagePosition = function (position) {        
-        const currentZoom = getCurrentZoom() / 100;
-        var viewerContainer = $('#mainPanel');
-        const viewerSize = {
-            height: viewerContainer.height() || 0,
-            width: viewerContainer.width() || 0,
-        };
-        
-        const screenContainerLeft = (viewerSize.width / 2 > Math.abs(position.x) ? 0 : -position.x - viewerSize.width / 2);
-        const screenContainerTop = -position.y - viewerSize.height / 2;
-
-        setPageScrollPosition({ x: screenContainerLeft / currentZoom, y: screenContainerTop / currentZoom } );
-    }
-
-    var roundValueByArrayOfSteps = function(value, array, toSmaller) {
-        let resultIndex = 0;
-        for (let i = 0; i < array.length; i++) {
-          if (array[i] < value) {
-            const nextValue = array[i + 1];
-            if (!nextValue) {
-              resultIndex = i;
-              break;
-            } else if (nextValue < value) {
-              continue;
-            } else if (nextValue === value) {
-              resultIndex = i + 1;
-              break;
-            } else if (toSmaller) {
-              resultIndex = i;
-              break;
-            } else {
-              resultIndex = i + 1;
-            }
-          } else if (i === 0) {
-            break;
-          }
-        }
-        return array[resultIndex];
-      }
-
-    // point on page for zooming
-    var zoomIn = function (position) {
-        const nextZoom = getNextStepOfZoom(1);
-        dropScaleAndZoomPage(nextZoom, position);
-    }
-
-    // point on page for zooming
-    var zoomOut = function (position) {
-        const nextZoom = getNextStepOfZoom(-1);
-        dropScaleAndZoomPage(nextZoom, position);
-    }
-
-    var getNextStepOfZoom = function (offset) {
-        var zoom = getCurrentZoom();
-        const nearZoom = roundValueByArrayOfSteps(zoom, zoomValues, offset < 0);
-        let nextZoomOffset = offset;
-        if (zoom !== nearZoom) {
-            nextZoomOffset += nextZoomOffset > 0 ? -1 : 1;
-        }
-
-        const currentZoomIndex = zoomValues.findIndex(function(value) { return value === nearZoom }) || 0;
-        const nextZoomIndex = currentZoomIndex + nextZoomOffset;
-        let nextZoom = zoom;
-        if (zoomValues[nextZoomIndex]) {
-            nextZoom = zoomValues[nextZoomIndex];
-        }
-
-        return nextZoom;
-    }
-
-    var getCurrentZoom = function () {
-        var zoomValue = getIframeHtml().attr("zoom");
-        if (zoomValue) {
-            return parseInt(zoomValue, 10);
-        }
-        return 100;
-    }
-
-    var currentIframeHtml = null;
-    function getIframeHtml() {
-        if (currentIframeHtml) return currentIframeHtml;
-        currentIframeHtml = $($('#mainFrame')[0].contentDocument).find("html");
-        return currentIframeHtml;
-    }
-
-    // zoom value
-    // point on page for zooming
-    var zoomPage = $axure.player.zoomPage = function(zoom, position) {
-        if (forcePanZoomDisabled) return;
-
-        getIframeHtml().toggleClass("hideScroll", zoom != 100);
-
-        const currentZoom = getCurrentZoom();
-        const nextZoom = zoom;
-
-        var viewerContainer = $('#mainPanel');
-        const containerSize = {
-            height: viewerContainer.height() || 0,
-            width: viewerContainer.width() || 0,
-        };
-
-        const pageSize = getPageSize();
-        
-        let newPageX = 0;
-        let newPageY = 0;
-        if (
-            containerSize.width <= (pageSize.width * nextZoom) / currentZoom ||
-            containerSize.height <= (pageSize.height * nextZoom) / currentZoom
-        ) {
-            const mouseX = position ? position.x : containerSize.width / 2;
-            const mouseY = position ? position.y : containerSize.height / 2;
-            
-            // get current page position
-            const pagePosition = getPagePosition();
-
-            // calculate new page position after zoom
-            let mousePageX = mouseX - containerSize.width / 2 - pagePosition.x;
-            let mousePageY = mouseY - containerSize.height / 2 - pagePosition.y;
-
-            const newMousePageX = (mousePageX * nextZoom) / currentZoom;
-            const newMousePageY = (mousePageY * nextZoom) / currentZoom;
-            
-            newPageX = pagePosition.x - (newMousePageX - mousePageX);
-            newPageY = pagePosition.y - (newMousePageY - mousePageY);
-        }
-
-        // resize page
-        // set zoom
-        getIframeHtml().attr("zoom", zoom);
-        $axure.player.refreshViewPort();
-        
-        // set new page position
-        setPagePosition({ x: newPageX, y: newPageY });
-        repositionClippingBoundsScroll();
-    }
-
-    var dropScaleAndZoomPage = function (zoom, position) {
-        var selectedScale = $('.vpScaleOption').find('.selectedRadioButton');
-        var scaleVal = $(selectedScale).parent().attr('val');
-        if (scaleVal != 3) {
-            $axure.player.selectScaleOption(3);
-        }
-        zoomPage(zoom, position);
-    }
-
-    var didInitPlatformInfo = false;
-    var isMacFlag = false;
-    var isWindowsFlag = false;
-
-    function initPlatformInfo() {
-        if (didInitPlatformInfo) {
-            return;
-        }
-        var platform = self.navigator.platform;
-        isMacFlag = /Mac/.test(platform);
-        if (!isMacFlag) {
-            isWindowsFlag = /Win/.test(platform);
-        }
-        didInitPlatformInfo = true;
-    }
-
-    function isWindows() {
-        initPlatformInfo();
-        return isWindowsFlag
-    }
-
-    function isMac() {
-        initPlatformInfo();
-        return isMacFlag;
-    }
-
-    var lastMultiplier = 0;
-    var lastTimestamp = 0;
-    var lastDirectionX = 0;
-    var lastDirectionY = 0;
-
-    function normalizeZoomWheelEvent(e) {
-        const DOM_DELTA_PIXELS = 0;
-        const DOM_DELTA_LINES = 1;
-        const DOM_DELTA_PAGES = 2;
-        let deltaMode = e.deltaMode;
-        let deltaX = e.deltaX;
-        let deltaY = e.deltaY;
-
-        let wheelDeltaX = 0;
-        let wheelDeltaY = 0;
-        var isWheelDeltaSupported = e.wheelDeltaY != undefined;
-        if (isWheelDeltaSupported) {
-            wheelDeltaX = e.wheelDeltaX;
-            wheelDeltaY = e.wheelDeltaY;
-        }
-
-        const devicePixelRatio = window.devicePixelRatio;
-        if (CHROME) {
-            deltaX /= devicePixelRatio;
-            deltaY /= devicePixelRatio;
-            wheelDeltaX /= devicePixelRatio;
-            wheelDeltaY /= devicePixelRatio
-        }
-
-        if (isMac()) {
-            if (CHROME) {
-                // check for speed-wheeling
-                // trackpad wheelDelta == 120 independent of speed
-                if (Math.abs(wheelDeltaX) > 120 || Math.abs(wheelDeltaY) > 120) {
-                    // decrease lowres mouse speed-wheeling
-                    deltaX /= 80;
-                    deltaY /= 80;
-                } else {
-                    // decrease trackpad speed
-                    deltaX /= 4;
-                    deltaY /= 4;
-                }
-            } else if (FIREFOX) {
-                deltaX /= 3;
-                deltaY /= 3;
-            } else if (SAFARI) {
-                // check for speed-wheeling
-                if (Math.abs(wheelDeltaX) > 12 || Math.abs(wheelDeltaY) > 12) {
-                    // decrease lowres mouse speed-wheeling
-                    deltaX /= 80;
-                    deltaY /= 80;
-                } else {
-                    // single wheel event
-                    deltaX /= 4;
-                    deltaY /= 4;
-                }
-            }
-        } else if (isWindows()) {
-            let lowResMouse = false;
-            let lowResCutoff = 120 - 1;
-            if (CHROME || $axure.browser.isEdge) {
-                deltaX = -wheelDeltaX;
-                deltaY = -wheelDeltaY;
-                lowResMouse = Math.abs(deltaX) >= lowResCutoff || Math.abs(deltaY) >= lowResCutoff;
-                if (lowResMouse) {
-                    deltaX /= 120;
-                    deltaY /= 120
-                }
-            } else if (FIREFOX) {
-                if (deltaMode === DOM_DELTA_LINES || deltaMode === DOM_DELTA_PAGES) {
-                    deltaX *= 40;
-                    deltaY *= 40
-                }
-                lowResCutoff = 100 - 1;
-                lowResMouse = Math.abs(deltaX) >= lowResCutoff || Math.abs(deltaY) >= lowResCutoff;
-                if (lowResMouse) {
-                    deltaX /= 120;
-                    deltaY /= 120
-                } else {
-                    var numLinesToScroll = 1;
-                    deltaX /= numLinesToScroll;
-                    deltaY /= numLinesToScroll
-                }
-            }
-
-            if (lowResMouse) {
-                let timestamp = e.timeStamp / 1e3;
-                const directionX = Math.sign(deltaX);
-                const directionY = Math.sign(deltaY);
-                let multiplier = 1;
-
-                if (timestamp - lastTimestamp < .05 && directionX == lastDirectionX && directionY == lastDirectionY) {
-                    multiplier = lastMultiplier * 1.25;
-                }
-                deltaX *= multiplier;
-                deltaY *= multiplier;
-                const max = 120;
-                var lengthSquared = deltaX * deltaX + deltaY * deltaY;
-                if (lengthSquared > max * max) {
-                    deltaX *= max / Math.sqrt(lengthSquared);
-                    deltaY *= max / Math.sqrt(lengthSquared)
-                }
-                lastMultiplier = multiplier;
-                lastTimestamp = timestamp;
-                lastDirectionX = directionX;
-                lastDirectionY = directionY
-            }
-        }
-
-        return {
-            deltaX,
-            deltaY,
-            deltaMode,
-        }
-    }
-
-    var getDeltaWheelFactor = function () {
-        let deltaFactor = 0.01;
-        if (isMac()) {
-            if (!FIREFOX) {
-                deltaFactor *= 8;
-            }
-        }
-        if (FIREFOX) {
-            deltaFactor *= 100 / 3;
-        }
-        return deltaFactor;
-    }
-
-    function isTrackPadDetected(e) {
-        var isTrackpad = false;
-        if (e.wheelDeltaY || e.wheelDeltaX) {
-            if (
-                (e.wheelDeltaY && e.wheelDeltaY === (e.deltaY * -3))
-                || (e.wheelDeltaX && e.wheelDeltaX === (e.deltaX * -3))
-            ) {
-                isTrackpad = true;
-            }
-        } else if (e.deltaMode === 0) {
-            isTrackpad = true;
-        }
-        return isTrackpad;
-    }
-
-
-    var toggleZoomOverlay = function (value) {
-        var $body = $($('#mainFrame')[0].contentDocument).find("body");
-        if (!value) {
-            $body.find('#zoomOverlay').remove();
-        } else if ($body.find('#zoomOverlay').length <= 0) {
-            $body.append($('<div id="zoomOverlay"/>'));
-        }
-    }
-
-    var isDragModeEnabled = false;    
-    var toggleDragMode = function(value) {
-        if (isDragModeEnabled === value) {
-          return;
-        }
-        var viewer = $($('#mainFrame')[0].contentWindow);
-        
-        var $body = $($('#mainFrame')[0].contentDocument).find("body");
-        if (!value) {
-            $body.find('#dragOverlay').remove();
-        } else if ($body.find('#dragOverlay').length <= 0) {
-            $body.append($('<div id="dragOverlay"/>'));
-        }
-
-        if (value) {
-          viewer.on("mousedown.drag", function(event) { startDrag(event) });
-        } else {
-          if (isDragModeEnabled) {
-            stopDrag();
-          }
-          viewer.off("mousedown.drag");
-        }
-    
-        isDragModeEnabled = value;
-    }
-
-    var startDrag = function (event) {
-        event.preventDefault();
-
-        var viewer = $($('#mainFrame')[0].contentWindow);
-
-        if (event.clientX === undefined || event.clientY === undefined) return;
-        let mouseX = event.clientX;
-        let mouseY = event.clientY;
-
-        function move({ clientX, clientY }) {
-            if (clientX === undefined || clientY === undefined) return;
-            const changeX = clientX - mouseX;
-            const changeY = clientY - mouseY;
-            let pagePosition = getPageScrollPosition();
-            pagePosition.x -= changeX ;
-            pagePosition.y -= changeY ;    
-            setPageScrollPosition({ x: pagePosition.x, y: pagePosition.y });
-
-            mouseX = clientX;
-            mouseY = clientY;
-        };
-
-        $($('#mainFrame')[0].contentDocument).find('#dragOverlay').toggleClass("dragging__start", true);
-        viewer.on("mouseup.drag", function() { stopDrag(); });
-        viewer.on("mouseout.drag mousemove.drag", function(e) { move(e); });
-    }
-    
-    var stopDrag = function () {
-        var viewer = $($('#mainFrame')[0].contentWindow);
-        $($('#mainFrame')[0].contentDocument).find("#dragOverlay").toggleClass("dragging__start", false);
-        viewer.off("mouseup.drag");
-        viewer.off("mouseout.drag mousemove.drag");
-    }
-
-    var getPageScrollPosition = function () {
-        var $iframe = $($('#mainFrame')[0].contentWindow);
-        return {
-            x: $iframe.scrollLeft(),
-            y: $iframe.scrollTop()
-        }
-    }
-
-    var setPageScrollPosition = function (position) {        
-        if (forcePanZoomDisabled) return;
-        var $iframe = $($('#mainFrame')[0].contentWindow);
-        $iframe.scrollTop(position.y);
-        $iframe.scrollLeft(position.x);
-    }
-      
     // This is the full width and height of the prototype (beyond the window width and height)
     var determineIframeDimensions = function () {
-        var $iframe = $($('#mainFrame')[0].contentWindow);
+        var $iframe = $($('#mainPanel').find('iframe')[0].contentWindow);
 
         return {
             width: $iframe.width(),
@@ -1310,7 +600,7 @@ var toolBarOnly = true;
     // Position of this (upper left hand corner) should match the existingPinPanel position
     var determineIframePosition = function () {
         var dimensions = determineIframeDimensions();
-        var $iframe = $($('#mainFrame')[0].contentWindow);
+        var $iframe = $($('#mainPanel').find('iframe')[0].contentWindow);
 
         var $body = $($iframe[0].document.body);
         var bodyWidth = $body.offset().left !== 0 ? $body.width() : dimensions.width;
@@ -1328,7 +618,7 @@ var toolBarOnly = true;
 
     // Return iframe scroll top and scroll left
     var determineIframeScroll = function () {
-        var $iframe = $($('#mainFrame')[0].contentWindow);
+        var $iframe = $($('#mainPanel').find('iframe')[0].contentWindow);
 
         return {
             scrollTop: $iframe.scrollTop(),
@@ -1361,17 +651,9 @@ var toolBarOnly = true;
     var contentLeftOfOriginOffset = 0;
     function calculateClippingBoundsScrollPosition() {
         // Adjust for mainPanelContainer scaling (scale should be "none" for scaleVal == 0 or scaleVal == 1)
-        var $iframe = $($('#mainFrame')[0].contentWindow);
+        var $iframe = $($('#mainPanel').find('iframe')[0].contentWindow);
         var selectedScale = $('.vpScaleOption').find('.selectedRadioButton');
         var scaleVal = $(selectedScale).parent().attr('val');
-
-        var dimStr = $('.currentAdaptiveView').attr('data-dim');
-        var dim = dimStr ? dimStr.split('x') : { w: '0', h: '0' };
-        var isDevice = dim[1] != '0' ? true : false;
-        // This line is necessary for right handling DEFAULT SCALE
-        // Because default scale relates to scale-to-fit item for device projects
-        if (scaleVal == '0' && isDevice) scaleVal = 2;
-
         var scale = $('#mainPanelContainer').css('transform');;
         scale = (scale == "none") ? 1 : Number(scale.substring(scale.indexOf('(') + 1, scale.indexOf(',')));
 
@@ -1386,14 +668,6 @@ var toolBarOnly = true;
             viewablePanelLeftMargin = ($('#mainPanel').width() - ($('#mainPanelContainer').width() * scale)) / 2
             viewablePanelTop = ($('#mainPanel').height() - ($('#mainPanelContainer').height() * scale)) / 2
         }
-        
-        if (scaleVal == 3) {
-            // Scale to Fit (account for main panel container scale) -- needed for device mode in Scale to Fit
-            viewablePanelLeftMargin = ($('#mainPanel').width() - ($('#mainPanelContainer').width() * scale)) / 2;
-            if (viewablePanelLeftMargin < 0) {
-                viewablePanelLeftMargin = 0;
-            }
-        }
 
         // left and top positioning
         var leftPos = viewablePanelLeftMargin + (iframePos.left - iframeScroll.scrollLeft) * scale;
@@ -1403,9 +677,6 @@ var toolBarOnly = true;
         var isCentered = $($iframe[0].document.body).css('position') == 'relative';
         if (isCentered && scaleVal == 1) leftPos = 0;
         else if (isCentered && scaleVal == 2) leftPos = $('#mainPanelContainer').width() * scale / 2.0 - contentLeftOfOriginOffset;
-
-        // Include clipFrameScroll offset in mainPanelContainer
-        topPos += (parseFloat($('#clipFrameScroll').css("top")) || 0) * scale;
 
         return {
             left: leftPos,
@@ -1417,7 +688,7 @@ var toolBarOnly = true;
         if (!$axure.player.settings.isAxshare) return; 
 
         (function repositionWhenReady() {
-            if ($($('#mainFrame')[0].contentWindow.document.body).length === 0) {
+            if ($($('#mainPanel').find('iframe')[0].contentWindow.document.body).length === 0) {
                 setTimeout(repositionWhenReady, 50);
             } else {
                 var position = calculateClippingBoundsScrollPosition();
@@ -1434,11 +705,11 @@ var toolBarOnly = true;
 
     function calculateScrollLeftWithOffset(offset, isLeftPanel) {
         if (!$axure.player.settings.isAxshare) return;
-        if ($($('#mainFrame')[0].contentWindow.document.body).length === 0) return;
+        if ($($('#mainPanel').find('iframe')[0].contentWindow.document.body).length === 0) return;
         var scaleVal = $('.vpScaleOption').find('.selectedRadioButton').parent().attr('val');
         if (scaleVal == 2) return;
 
-        var $iframe = $($('#mainFrame')[0].contentWindow);
+        var $iframe = $($('#mainPanel').find('iframe')[0].contentWindow);
         var $body = $($iframe[0].document.body);
 
         var dimStr = $('.currentAdaptiveView').attr('data-dim');
@@ -1509,7 +780,7 @@ var toolBarOnly = true;
                 var newLeft = calculateScrollLeftWithOffset(newWidth, true);
 
                 $('.leftPanel').animate({ 'margin-left': -newWidth + 'px' },
-                    { duration: 200, complete: function() { $('.leftPanel').width(0).hide().css({ 'marginLeft': '' }); } });
+                    { duration: 200, complete: function() { $('.leftPanel').width(0).hide().css({ 'margin-left': '' }); } });
                 $('#lsplitbar').animate({ left: '-4px' },
                     { duration: 200, complete: function() { $('#lsplitbar').hide(); } });
 
@@ -1533,7 +804,7 @@ var toolBarOnly = true;
                 var newLeft = calculateScrollLeftWithOffset(newWidth, false);
 
                 $('.rightPanel').animate({ 'margin-right': -newWidth + 'px' },
-                    { duration: 200, complete: function () { $('.rightPanel').width(0).hide().css({ 'marginRight': '' }); } });
+                    { duration: 200, complete: function () { $('.rightPanel').width(0).hide().css({ 'margin-right': '' }); } });
                 $('#rsplitbar').animate({ left: $(window).width() + 'px' },
                     { duration: 200, complete: function () { $('#rsplitbar').hide(); } });
 
@@ -1561,13 +832,13 @@ var toolBarOnly = true;
             $('.leftPanel').removeClass('popup');
             if(!isMobileMode()) {
                 isAnimating = true;
-                var newWidth = (lastLeftPanelWidth ? lastLeftPanelWidth : lastLeftPanelWidthDefault);
+                var newWidth = (lastLeftPanelWidth != 0 ? lastLeftPanelWidth : lastLeftPanelWidthDefault);
                 var clippingWidth = calculateClippingBoundsWidth(newWidth, true);
                 var newLeft = calculateScrollLeftWithOffset(-newWidth, true);
 
                 $('.leftPanel').width(newWidth);
                 $('.leftPanel').css('margin-left', -newWidth + 'px').show();
-                $('.leftPanel').animate({ 'margin-left': '0px' }, { duration: 200, complete: function () { $('.leftPanel').css({ 'marginLeft': '' }); } });
+                $('.leftPanel').animate({ 'margin-left': '0px' }, { duration: 200, complete: function () { $('.leftPanel').css({ 'margin-left': '' }); } });
 
                 $('#lsplitbar').css('left', '-4px');
                 $('#lsplitbar').show();
@@ -1583,24 +854,21 @@ var toolBarOnly = true;
                     }});
             }
         } else {
-            if ($('#rsplitbar').is(':visible')) {
-                // update width of rightPanel plugin
-                var newWidth = lastRightPanelWidth ? lastRightPanelWidth : lastRightPanelWidthDefault;
-                $('#' + hostId).width(newWidth);
+            if($('#rsplitbar').is(':visible')) {
                 $('#' + hostId).show();
                 $axure.player.pluginVisibleChanged(hostId, true);
                 return;
             }
             if (!isMobileMode()) {
                 isAnimating = true;
-                var newWidth = lastRightPanelWidth ? lastRightPanelWidth : lastRightPanelWidthDefault;
+                var newWidth = lastRightPanelWidth != 0 ? lastRightPanelWidth : lastRightPanelWidthDefault;
                 var clippingWidth = calculateClippingBoundsWidth(newWidth, false);
                 var newLeft = calculateScrollLeftWithOffset(-newWidth, false);
 
                 $('.rightPanel').width(newWidth);
                 $('.rightPanel').css('margin-right', -newWidth + 'px');
                 $('#' + hostId).show();
-                $('.rightPanel').animate({ 'margin-right': '0px' }, { duration: 200, complete: function () { $('.rightPanel').css({ 'marginRight': '' }); } });
+                $('.rightPanel').animate({ 'margin-right': '0px' }, { duration: 200, complete: function () { $('.rightPanel').css({ 'margin-right': '' }); } });
 
                 $('#rsplitbar').css('left', $(window).width());
                 $('#rsplitbar').show();
@@ -1635,16 +903,8 @@ var toolBarOnly = true;
         var h = dim[1] != '0' ? dim[1] : '';
 
         var scaleVal = $('.vpScaleOption').find('.selectedRadioButton').parent().attr('val');
-        var selectedScaleValue = scaleVal;
         $axure.player.noFrame = false;
         if (h && scaleVal == 1) $axure.player.noFrame = true;
-
-        $('#mainPanelContainer').attr({
-            "data-scale-n": scaleVal,
-            "data-page-dimensions-type": h ? "device" : w ? "web" : "auto",
-            "data-scale-shift-x": null,
-            "data-scale-shift-y": null,
-        });
 
         var clipToView = h && !$axure.player.noFrame;
         var isDevice = h;
@@ -1657,9 +917,6 @@ var toolBarOnly = true;
         if (MOBILE_DEVICE && h > mainPanelHeight) h = mainPanelHeight;
         if (MOBILE_DEVICE && w > mainPanelWidth) w = mainPanelWidth;
 
-        const mainFrameHeight = h;
-        const mainFrameWidth = w;
-        
         if (clipToView) {
             if (!MOBILE_DEVICE && scaleVal == '0') scaleVal = 2;
 
@@ -1668,17 +925,13 @@ var toolBarOnly = true;
 
             $('#mainFrame').width(w);
             $('#clipFrameScroll').width(w);
+            $('#mainFrame').height(h);
             $('#clipFrameScroll').height(h);
 
             var topPadding = MOBILE_DEVICE ? 0 : 10;
             var leftPadding = 0;
             var rightPadding = 0;
             var bottomPadding = MOBILE_DEVICE ? 0 : 10;
-            
-            if (scaleVal == 3) {
-                topPadding = 0;
-                bottomPadding = 0;
-            }
 
             w = w + leftPadding + rightPadding;
             h = h + topPadding + bottomPadding;
@@ -1686,20 +939,12 @@ var toolBarOnly = true;
             var x = (mainPanelWidth - w) / 2;
             var y = (mainPanelHeight - h) / 2 - 1;
 
-            if (scaleVal != 2) {
-                x = Math.max(0, x);
-                y = Math.max(0, y);
-            }
-            
-            $('#mainPanelContainer').attr({
-                "data-scale-shift-x": x,
-                "data-scale-shift-y": y,
-            });
+            x = Math.max(0, x);
+            if (scaleVal != 2) y = Math.max(0, y);
 
             $('#mainPanelContainer').css({
                 'margin': 'auto',
-                'top': y + 'px',
-                'left': (x < 0 ? x + 'px' : 'auto')
+                'top': y + 'px'
             });
 
             $('#clipFrameScroll').css({
@@ -1711,11 +956,13 @@ var toolBarOnly = true;
             $('#mainPanelContainer').height(h);
         } else {
             $('#mainFrame').width('100%');
+            $('#mainFrame').height(h);
 
             $('#clipFrameScroll').width('100%');
             $('#clipFrameScroll').height(h);
             $('#clipFrameScroll').css({ 'left': '', 'top': '' });
 
+            $('#mainPanelContainer').width('100%');
             $('#mainPanelContainer').height(h);
             $('#mainPanelContainer').css({
                 'left': '',
@@ -1728,10 +975,11 @@ var toolBarOnly = true;
         $(".vpScaleOption").show();
         var prevScaleN = $('#mainPanelContainer').css('transform');
         prevScaleN = (prevScaleN == "none") ? 1 : Number(prevScaleN.substring(prevScaleN.indexOf('(') + 1, prevScaleN.indexOf(',')));
+        var newScaleN = 1;
 
         $('#mainPanelContainer').css({
             'transform': '',
-            'transformOrigin': ''
+            'transform-origin': ''
         });
 
         var $leftPanel = $('.leftPanel:visible');
@@ -1742,17 +990,13 @@ var toolBarOnly = true;
         var vpScaleData = {
             scale: scaleVal,
             prevScaleN: prevScaleN,
-            mainFrameHeight,
-            mainFrameWidth,
             viewportHeight: h,
             viewportWidth: w,
             panelWidthOffset: leftPanelOffset + rightPanelOffset,
             clipToView: clipToView
         };
         $axure.messageCenter.postMessage('getScale', vpScaleData);
-        $axure.messageCenter.postMessage('cloud_ScaleValueChanged', {
-            scale: selectedScaleValue,
-        });
+
         if (scaleVal == '0' && clipToView) $('#mainPanel').css('overflow', 'auto');
         else $('#mainPanel').css('overflow', '');
     }
@@ -1824,61 +1068,36 @@ var toolBarOnly = true;
         }
     }
 
-    var iosInnerHeight = (function () {
-        if (!navigator.userAgent.match(/iphone|ipod|ipad/i)) {
-            /**
-             * Avoids conditional logic in the implementation
-             * @return {number} - window's innerHeight measurement in pixels
-             */
-            return function () {
-                return window.innerHeight;
-            };
-        }
+    var userAcct = {
+        userId: '',
+        userName: '',
+        userEmail: '',
+        userProfileImg: '',
+        isUsingAxureAcct: false,
+    }
 
-        // Store initial orientation
-        var axis = Math.abs(window.orientation);
-        // And hoist cached dimensions
-        var dims = { w: 0, h: 0 };
+    var authCookieValue = null;
+    var userCookieValue = null;
+    var isSubInstance = false;
+    //var readOnlyMode = false;
+    //var readOnlyMessage = '';
 
-        /**
-         * Creates an element with a height of 100vh since iOS accurately
-         * reports vp height (but not window.innerHeight). Then destroy it.
-         */
-        var createRuler = function () {
-            var ruler = document.createElement('div');
+    // Watermark hints
+    // NOTE: The trailing characters serve to be a distinguishing element in case the user actually does use text similar to the hint.
+    var emailHint = "Email               ";
+    var passHint = "Password             ";
 
-            ruler.style.position = 'fixed';
-            ruler.style.height = '100vh';
-            ruler.style.width = 0;
-            ruler.style.top = 0;
+    var feedbackServiceUrl = (window.AXSHARE_HOST_SECURE_URL || 'https://share.axure.com') + '/issue';
+    // Look at creating a new location to have GetShareStatus(FbEnabled replacement) and SafariAuth since they are more general calls that are not solely for feedback now
+    //var prototypeControlUrl = (window.AXSHARE_HOST_SECURE_URL || 'https://share.axure.com') + '/prototype';
 
-            document.documentElement.appendChild(ruler);
-
-            // Set cache conscientious of device orientation
-            dims.w = axis === 90 ? ruler.offsetHeight : window.innerWidth;
-            dims.h = axis === 90 ? window.innerWidth : ruler.offsetHeight;
-
-            // Clean up after ourselves
-            document.documentElement.removeChild(ruler);
-            ruler = null;
-        };
-
-        // Measure once
-        createRuler();
-
-        /**
-         * Returns window's cached innerHeight measurement
-         * based on viewport height and device orientation
-         * @return {number} - window's innerHeight measurement in pixels
-         */
-        return function () {
-            if (Math.abs(window.orientation) !== 90) {
-                return dims.h;
-            }
-
-            return dims.w;
-        };
-    }());
+    // Checks if the browser is Safari 3.0+
+    // https://stackoverflow.com/questions/9847580/how-to-detect-safari-chrome-ie-firefox-and-opera-browser
+    function isSafari() {
+        // Safari 3.0+ "[object HTMLElementConstructor]" 
+        var liveSafari = /constructor/i.test(window.HTMLElement) || (function (p) { return p.toString() === "[object SafariRemoteNotification]"; })(!window['safari'] || (typeof safari !== 'undefined' && safari.pushNotification));
+        return liveSafari || SAFARI || (IOS && isShareApp());
+    };
 
     function includeTokens(ajaxData, excludeUser) {
         //If the authCookieValue is set (a password-protected local prototype), then send the
@@ -1898,9 +1117,9 @@ var toolBarOnly = true;
             if (safariAuthResponseProfile) response = safariAuthResponseProfile;
             userAcct.userId = response.userId;
             if (safariAuthResponseProfile) 
-                userAcct.userName = response.username == null || response.username.trim() === '' ? response.userEmail : response.username.trim();
+                userAcct.userName = response.username == null || response.username.trim() === '' ? response.userEmail : decodeURIComponent(response.username.trim());
             else
-                userAcct.userName = response.nickname == null || response.nickname.trim() === '' ? response.userEmail : response.nickname.trim();
+                userAcct.userName = response.nickname == null || response.nickname.trim() === '' ? response.userEmail : decodeURIComponent(response.nickname.trim());
             userAcct.userEmail = response.userEmail;
             userAcct.userProfileImg = response.profileImageUrl;
             userAcct.isUsingAxureAcct = true;
@@ -1976,7 +1195,9 @@ var toolBarOnly = true;
                 } else {
                     failure(response);
                 }
-            }, window.ON_PREM_LDAP_ENABLED);
+            });
+            // TODO: add ldap authentication
+            //}, window.ON_PREM_LDAP_ENABLED);
         } else {
             failure();
         }
@@ -2139,12 +1360,9 @@ var toolBarOnly = true;
         }
     }
 
-    function overflowProvidesScroll(node) {
+    function overflowIsHidden(node) {
         var style = getComputedStyle(node);
-        var overflowIsHidden = style.overflow === 'hidden' || (style.overflowX === 'hidden' && style.overflowY === 'hidden');
-        var overflowIsVisible = style.overflow === 'visible'|| (style.overflowX === 'visible' && style.overflowY === 'visible');
-        var mozTextareaOverflowVisible = FIREFOX && overflowIsVisible && node instanceof HTMLTextAreaElement;
-        return !overflowIsHidden && !overflowIsVisible || mozTextareaOverflowVisible;
+        return style.overflow === 'hidden' || style.overflowX === 'hidden' || style.overflowY === 'hidden';
     }
 
     function findNearestScrollableParent(firstNode) {
@@ -2152,7 +1370,7 @@ var toolBarOnly = true;
         var scrollable = null;
         while (!scrollable && node) {
             if (node.scrollWidth > node.clientWidth || node.scrollHeight > node.clientHeight) {
-                if (overflowProvidesScroll(node) || $(node).css('-webkit-overflow-scrolling') === 'touch') {
+                if (!overflowIsHidden(node) || $(node).css('-webkit-overflow-scrolling') === 'touch') {
                     scrollable = node;
                 }
             }
@@ -2171,7 +1389,7 @@ var toolBarOnly = true;
     }
 
     function removeElasticScrollFromIframe() {
-        var $iframe = $($('#mainFrame')[0].contentWindow);
+        var $iframe = $($('#mainPanel').find('iframe')[0].contentWindow);
         $iframe[0].document.body.addEventListener('touchmove', function (event) {
             if (!getScrollOwner(event.target)) {
                 event.preventDefault();
@@ -2192,12 +1410,10 @@ var toolBarOnly = true;
                     //hdr.src = '/Scripts/plugins/feedback/feedback9.js';
                     //document.head.appendChild(hdr);
                 }
-            } else {
-                $axure.page.bind('load.start', common_contentDocument_onload);
             }
 
             initializeEvents();
-            initializeMainFrame(); 
+            initializeMainFrame();
 
             $('.leftPanel').width(0);
 
@@ -2283,10 +1499,22 @@ var toolBarOnly = true;
                     // Could stop automatic scaling on Ipads as well that we actually want, but for now, seems fine
                     $('body').css('-webkit-text-size-adjust', '100%');
 
+                    // Prepare for Iphone X hacks
+                    // Link for dimensions: https://kapeli.com/cheat_sheets/iOS_Design.docset/Contents/Resources/Documents/index
+                    var ratio = window.devicePixelRatio || 1;
+                    // Regular iphoneX
+                    if (IOS && window.screen.width * ratio == 1125 && window.screen.height * ratio === 2436) {
+                        iphoneX = true;
+                    }
+                    // Iphone XS Max and Iphone XR
+                    if (IOS && window.screen.width == 414 && window.screen.height === 896) {
+                        iphoneX = true;
+                    }
+
                     window.addEventListener("orientationchange", function () {
                         var viewport = document.querySelector("meta[name=viewport]");
                         //so iOS doesn't zoom when switching back to portrait
-                        if (IOS) {
+                        if (iphoneX) {
                             viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover');
                             viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, viewport-fit=cover');
                         } else {
@@ -2312,7 +1540,9 @@ var toolBarOnly = true;
             initializePreview();
 
             $axure.player.resizeContent(true);
-            $axure.messageCenter.postMessage('finishInit');
+
+            // Has timeout to keep waiting to build sign in controls while axAccount is still loading
+            initializeSignIn();
         })();
     });
 
@@ -2388,7 +1618,7 @@ var toolBarOnly = true;
 
         $('#mobileControlFrameContainer').append(toAppend);
 
-        var barHeight = IOS ? '72px' : '60px';
+        var barHeight = IOS ? (iphoneX ? '82px' : '72px') : '60px';
         var returnIconDisplacement = IOS ? '-15px': '-20px';
         var iconTopMargin = IOS ? '14px': '7px';
         var returnTextTopMargin = IOS ? '9px': '7px';
@@ -2420,9 +1650,9 @@ var toolBarOnly = true;
 
     function closePopup() {
         var $container = $('.popup');
+        var isLeftPanel = $container.hasClass('leftPanel');
         $container.removeClass('popup');
         $('#overflowMenuButton').removeClass('selected');
-        $('#scaleMenuButton').removeClass('selected');
         $('#interfaceAdaptiveViewsContainer').removeClass('selected');
         $container.hide();
 
@@ -2461,17 +1691,6 @@ var toolBarOnly = true;
         }
     }
 
-    function toggleScaleMenuPopup() {
-        if (($('#scaleMenuContainer').hasClass('popup'))) {
-            closePopup();
-        } else {
-            $('#scaleMenuButton').addClass('selected');
-            showPopup($('#scaleMenuContainer'));
-        }
-    }
-
-    $axure.player.toggleScaleMenuPopup = toggleScaleMenuPopup;
-
 
     var startSplitX;
     var startSplitWidth;
@@ -2497,7 +1716,7 @@ var toolBarOnly = true;
         var currentX = window.event.pageX;
         var newWidth = Math.min(startSplitWidth + currentX - startSplitX, $(window).width() - $('.rightPanel').width(), $(window).width() - lastRightPanelWidthDefault);
         lastLeftPanelWidth = Math.max(lastLeftPanelWidthDefault, newWidth);
-        $('.leftPanel').width(lastLeftPanelWidth ? lastLeftPanelWidth : lastLeftPanelWidthDefault);
+        $('.leftPanel').width(lastLeftPanelWidth != 0 ? lastLeftPanelWidth : lastLeftPanelWidthDefault);
         $('#lsplitbar').css('left', $('.leftPanel').width() - 4);
         $axure.player.updateClippingBoundsWidth();
         $axure.player.refreshViewPort();
@@ -2507,7 +1726,7 @@ var toolBarOnly = true;
         var currentX = window.event.pageX;
         var newWidth = Math.min(startSplitWidth - currentX + startSplitX, $(window).width() - $('.leftPanel').width(), $(window).width() - lastLeftPanelWidthDefault);
         lastRightPanelWidth = Math.max(lastRightPanelWidthDefault, newWidth);
-        $('.rightPanel').width(lastRightPanelWidth ? lastRightPanelWidth : lastRightPanelWidthDefault);
+        $('.rightPanel').width(lastRightPanelWidth != 0 ? lastRightPanelWidth : lastRightPanelWidthDefault);
         $('#rsplitbar').css('left', $(window).width() - $('.rightPanel').width());
         $axure.player.updateClippingBoundsWidth();
         $axure.player.refreshViewPort();
@@ -2635,18 +1854,13 @@ var toolBarOnly = true;
         var $pins = $('#existingPinsOverlay').children();
         for (var i = 0; i < $pins.length; i++) {
             // calculate new position of pin
-            const left = parseFloat($($pins[i]).attr('data-x'));
-            const top = parseFloat($($pins[i]).attr('data-y'));
+            const left = parseFloat($($pins[i]).css('left'));
+            const top = parseFloat($($pins[i]).css('top'));
             const width = $($pins[i]).width();
             const height = $($pins[i]).height();
-
-            // Get current scale of mainPanelContainer
-            // MainPanelContainer scaled without setContentScale message
-            var scale = $('#mainPanelContainer').css('transform');
-            scale = (scale == "none") ? 1 : Number(scale.substring(scale.indexOf('(') + 1, scale.indexOf(',')));
-            const scaledLeft = (left * scale) - (width / 2);
-            const scaledTop = (top * scale) - (height / 2);
-
+            // we should scale center of pin instead of left top corner
+            const scaledLeft = ((left + (width / 2)) * data.scaleN / data.prevScaleN) - (width / 2);
+            const scaledTop = ((top + (height / 2)) * data.scaleN / data.prevScaleN) - (height / 2);
 
             $($pins[i]).css('left', scaledLeft + 'px');
             $($pins[i]).css('top', scaledTop + 'px');
@@ -2662,44 +1876,18 @@ var toolBarOnly = true;
         else if (message == 'tripleClick') {
             if ($axure.player.isMobileMode() || MOBILE_DEVICE) expand();
         } else if (message == 'setContentScale') {
-            var resultScale = data.scaleN;
             if (data.clipToView) {
                 var scaleVal = $('.vpScaleOption').find('.selectedRadioButton').parent().attr('val');
                 if (scaleVal == '2' || (!MOBILE_DEVICE && scaleVal == '0')) {
-                    var scaleN = $('#mainPanel').width() / data.viewportWidth;
+                    var scaleN = newScaleN = $('#mainPanel').width() / data.viewportWidth;
                     var hScaleN = ($('#mainPanel').height()) / data.viewportHeight;
-                    if (hScaleN < scaleN) scaleN = hScaleN;
-                    if (scaleVal == '0') scaleN = Math.min(1, scaleN);
-                    resultScale = scaleN;
+                    if (hScaleN < scaleN) scaleN = newScaleN = hScaleN;
+                    if(scaleVal == '0') scaleN = Math.min(1, scaleN);
                     var scale = 'scale(' + scaleN + ')';
                     $('#mainPanelContainer').css({
                         'transform': scale,
-                        'transformOrigin': ''
+                        'transform-origin': ''
                     });
-                    $('#mainFrame').height(data.mainFrameHeight);
-                } else {
-                    var scale = 'scale(' + data.scaleN + ')';
-                    $('#mainPanelContainer').css({
-                        'transform': scale,           
-                        'transformOrigin': Number($('#mainPanelContainer').css('width').replace('px', '')) / 2 + 'px 0px',
-                    });
-                    var mainPanelHeight = Number($('#mainPanel').css('height').replace('px', ''));
-                    var mainPanelContainerHeight = Number($('#mainPanelContainer').css('height').replace('px', ''));                    
-                    var height = (mainPanelHeight / data.scaleN > mainPanelContainerHeight ? mainPanelContainerHeight : mainPanelHeight / data.scaleN);
-                    var y = (mainPanelHeight - (mainPanelHeight > mainPanelContainerHeight * data.scaleN ? mainPanelContainerHeight * data.scaleN : mainPanelHeight)) / 2;
-                    $('#mainPanelContainer').css("top", y);
-                    height += 'px';
-                    $('#clipFrameScroll').height(height);
-                    $('#mainFrame').height(height);
-
-                    var mainPanelWidth = Number($('#mainPanel').css('width').replace('px', ''));
-                    var mainPanelContainerWidth = Number($('#mainPanelContainer').css('width').replace('px', ''));                    
-                    var width = mainPanelWidth / data.scaleN > mainPanelContainerWidth ? mainPanelContainerWidth : mainPanelWidth / data.scaleN;
-                    var x = (mainPanelContainerWidth - (mainPanelWidth / data.scaleN > mainPanelContainerWidth ? mainPanelContainerWidth : mainPanelWidth / data.scaleN)) / 2;    
-                    $('#mainPanelContainer').css("left", x* data.scaleN);
-                    width += 'px';
-                    $('#clipFrameScroll').width(width);
-                    $('#mainFrame').width(width);
                 }
             } else {
                 if (data.scaleN != 1) {
@@ -2708,27 +1896,16 @@ var toolBarOnly = true;
                     var height = Number($('#mainPanelContainer').css('height').replace('px', '')) / data.scaleN + 'px';
                     $('#mainPanelContainer').css({
                         'transform': scale,
-                        'transformOrigin': '0px 0px',
+                        'transform-origin': '0px 0px',
                         'width': width,
                         'height': height
                     });
-
+                    //$('#clipFrameScroll').css('height' , height + 'px');
+                    //$('#mainFrame').css('height' , height + 'px');
                     $('#clipFrameScroll').height(height);
                     $('#mainFrame').height(height);
-                } else {
-                    $('#mainFrame').height(data.mainFrameHeight);
-                    $('#mainPanelContainer').width('100%');
                 }
             }
-            var scaleValue = Math.round(resultScale * 100, 0);
-            var scaleValueText = scaleValue + "%";
-            if (forcePanZoomDisabled) {
-                scaleValueText = 'Scale';
-            } else {
-                getIframeHtml().attr("zoom", scaleValue);
-                $axure.messageCenter.postMessage("cloud_SetPageScale", { scale: resultScale });
-            }
-            $("#scaleValue").text(scaleValueText);
             
             repositionPinsOnScaleChange(data);
             repositionClippingBoundsScroll();
@@ -2743,25 +1920,6 @@ var toolBarOnly = true;
         }
     }
 
-    function loadVariablesFromUrl(removeVarFromUrl) {
-        let originalHashValues = window.location.href.substr(window.location.href.indexOf('#')) || '';
-        let variables = {};
-        const query = (originalHashValues.split(GLOBAL_VAR_NAME)[1] || '');
-        
-        if(query.length > 0) {
-            $axure.utils.parseGlobalVars(query, function(varName, varValue) {
-                variables[varName] = varValue;
-            });
-            
-            if(removeVarFromUrl) {
-                originalHashValues = originalHashValues.replace(GLOBAL_VAR_NAME, "").replace(query, "");
-                replaceHash(originalHashValues);
-            }
-        }
-
-        return variables;
-    }
-    
     function getInitialUrl() {
         var shortId = getHashStringVar(PAGE_ID_NAME);
         var foundById = [];
@@ -2880,11 +2038,15 @@ var toolBarOnly = true;
         }
     }
 
+    // This will return true if prototype is opened from version of app after update with code that sets this value 
+    // (won't be able to distinguish between browser and outdated app)
+    var isShareApp = function () { return /ShareApp/.test(navigator.userAgent); }
+
     function expand() {
         if ($axure.player.isMobileMode()) {
             $('#mHideSidebar').show();
             $('#mobileControlFrameContainer').show();
-            $axure.utils.isShareApp() ? $('#nativeAppControlFrame').show() : $('#mobileBrowserControlFrame').show();
+            isShareApp() ? $('#nativeAppControlFrame').show() : $('#mobileBrowserControlFrame').show();
         } else {
             $minimizeContainer = $('#interfaceControlFrameMinimizeContainer');
             $minimizeContainer.removeClass('collapseHovered');
@@ -2931,8 +2093,39 @@ var toolBarOnly = true;
         return querystr;
     }
     
+    function setHashStringVar(currentHash, varName, varVal) {
+        var varWithEqual = varName + '=';
+        var poundVarWithEqual = varVal === '' ? '' : '#' + varName + '=' + varVal;
+        var ampVarWithEqual = varVal === '' ? '' : '&' + varName + '=' + varVal;
+        var hashToSet = '';
+
+        var pageIndex = currentHash.indexOf('#' + varWithEqual);
+        if (pageIndex == -1) pageIndex = currentHash.indexOf('&' + varWithEqual);
+        if (pageIndex != -1) {
+            var newHash = currentHash.substring(0, pageIndex);
+
+            newHash = newHash == '' ? poundVarWithEqual : newHash + ampVarWithEqual;
+
+            var ampIndex = currentHash.indexOf('&', pageIndex + 1);
+            if (ampIndex != -1) {
+                newHash = newHash == '' ? '#' + currentHash.substring(ampIndex + 1) : newHash + currentHash.substring(ampIndex);
+            }
+            hashToSet = newHash;
+        } else if (currentHash.indexOf('#') != -1) {
+            hashToSet = currentHash + ampVarWithEqual;
+        } else {
+            hashToSet = poundVarWithEqual;
+        }
+
+        if (hashToSet != '' || varVal == '') {
+            return hashToSet;
+        }
+
+        return null;
+    }
+
     $axure.player.setVarInCurrentUrlHash = function(varName, varVal) {
-        var newHash = $axure.utils.setHashStringVar(window.location.hash, varName, varVal);
+        var newHash = setHashStringVar(window.location.hash, varName, varVal);
 
         if (newHash != null) {
             replaceHash(newHash);
@@ -2969,7 +2162,7 @@ var toolBarOnly = true;
         if (newHash != null) {
             replaceHash(newHash);
         }
-    };
+    }
 
     function setUpController() {
 
@@ -2988,10 +2181,24 @@ var toolBarOnly = true;
         //Global Var array, getLinkUrl function and setGlobalVar listener are
         //for use in setting global vars in page url string when clicking a 
         //page in the sitemap
-        //NEW: this is now also used when navigating to a new window/popup,
-        //if there are global variables on the urls
         //-----------------------------------------
-        var _globalVars = loadVariablesFromUrl(true);
+        var _globalVars = {};
+
+        //-----------------------------------------
+        //Used by getLinkUrl below to check if local server is running 
+        //in order to send back the global variables as a query string
+        //in the page url
+        //-----------------------------------------
+        var _shouldSendVarsToServer = function () {
+            //If exception occurs (due to page in content frame being from a different domain, etc)
+            //then run the check without the url (which will end up checking against sitemap url)
+            try {
+                var mainFrame = document.getElementById("mainFrame");
+                return $axure.shouldSendVarsToServer(mainFrame.contentWindow.location.href);
+            } catch (e) {
+                return $axure.shouldSendVarsToServer();
+            }
+        };
 
         var _getLinkUrl = function (baseUrl) {
             var toAdd = '';
@@ -3002,7 +2209,7 @@ var toolBarOnly = true;
                     toAdd += globalVarName + '=' + encodeURIComponent(val);
                 }
             }
-            return toAdd.length > 0 ? baseUrl + '#' + toAdd + "&CSUM=1" : baseUrl;
+            return toAdd.length > 0 ? baseUrl + (_shouldSendVarsToServer() ? '?' : '#') + toAdd + "&CSUM=1" : baseUrl;
         };
         $axure.getLinkUrlWithVars = _getLinkUrl;
 
@@ -3103,15 +2310,8 @@ var toolBarOnly = true;
                 }
             } else {
                 if (!$('#separatorContainer').hasClass('hasLeft')) $('#separatorContainer').addClass('hasLeft');
-                var closeButtonContainer = $('<div class="closeButtonContainer"></div>');
-                var closeButton = $('<button>&#10006;</button>');
-                closeButton.on('click', function () {
-                    $axure.player.pluginClose(settings.id);
-                });
-                closeButton.appendTo(closeButtonContainer);
-                host = $('<div id="' + settings.id + '" class="' + panelClass + '"></div>');
-                closeButtonContainer.appendTo(host);
-                host.appendTo('#' + hostContainerId);
+                host = $('<div id="' + settings.id + '" class="' + panelClass + '"></div>')
+                    .appendTo('#' + hostContainerId);
             }
 
             $(('#' + settings.id)).click(function (e) { e.stopPropagation(); });
@@ -3150,7 +2350,7 @@ var toolBarOnly = true;
         }
 
         _player.pluginVisibleChanged = function(hostId, visible) {
-            if (plugins[hostId]) {
+            if ($axure.player.isCloud && plugins[hostId]) {
                 $axure.messageCenter.postMessage('pluginVisibleChanged', { id: hostId, gid: plugins[hostId].gid, visible: visible });
             }
         }
@@ -3181,7 +2381,6 @@ var toolBarOnly = true;
                 _player.expandFromBar(id, context);
 
                 $(document).trigger('pluginShown', [getVisiblePlugins()]);
-                $axure.messageCenter.postMessage('openPlugin', id);
             }
         };
 
@@ -3234,37 +2433,6 @@ var toolBarOnly = true;
             $(document).trigger('pluginShown', [getVisiblePlugins()]);
         };
 
-        _player.navigateToIssue = function (issueId) {
-            if (typeof feedback !== 'undefined') {
-                feedback.navigateToIssue(issueId);
-            }
-        };
-
-        _player.isPanZoomEnabled = function () {
-            return !forcePanZoomDisabled;
-        }
-
-        _player.handleKeyboardEvent = function (eventName) {
-            switch (eventName) {
-                case 'ctrlOrCmdPlus':
-                    zoomIn();
-                    break;
-                case 'ctrlOrCmdMinus':
-                    zoomOut();
-                    break;
-                case 'ctrlOrCmdZero':
-                    dropScaleAndZoomPage(100);
-                    break;
-                case 'spaceBarDown':
-                    toggleDragMode(true);
-                    break;
-                case 'spaceBarUp':
-                    toggleDragMode(false);
-                    break
-                default:
-                    break;
-            }
-        }
     }
 
 

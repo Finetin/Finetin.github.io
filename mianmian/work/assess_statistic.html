@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面面：面试总结</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.6.1/dist/av-min.js"></script>
+    <script src="../account/web_prepare01.js"></script>
+    <script>
+        // 初始化leancloud
+        const { Query, User } = AV;
+        AV.init({
+            appId: "QINFwm0ds2NuLyRCmbpmUltw-gzGzoHsz",
+            appKey: "16T8fLd7241TyCxCkCvAYPif",
+            serverURL: "https://qinfwm0d.lc-cn-n1-shared.com"
+        });
+
+        urlinfo = window.location.href; //获取当前页面的url
+        len = urlinfo.length;//获取url的长度
+        offset = urlinfo.indexOf("?");//设置参数字符串开始的位置
+        nowpath = urlinfo.substr(0, offset + 1); // 获取当前路径
+        newsidinfo = urlinfo.substr(offset, len); //取出参数字符串 这里会获得类似“id=1”这样的字符串
+        newsids = newsidinfo.split("=");//对获得的参数字符串按照“=”进行分割
+        interview_tmp_name = newsids[1];//得到参数值
+        newsname = newsids[0];//得到参数名字
+
+        var account_id = "";
+        var interview_group_number = interview_tmp_name, candidate_arr = new Array();
+        var interview_start = new Date();
+        var nowpage_assess = 0;
+
+        // 时间转化为字符串
+        function dateTimeToString(date) {
+            var y = date.getFullYear();
+            var M = date.getMonth() + 1;
+            var d = date.getDate();
+            var H = date.getHours();
+            var m = date.getMinutes();
+            var s = date.getSeconds();
+            return y + '-' + (M < 10 ? ('0' + M) : M) + '-' + (d < 10 ? ('0' + d) : d) + " " + (H < 10 ? ('0' + H) : H) + ":" + (m < 10 ? ('0' + m) : m) + ":" + (s < 10 ? ('0' + s) : s);
+        }
+
+        // 初始化加载
+        window.onload = function () {
+            // return;
+
+            if (interview_group_number == "" || interview_group_number == undefined) {
+                alert("网址异常。");
+                location.assign("../index.html");
+                return;
+            } else {
+                const interviewQuery = new AV.Query('InterviewGroup');
+                interviewQuery.get(interview_group_number).then((now_interview) => {
+                    candidate_arr = now_interview.get("candidate_arr");
+
+                    // 获取评价信息
+                    const assessQuery = new AV.Query('InterviewAssess');
+                    assessQuery.equalTo('interview_group_number', interview_group_number);
+                    assessQuery.find().then((assess_arr) => {
+                        let communicate_sum = new Array(candidate_arr.length);
+                        let ability_sum = new Array(candidate_arr.length);
+                        let quality_sum = new Array(candidate_arr.length);
+
+                        let communicate_sum_score = new Array(candidate_arr.length);
+                        let ability_sum_score = new Array(candidate_arr.length);
+                        let quality_sum_score = new Array(candidate_arr.length);
+                        for (let j=0; j< candidate_arr.length; j++) {
+                            // 初始化分数信息
+                            communicate_sum[j] = 0;
+                            ability_sum[j] = 0;
+                            quality_sum[j] = 0;
+
+                            communicate_sum_score[j] = 0;
+                            ability_sum_score[j] = 0;
+                            quality_sum_score[j] = 0;
+                        }
+
+                        // 得到的评价信息
+                        for (let i=0; i<assess_arr.length; i++) {
+                            let tmpperson_pos = candidate_arr.indexOf(assess_arr[i].get("person_name"));
+                            if (tmpperson_pos == -1 || tmpperson_pos >= candidate_arr.length) {
+                                continue;
+                            } else {
+                                communicate_sum[tmpperson_pos] += 1;
+                                ability_sum[tmpperson_pos] += 1;
+                                quality_sum[tmpperson_pos] += 1;
+
+                                communicate_sum_score[tmpperson_pos] = assess_arr[i].get("communicate_score");
+                                ability_sum_score[tmpperson_pos] = assess_arr[i].get("ability_score");
+                                quality_sum_score[tmpperson_pos] = assess_arr[i].get("quality_score");
+                            }
+                        }
+
+                        // 展示评价信息
+                        // 评价信息分级
+                        let communicate_score_person_number = [[],[],[],[],[],[]];
+                        let ability_score_person_number = [[], [], [], [], [], []];
+                        let quality_score_person_number = [[], [], [], [], [], []];
+                        for (let i=0; i< communicate_sum_score.length; i++) {
+                            if (communicate_sum[i] == 0) {
+                                communicate_score_person_number[0].push(candidate_arr[i]);
+                            } else {
+                                let avg_score = Math.ceil(communicate_sum_score[i]/communicate_sum[i]);
+                                communicate_score_person_number[avg_score].push(candidate_arr[i]);
+                            }
+
+                            
+                            if (ability_sum[i] == 0) {
+                                ability_score_person_number[0].push(candidate_arr[i]);
+                            } else {
+                                let avg_score = Math.ceil(ability_sum_score[i] / ability_sum[i]);
+                                ability_score_person_number[avg_score].push(candidate_arr[i]);
+                            }
+
+                            
+                            if (quality_sum[i] == 0) {
+                                quality_score_person_number[0].push(candidate_arr[i]);
+                            } else {
+                                let avg_score = Math.ceil(quality_sum_score[i] / quality_sum[i]);
+                                quality_score_person_number[avg_score].push(candidate_arr[i]);
+                            }
+                        }
+
+                        for (let i=0; i<6; i++) {
+                            document.getElementById("communicate_score_list"+i).innerText = communicate_score_person_number[i];
+                            document.getElementById("ability_score_list"+i).innerText = ability_score_person_number[i];
+                            document.getElementById("quality_score_list"+i).innerText = quality_score_person_number[i];
+                        }
+
+                        // 设定bar
+                        for (let i=0; i<6; i++) {
+                            document.getElementById("communicate_bar_case0"+i).style.width =
+                                Math.floor(600*communicate_score_person_number[i].length/candidate_arr.length) + "px";
+                            document.getElementById("communicate_bar_case0" + i).title = 
+                                communicate_score_person_number[i].length + "人";
+                            document.getElementById("ability_bar_case0" + i).style.width =
+                                Math.floor(600*ability_score_person_number[i].length / candidate_arr.length) + "px";
+                            document.getElementById("ability_bar_case0" + i).title =
+                                ability_score_person_number[i].length + "人";
+                            document.getElementById("quality_bar_case0" + i).style.width =
+                                Math.floor(600*quality_score_person_number[i].length / candidate_arr.length) + "px";
+                            document.getElementById("quality_bar_case0" + i).title =
+                                quality_score_person_number[i].length + "人";
+                        }
+                    });
+                });
+            }
+        };
+
+        // 头像
+        function person_head() {
+            window.location.href = "../usercenter/personal_information.html";
+            return;
+        }
+        // 消息中心
+        function msg_center() {
+            window.location.href = "../msgcenter/systemmsg.html";
+        }
+
+    </script>
+    <style>
+        html {
+            height: 100%;
+        }
+
+        body {
+            height: 100%;
+            text-decoration: none;
+            background-image: url("../source/pic/bgi010.jpg");
+            background-size: cover;
+        }
+
+        input {
+            text-indent: 5px;
+        }
+
+        .mainshell {
+            float: left;
+            height: calc(100% - 90px);
+
+            min-height: 700px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .mainpage {
+            width: 1000px;
+            /* height: 100%; */
+            min-height: 100%;
+
+            margin-right: auto;
+            margin-left: auto;
+            background-color: rgba(255, 255, 255, 0.9);
+            text-align: center;
+        }
+
+        .maintitle {
+            text-align: center;
+            font-size: 38px;
+            padding-top: 30px;
+            padding-bottom: 30px;
+        }
+
+        /* 设定详情框样式 */
+        .attribute_box {
+            width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            margin-top: 10px;
+            margin-bottom: 10px;
+
+            border-radius: 8px;
+            border: 1px solid #aaa;
+        }
+
+        .attribute_box hr {
+            margin-left: 25px;
+            margin-right: 25px;
+        }
+
+        .attribute_box_title {
+            width: 750px;
+            padding-top: 15px;
+            margin-left: auto;
+            margin-right: auto;
+
+            font-size: 20px;
+            text-align: left;
+        }
+
+        .attribute_pair {
+            width: 750px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left;
+            padding-top: 5px;
+            padding-bottom: 5px;
+        }
+
+        .attribute_key {
+            width: 80px;
+            font-size: 15px;
+            display: inline-block;
+        }
+
+        .attribute_val {
+            margin-left: 20px;
+            width: 620px;
+
+            font-size: 18px;
+            font-family: 'Times New Roman', Times, serif;
+        }
+
+        /* 分数总览 */
+        #communicate_bar, #ability_bar, #quality_bar {
+            width: 600px;
+            height: 25px;
+            background-color: firebrick;
+            display: block;
+
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .communicate_bar_case, .ability_bar_case, .quality_bar_case {
+            height: 100%;
+            float: left;
+        }
+        .communicate_bar_case:hover, .ability_bar_case:hover, .quality_bar_case:hover {
+            filter: brightness(0.8);
+        }
+
+        .table_list_box {
+            padding-top: 20px;
+        }
+        .table_list_case {
+            padding-left: 5px;
+            padding-right: 5px;
+        }
+
+        .table_icon_square {
+            width: 20px;
+            height: 20px;
+            display: inline-block;
+            background-color: darkcyan;
+            border: 1px solid #000;
+        }
+
+        .table_listcase_title {
+            font-size: 15px;
+        }
+        /* 条形图颜色设置 */
+        #communicate_bar_case00, #ability_bar_case00, #quality_bar_case00 {
+            background-color: #F8696B;
+        }
+        #communicate_bar_case01, #ability_bar_case01, #quality_bar_case01 {
+            background-color: #F9A3A6;
+        }
+        #communicate_bar_case02, #ability_bar_case02, #quality_bar_case02 {
+            background-color: #FBDEE1;
+        }
+        #communicate_bar_case03, #ability_bar_case03, #quality_bar_case03 {
+            background-color: #DEF0E5;
+        }
+        #communicate_bar_case04, #ability_bar_case04, #quality_bar_case04 {
+            background-color: #A1D7B0;
+        }
+        #communicate_bar_case05, #ability_bar_case05, #quality_bar_case05 {
+            background-color: #63BE7B;
+        }
+
+
+
+        /* 杂项 */
+        .zhanwei2 {
+            height: 20px;
+        }
+
+        .zhanwei_010 {
+            height: 20px;
+            width: 100%;
+        }
+    </style>
+    <link rel="stylesheet" href="../css/index.css">
+</head>
+
+<body>
+    <!-- 头部 -->
+    <div class="header">
+        <div class="headerzhanwei"></div>
+        <div class="head_content">
+            <!-- logo -->
+            <a href="../index.html" class="logo">
+                <img src="../source/pic/logo0.png" width="73" height="64">
+            </a>
+
+            <!-- 导航 -->
+            <div class="nav">
+                <ul>
+                    <li><a href="../index.html" class="navpos">首页</a></li>
+                    <li><a href="../work/searchgroup.html">加入面试</a></li>
+                    <li><a href="../work/newgroup.html">发起面试</a></li>
+                    <li><a href="../account/store.html">定价与购买</a></li>
+                    <li><a href="../help/help_home.html">帮助中心</a></li>
+                </ul>
+            </div>
+
+            <!-- 用户 -->
+            <div class="user">
+                <div></div>
+                <span onclick="msg_center()">
+                    <img class="img1" src="../source/pic/user0.png" alt="" width="17" height="22">
+                </span>
+                <span onclick="person_head()">
+                    <img class="img2" src="../source/pic/user1.png" alt="" height="50" width="50">
+                </span>
+            </div>
+
+        </div>
+
+    </div>
+
+    <span class="mainshell">
+        <div class="mainpage" id="main_content_box">
+            <div class="maintitle">
+                面试评价数据分析
+            </div>
+
+            <div class="attribute_box">
+                <div class="attribute_box_title">面试评价分数总览</div>
+                <hr>
+                <div class="attribute_pair">
+                    <span class="attribute_key">沟通交流</span>
+                    <span class="attribute_val" id="communicate_bar">
+                        <div class="communicate_bar_case" id="communicate_bar_case00"></div>
+                        <div class="communicate_bar_case" id="communicate_bar_case01"></div>
+                        <div class="communicate_bar_case" id="communicate_bar_case02"></div>
+                        <div class="communicate_bar_case" id="communicate_bar_case03"></div>
+                        <div class="communicate_bar_case" id="communicate_bar_case04"></div>
+                        <div class="communicate_bar_case" id="communicate_bar_case05"></div>
+                    </span>
+                </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">个人能力</span>
+                    <span class="attribute_val" id="ability_bar">
+                        <div class="ability_bar_case" id="ability_bar_case00"></div>
+                        <div class="ability_bar_case" id="ability_bar_case01"></div>
+                        <div class="ability_bar_case" id="ability_bar_case02"></div>
+                        <div class="ability_bar_case" id="ability_bar_case03"></div>
+                        <div class="ability_bar_case" id="ability_bar_case04"></div>
+                        <div class="ability_bar_case" id="ability_bar_case05"></div>
+                    </span>
+                </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">工作素养</span>
+                    <span class="attribute_val" id="quality_bar">
+                        <div class="quality_bar_case" id="quality_bar_case00"></div>
+                        <div class="quality_bar_case" id="quality_bar_case01"></div>
+                        <div class="quality_bar_case" id="quality_bar_case02"></div>
+                        <div class="quality_bar_case" id="quality_bar_case03"></div>
+                        <div class="quality_bar_case" id="quality_bar_case04"></div>
+                        <div class="quality_bar_case" id="quality_bar_case05"></div>
+                    </span>
+                </div>
+                <div class="table_list_box">
+                    <span class="table_list_case">
+                        <span class="table_icon_square" style="background-color: #F8696B;"></span>
+                        <span class="table_listcase_title">0分（无评价）</span>
+                    </span>
+                    <span class="table_list_case"> 
+                        <span class="table_icon_square" style="background-color: #F9A3A6;"></span>
+                        <span class="table_listcase_title">1分</span>
+                    </span>
+                    <span class="table_list_case">
+                        <span class="table_icon_square" style="background-color: #FBDEE1;"></span>
+                        <span class="table_listcase_title">2分</span>
+                    </span>
+                    <span class="table_list_case">
+                        <span class="table_icon_square" style="background-color: #DEF0E5;"></span>
+                        <span class="table_listcase_title">3分</span>
+                    </span>
+                    <span class="table_list_case">
+                        <span class="table_icon_square" style="background-color: #A1D7B0;"></span>
+                        <span class="table_listcase_title">4分</span>
+                    </span>
+                    <span class="table_list_case">
+                        <span class="table_icon_square" style="background-color: #63BE7B;"></span>
+                        <span class="table_listcase_title">5分</span>
+                    </span>
+                </div>
+                <div class="zhanwei_010"></div>
+            </div>
+
+            <!-- 沟通交流 -->
+            <div class="attribute_box">
+                <div class="attribute_box_title">沟通交流评分总览</div>
+                <hr>
+                <div class="attribute_pair">
+                    <span class="attribute_key">0分（无评价）</span>
+                    <span class="attribute_val" id="communicate_score_list0"></span>
+                </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">1分</span>
+                    <span class="attribute_val" id="communicate_score_list1"></span>
+                </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">2分</span>
+                    <span class="attribute_val" id="communicate_score_list2"></span>
+                </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">3分</span>
+                    <span class="attribute_val" id="communicate_score_list3"></span>
+                </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">4分</span>
+                    <span class="attribute_val" id="communicate_score_list4"></span>
+                </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">5分</span>
+                    <span class="attribute_val" id="communicate_score_list5"></span>
+                </div>
+                <div class="zhanwei_010"></div>
+            </div>
+
+            <!-- 个人能力评分总览 -->
+            <div class="attribute_box">
+                <div class="attribute_box_title">个人能力评分总览</div>
+                <hr>
+                <div class="attribute_pair">
+                    <span class="attribute_key">0分（无评价）</span>
+                    <span class="attribute_val" id="ability_score_list0"></span>
+                </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">1分</span>
+                    <span class="attribute_val" id="ability_score_list1"></span>
+                </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">2分</span>
+                    <span class="attribute_val" id="ability_score_list2"></span>
+                </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">3分</span>
+                    <span class="attribute_val" id="ability_score_list3"></span>
+                </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">4分</span>
+                    <span class="attribute_val" id="ability_score_list4"></span>
+                </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">5分</span>
+                    <span class="attribute_val" id="ability_score_list5"></span>
+                </div>
+                <div class="zhanwei_010"></div>
+            </div>
+
+            <!-- 工作素养评分总览 -->
+            <div class="attribute_box">
+                <div class="attribute_box_title">工作素养评分总览</div>
+                <hr>
+                <div class="attribute_pair">
+                    <span class="attribute_key">0分（无评价）</span>
+                    <span class="attribute_val" id="quality_score_list0"></span>
+                </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">1分</span>
+                    <span class="attribute_val" id="quality_score_list1"></span>
+                </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">2分</span>
+                    <span class="attribute_val" id="quality_score_list2"></span>
+                </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">3分</span>
+                    <span class="attribute_val" id="quality_score_list3"></span>
+                </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">4分</span>
+                    <span class="attribute_val" id="quality_score_list4"></span>
+                </div>
+                <div class="attribute_pair">
+                    <span class="attribute_key">5分</span>
+                    <span class="attribute_val" id="quality_score_list5"></span>
+                </div>
+                <div class="zhanwei_010"></div>
+            </div>
+
+            <div id="person_assess_lastline" style="height: 10px; width: 100%;"></div>
+            <div class="zhanwei2"></div>
+        </div>
+    </span>
+
+    <!-- 悬浮标签的样式 -->
+    <style>
+        .floatbtn {
+            position: fixed;
+            right: 5px;
+            bottom: 50px;
+            height: 60px;
+            width: 60px;
+            background-color: #eee;
+            border-radius: 8px;
+            opacity: 0.9;
+            vertical-align: bottom;
+            text-align: center;
+        }
+
+        .page_btn {
+            margin: 10px;
+            margin-left: auto;
+            margin-right: auto;
+            /* filter: invert(100%); */
+            /* filter: brightness(1.5); */
+
+            width: 36px;
+            height: 36px;
+
+            border-radius: 18px;
+            background-color: #aaa;
+        }
+
+        .page_btn:hover {
+            background-color: #ddd;
+        }
+
+        .page_btn img {
+            margin-top: auto;
+
+            /* border-radius: 50%; */
+            /* background-color: #555; */
+            cursor: pointer;
+        }
+
+        #turn_page_ipt_box #go_candidate_ipt {
+            border: 0;
+            font-size: 20px;
+            width: 50px;
+            height: 22px;
+
+            margin-left: -10px;
+            margin-top: 6px;
+
+            background-color: rgba(255, 255, 255, 0);
+            text-align: center;
+        }
+
+        #turn_page_btn_box img,
+        #person_list_btn_box img {
+            margin-top: 7px;
+        }
+    </style>
+    <!-- 浮动的标签 -->
+    <span class="floatbtn" title="在圆形输入框中输入面试分组号进行跳转。">
+        <div class="page_btn" id="turn_page_btn_box" title="跳转到评价详情页面"
+            onclick="location.assign('./interview_conclusion.html?interview='+interview_group_number);">
+            <img class="score_btn" src="../source/pic/icon_rocket-lunch.png" alt="" width="22px">
+        </div>
+    </span>
+
+</body>
+
+</html>

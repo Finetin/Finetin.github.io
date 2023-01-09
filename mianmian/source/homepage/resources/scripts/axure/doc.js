@@ -349,15 +349,7 @@
             widget.elementId = elementId;
             widget.name = widget.label = (elementQuery.data('label') ? elementQuery.data('label') : '');
             //widget.text = $ax('#' + elementId).text();
-            if (widget.isLayer) {
-                widget.opacity = function() {
-                    var layerOpacity = elementQuery.attr('layer-opacity');
-                    if (layerOpacity) return Number(layerOpacity) * 100;
-                    return Number(elementQuery.css('opacity')) * 100;
-                }
-            } else {
-                widget.opacity = Number(elementQuery.css('opacity')) * 100;
-            }
+            widget.opacity = Number(elementQuery.css('opacity')) * 100;
             //widget.rotation = $ax.move.getRotationDegree(widget.elementId);
             var scriptId = $ax.repeater.getScriptIdFromElementId(elementId);
             var repeaterId = $ax.getParentRepeaterFromScriptId(scriptId);
@@ -413,30 +405,6 @@
             widget.rotation = function () { return this.getProp('rotation'); }
             widget.text = function () { return this.getProp('text'); }
 
-            //height and width change aren't cached as they're only valid during an event
-            widget.heightchange = function () {
-
-                //if this is during a set state
-                var panelSizeChange = $ax.dynamicPanelManager.getPanelSizeChange(elementId);
-                if ($ax.public.fn.IsDynamicPanel(obj.type) && panelSizeChange) {
-                    return panelSizeChange.height;
-                }
-
-                var oldHeight = $ax.visibility.getResizingRect(this.elementId).height;
-                return oldHeight ? this.height() - oldHeight : 0;
-
-            }
-
-            widget.widthchange = function () {
-                //if this is during a set state
-                var panelSizeChange = $ax.dynamicPanelManager.getPanelSizeChange(elementId);
-                if ($ax.public.fn.IsDynamicPanel(obj.type) && panelSizeChange) {
-                    return panelSizeChange.width;
-                }
-                var oldWidth = $ax.visibility.getResizingRect(this.elementId).width;
-                return oldWidth ? this.width() - oldWidth : 0;
-            }    
-            
             widget.getProp = function (prop) {
                 var propName = prop + 'Prop';
                 if (typeof (this[propName]) != 'undefined') return this[propName];
@@ -445,9 +413,8 @@
 
             widget.cacheProp = function (prop) {
 
-                if (prop == 'x' || prop == 'y' || prop == 'width' || prop == 'height') {
-                    // Lets ignore outer shadow size (see RP-1816)
-                    var boundingRect = $ax('#' + this.elementId).offsetBoundingRect(true, true);
+                if(prop == 'x' || prop == 'y' || prop == 'width' || prop == 'height') {
+                    var boundingRect = $ax('#' + this.elementId).offsetBoundingRect(true);
                     this.xProp = boundingRect.left;
                     this.yProp = boundingRect.top;
                     this.widthProp = boundingRect.width;
@@ -753,7 +720,8 @@
     $ax.public.navigate = $ax.navigate = function(to) { //url, includeVariables, type) {
         var targetUrl;
         if(typeof (to) === 'object') {
-            targetUrl = !to.includeVariables ? to.url : $ax.globalVariableProvider.getLinkUrl(to.url, to.useGlobalVarNameInUrl);
+            includeVariables = to.includeVariables;
+            targetUrl = !includeVariables ? to.url : $ax.globalVariableProvider.getLinkUrl(to.url);
 
             if(to.target == "new") {
                 window.open(targetUrl, "");

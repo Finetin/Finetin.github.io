@@ -9,7 +9,7 @@
             $axure.player.createPluginHost({
                 id: 'pageNotesHost',
                 context: 'inspect',
-                title: 'Notes',
+                title: 'Documentation',
                 gid: 2,
             });
         }
@@ -453,7 +453,7 @@
     function generatePageNotes() {
         var pageNotesUi = "<div id='pageNotesHeader'>";
 
-        pageNotesUi += "<div id='pageNotesToolbar' style='height: 10px;'>";
+        pageNotesUi += "<div id='pageNotesToolbar' style='height: 12px;'>";
         pageNotesUi += "</div>";
         pageNotesUi += "</div>";
 
@@ -464,7 +464,7 @@
         pageNotesUi += "<span id='pageNotesContent'></span>";
         pageNotesUi += "</div></div>";
 
-        $('#pageNotesHost').append(pageNotesUi);
+        $('#pageNotesHost').html(pageNotesUi);
 
         if(!$axure.document.configuration.showAnnotations) {
             $('#pageNotesHost .pageNameHeader').css('padding-right', '55px');

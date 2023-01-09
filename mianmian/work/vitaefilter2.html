@@ -375,13 +375,21 @@
                             const accountQuery = new AV.Query('Account');
                             // 获取登陆者账号
                             accountQuery.get(loginStates[0].get("account_id")).then((now_account) => {
-                                // 查询组
-                                let ingroup = now_account.get("work_group_list").indexOf(group_name); // 获取账户名
-                                if (ingroup == -1) {
-                                    alert("您尚未加入该面试工作组。");
-                                    location.assign("../usercenter/workspace.html");
-                                    return;
-                                }
+                                let groupQuery = new AV.Query('WorkGroup');
+                                groupQuery.equalTo("group_name", group_name);
+                                groupQuery.find().then((groups) => {
+                                    if (groups.length <= 0) {
+                                        alert("不存在该面试工作组。");
+                                        location.assign("workspace.html");
+                                        return;
+                                    } else if (groups[0].get("mem_names").indexOf(now_account.get("account_id")) == -1) {
+                                        alert("您尚未加入该面试工作组。");
+                                        location.assign("workspace.html");
+                                        return;
+                                    }
+
+                                    // 在工作组内
+                                });
                             });
                             // 进入打分的步骤
                             showAll(Number(document.getElementById("vitae_id").innerText));
@@ -423,13 +431,21 @@
                             const accountQuery = new AV.Query('Account');
                             // 获取登陆者账号
                             accountQuery.get(loginStates[0].get("account_id")).then((now_account) => {
-                                // 查询组
-                                let ingroup = now_account.get("work_group_list").indexOf(group_name); // 获取账户名
-                                if (ingroup == -1) {
-                                    alert("您尚未加入该面试工作组。");
-                                    location.assign("../usercenter/workspace.html");
-                                    return;
-                                }
+                                let groupQuery = new AV.Query('WorkGroup');
+                                groupQuery.equalTo("group_name", group_name);
+                                groupQuery.find().then((groups) => {
+                                    if (groups.length <= 0) {
+                                        alert("不存在该面试工作组。");
+                                        location.assign("workspace.html");
+                                        return;
+                                    } else if (groups[0].get("mem_names").indexOf(now_account.get("account_id")) == -1) {
+                                        alert("您尚未加入该面试工作组。");
+                                        location.assign("workspace.html");
+                                        return;
+                                    }
+
+                                    // 在工作组内
+                                });
                             });
 
                             // 初始化内容

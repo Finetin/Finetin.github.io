@@ -101,10 +101,10 @@
                     let nowdate = new Date();
                     if ((nowdate.getTime() - loginStates[0].get('createdAt').getTime()) / 1000 > 3600) {
                         alert("登录已过期，请重新登录。");
-                        location.replace("../account/login.html");
+                        location.assign("../account/login.html");
                     } else {
                         if (group_name == undefined || group_name == "") {
-                            location.replace("../usercenter/workspace.html");
+                            location.assign("../usercenter/workspace.html");
                             return;
                         } else {
                             // 判断是否是工作组的成员
@@ -112,13 +112,21 @@
                             const accountQuery = new AV.Query('Account');
                             // 获取登陆者账号
                             accountQuery.get(loginStates[0].get("account_id")).then((now_account) => {
-                                // 查询组
-                                let ingroup = now_account.get("work_group_list").indexOf(group_name); // 获取账户名
-                                if (ingroup == -1) {
-                                    alert("您尚未加入该面试工作组。");
-                                    location.replace("../usercenter/workspace.html");
-                                    return;
-                                }
+                                let groupQuery = new AV.Query('WorkGroup');
+                                groupQuery.equalTo("group_name", group_name);
+                                groupQuery.find().then((groups) => {
+                                    if (groups.length <= 0) {
+                                        alert("不存在该面试工作组。");
+                                        location.assign("workspace.html");
+                                        return;
+                                    } else if (groups[0].get("mem_names").indexOf(now_account.get("account_id")) == -1) {
+                                        alert("您尚未加入该面试工作组。");
+                                        location.assign("workspace.html");
+                                        return;
+                                    }
+
+                                    // 在工作组内
+                                });
                             });
 
                             // 初始化内容
@@ -184,7 +192,7 @@
                         
 
                     }
-                } else location.replace("../account/login.html");
+                } else location.assign("../account/login.html");
             });
         };
 
@@ -193,6 +201,10 @@
             for (let person_case of person_cases) {
                 invertcolor(person_case);
             }
+        }
+
+        function testFilterResult() {
+            
         }
 
         // 关闭窗口

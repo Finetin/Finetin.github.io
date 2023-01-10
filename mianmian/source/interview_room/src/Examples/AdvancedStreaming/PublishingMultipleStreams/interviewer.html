@@ -321,16 +321,18 @@
             AssessQuery0.equalTo('account_name', account_name);
 
             const AssessQuery1 = new AV.Query('InterviewAssess');
-            AssessQuery1.equalTo('person_numbering', assess_number);
+            // alert(vitae_names[assess_numbering]);
+            AssessQuery1.equalTo('person_name', vitae_names[assess_numbering]);
 
             const AssessQuery2 = new AV.Query('InterviewAssess');
             AssessQuery2.equalTo('interview_group_number', interview_number);
 
             // 联合搜索
-            const AssessQuery3 = AV.Query.or(AssessQuery0, AssessQuery1);
-            const AssessQuery = AV.Query.or(AssessQuery2, AssessQuery3);
+            const AssessQuery3 = AV.Query.and(AssessQuery0, AssessQuery1);
+            const AssessQuery = AV.Query.and(AssessQuery2, AssessQuery3);
 
             AssessQuery.find().then((assess_arr) => {
+                alert("al:"+ assess_arr.length);
                 if (assess_arr.length == 0) {
                     document.getElementById("communicate_score_ipt").value = 5;
                     document.getElementById("ability_score_ipt").value = 5;
@@ -750,13 +752,15 @@
                         // 获取登陆者账号
                         accountQuery.get(loginStates[0].get("account_id")).then((now_account) => {
                             account_name = now_account.get("account_id"); // 获取账户名
-
+                            
                             // 从面试安排寻找信息 interview_number
                             const interviewQuery = new AV.Query('InterviewGroup');
                             interviewQuery.get(interview_number).then((todo) => {
                                 let now_group = todo.get("group_name");
                                 let groupQuery = new AV.Query('WorkGroup');
                                 groupQuery.equalTo("group_name", now_group);
+
+                                vitae_names = todo.get('candidate_arr');
                                 groupQuery.find().then((groups) => {
                                     if (groups.length <= 0) {
                                         alert("不存在该面试工作组。");

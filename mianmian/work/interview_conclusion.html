@@ -89,7 +89,7 @@
             let assessQuery2 = new AV.Query('InterviewAssess');
             assessQuery2.equalTo('person_name', candidate_arr[person_number]);
 
-            const assessQuery = AV.Query.or(assessQuery1, assessQuery2);
+            const assessQuery = AV.Query.and(assessQuery1, assessQuery2);
             assessQuery.find().then((assesses_arr) => {
                 let former_assesses = document.getElementsByClassName("assess_box");
                 for (let i= former_assesses.length-1; i>=0; i--) {
@@ -216,7 +216,7 @@
                 candidate_in_arr.push(candidate_in_box[i].checked);
             }
             let tmp_interview = AV.Object.createWithoutData('InterviewGroup', interview_group_number);
-            alert(candidate_in_arr)
+            // alert(candidate_in_arr)
             tmp_interview.set('interview_result_arr', candidate_in_arr);
             tmp_interview.save();
         }

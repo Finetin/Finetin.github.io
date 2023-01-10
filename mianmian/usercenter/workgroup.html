@@ -508,6 +508,7 @@
                                     // alert("开始");
                                     const interviewQuery = new AV.Query('InterviewGroup');
                                     interviewQuery.equalTo('group_name', group_name);
+                                    interviewQuery.ascending('interview_group_id');
                                     interviewQuery.find().then((interviews) => {
                                         // alert(interviews.length);
                                         if (interviews.length)

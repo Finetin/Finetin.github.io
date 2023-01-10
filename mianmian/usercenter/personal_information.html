@@ -90,14 +90,17 @@
             /* margin-left: 40px; */
             width: 120px;
             height: 30px;
-            border-radius: 15px;
+            border-radius: 10px;
             background-color: white;
             text-align: center;
             box-shadow: 0 0 2px 1px rgb(131, 133, 134);
             vertical-align: bottom;
 
+            letter-spacing: 5px;
             user-select: none;
             cursor: pointer;
+
+            margin-right: 10px;
         }
         .editbutton span {
             line-height: 30px;
@@ -111,9 +114,7 @@
             filter: invert(100%);
             border-color: #000;
         }
-        /* .editbutton span:hover {
-            color: lightblue;
-        } */
+        
         .editbutton img {
             /* line-height: 30px; */
             padding-top: 5px;
@@ -200,6 +201,29 @@
                 }
             });
         };
+
+        function logOut() {
+            const loginQuery = new AV.Query('LoginState');
+            let client_id = cans(); // 客户端码
+            loginQuery.equalTo('client_id', client_id);
+            loginQuery.find().then((loginStates) => {
+                if (loginStates.length > 0) {
+                    // 删除所有经历
+                    // 批量删除
+                    AV.Object.destroyAll(loginStates).then(
+                        function (deletedObjects) {
+                            alert("退出登录成功。");
+                            location.assign("../index.html");
+                            // 成功删除所有对象时进入此 resolve 函数，deletedObjects 是包含所有的 AV.Object 的数组
+                        },
+                        function (error) {
+                            alert("退出登录失败，请稍后重试。");
+                            // 只要有一个对象删除错误就会进入此 reject 函数
+                        }
+                    );
+                }
+            });
+        }
     </script>
 </head>
 <body>
@@ -219,11 +243,11 @@
                 <img src="../source/pic/icon_bell.png" width="20px" height="20px" alt="">
                 <span>信息</span>
             </a>
-            <a href="https://www.polyv.net/" class="mimet">
+            <!-- <a href="https://www.polyv.net/" class="mimet">
                 <img src="../source/pic/icon_comments.png" width="20px" height="20px" alt="">
                 <span>小型研讨会</span>
                 
-            </a>
+            </a> -->
             <a href="workspace.html" class="workgroup">
                 <img src="../source/pic/icon_users.png" width="20px" height="20px" alt="">
                 <span>工作组</span>
@@ -263,6 +287,10 @@
                     <img src="../source/pic/icon_edit.png" alt=""
                         width="20px">
                     <span>修改</span>
+                </div>
+                <div class="editbutton" onclick="logOut();">
+                    <img src="../source/pic/icon_sign-out-alt2.png" alt="" width="20px">
+                    <span>退出</span>
                 </div>
             </div>
             <div style="height: 20px; width: 200px;"></div>

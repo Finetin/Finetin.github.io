@@ -158,7 +158,7 @@
             height: 10px;
         }
 
-        .event {
+        .event, .event2 {
             width: 95%;
             border-radius: 10px;
             background-color: rgb(250,256,250);
@@ -422,7 +422,7 @@
         // 新建完结事项
         function NewEndEvent(event_object) {
             let new_div = document.createElement("div");
-            new_div.classList.add("event");
+            new_div.classList.add("event2");
 
             let end_timelast = dateTimeToString(event_object.get("start_date")) + " - " +
                 dateTimeToString(event_object.get("end_date"));
@@ -624,7 +624,7 @@
             } else if (eventcont.substr(0, "面试总结".length) == "面试总结") {
                 start_btns[event_num].classList.add("event_step5");
                 start_btns[event_num].innerHTML =
-                    '<img src="../source/pic/icon_play.png" alt="" width="15px"><span>面试总结</span>';
+                    '<img src="../source/pic/icon_play.png" alt="" width="15px"><span>进行总结</span>';
 
                 let interview_id = Number(eventcont.split("(")[1].split(")")[0]);
                 start_btns[event_num].onclick = function () {
@@ -867,12 +867,12 @@
                 <img src="../source/pic/icon_bell.png" width="20px" height="20px" alt="">
                 <span>信息</span>
             </a>
-            <a href="#" class="mimet">
+            <!-- <a href="#" class="mimet">
                 <img src="../source/pic/icon_comments.png" width="20px" height="20px" alt="">
                 <span>小型研讨会</span>
 
-            </a>
-            <a href="workgroup.html" class="workgroup choseslct">
+            </a> -->
+            <a href="workspace.html" class="workgroup choseslct">
                 <img src="../source/pic/icon_users.png" width="20px" height="20px" alt="">
                 <span>工作组</span>
             </a>

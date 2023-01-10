@@ -394,25 +394,41 @@
                             vitae_grudate_sumname[0].push(person_name);
                         } else vitae_grudate_sumname[1].push(person_name);
                         vitaeStatistic.set("vitae_graduate_sum", vitae_grudate_sum);
-                        vitaeStatistic.set("vitae_grudate_sumname", vitae_grudate_sumname);
+                        vitaeStatistic.set("vitae_graduate_sumname", vitae_grudate_sumname);
 
                         // 统计工作企业
                         let vitae_comps = vitaeStatistic.get("vitae_comps");
                         let vitae_comp_sum = vitaeStatistic.get("vitae_comp_sum");
                         let vitae_comp_sumname = vitaeStatistic.get("vitae_comp_sumname");
-                        for (let i = 0; i < work_comp_list.length; i++) {
-                            let tmp_pos = vitae_comps.indexOf(work_comp_list[i]);
-                            if (tmp_pos == -1) {
-                                vitae_comps.push(work_comp_list[i]);
+                        if (work_comp_list.length == 0) {
+                            let tmppos = vitae_comps.indexOf("无工作经验");
+                            if (tmppos == -1) {
                                 vitae_comp_sum.push(1);
+                                vitae_comps.push("无工作经验")
                                 let tmp_arr = new Array();
-                                tmp_arr.push("person_name");
+                                tmp_arr.push(person_name);
                                 vitae_comp_sumname.push(tmp_arr);
-                            } else if (work_comp_list.indexOf(work_comp_list[i]) == i) {
-                                vitae_comp_sum[tmp_pos]++;
-                                vitae_comp_sumname[tmp_pos].push(person_name);
+                            } else {
+                                vitae_comp_sum[tmppos]+=1;
+                                vitae_comp_sumname[tmppos].push(person_name);
                             }
                         }
+                        else {
+                            for (let i = 0; i < work_comp_list.length; i++) {
+                                let tmp_pos = vitae_comps.indexOf(work_comp_list[i]);
+                                if (tmp_pos == -1) {
+                                    vitae_comps.push(work_comp_list[i]);
+                                    vitae_comp_sum.push(1);
+                                    let tmp_arr = new Array();
+                                    tmp_arr.push(person_name);
+                                    vitae_comp_sumname.push(tmp_arr);
+                                } else if (work_comp_list.indexOf(work_comp_list[i]) == i) {
+                                    vitae_comp_sum[tmp_pos]++;
+                                    vitae_comp_sumname[tmp_pos].push(person_name);
+                                }
+                            }
+                        }
+
                         vitaeStatistic.set("vitae_comps", vitae_comps);
                         vitaeStatistic.set("vitae_comp_sum", vitae_comp_sum);
                         vitaeStatistic.set("vitae_comp_sumname", vitae_comp_sumname);

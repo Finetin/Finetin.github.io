@@ -27,6 +27,12 @@
         group_name = newsids[1];//得到参数值
         newsname = newsids[0];//得到参数名字
 
+        // 拥有的数组统计
+        var vitaeAges, vitaeSchools, vitae_graduates = ["应届生", "往届生"],
+            maxranks, edu_profs, work_comps, target_jobs;
+
+        var person_last_name = new Array(); // 选中的剩余人
+
         function invertcolor(id) {
             if (id.classList.contains('nselect')) {
                 id.classList.remove('nselect');
@@ -91,6 +97,8 @@
         window.onload = function () {
             // return;
 
+            document.getElementById("check_event_window").style.marginTop = window.innerHeight/2-75+"px";
+            
             // 检查登录状态，确定登录键是否删除
             const loginQuery = new AV.Query('LoginState');
             let client_id = cans();
@@ -141,14 +149,14 @@
 
                                 // 初始化年龄
                                 let vitaeAgeSum = vitaeSta.get("vitae_age_sum");
-                                let vitaeAges = ["18-岁", "18~22岁", "22~28岁", "28~35岁", "35~40岁", "40~50岁", "50~60岁", "60+岁"];
+                                vitaeAges = ["18-岁", "18~22岁", "22~28岁", "28~35岁", "35~40岁", "40~50岁", "50~60岁", "60+岁"];
                                 for (let i=0; i<8 ;i++) {
                                     if (vitaeAgeSum[i] > 0)
                                         addcase_age(vitaeAges[i], vitaeAgeSum[i]);
                                 }
 
                                 // 初始化毕业院校
-                                let vitaeSchools = vitaeSta.get("vitae_schools");
+                                vitaeSchools = vitaeSta.get("vitae_schools");
                                 let vitaeSchoolSum = vitaeSta.get("vitae_school_sum");
                                 for (let i = 0; i < vitaeSchoolSum.length; i++) {
                                     addcase_scl(vitaeSchools[i], vitaeSchoolSum[i]);
@@ -161,32 +169,33 @@
 
                                 // 最高学历
                                 let maxrank_sum = vitaeSta.get("vitae_maxrank_sum");
-                                let maxranks = ["中专", "大专", "本科", "硕士研究生","博士研究生"];
+                                maxranks = ["中专", "大专", "本科", "硕士研究生","博士研究生"];
                                 for (let i=0; i<5; i++) {
                                     if (maxrank_sum[i] > 0)
                                         addcase_srank(maxranks[i], maxrank_sum[i]);
                                 }
 
                                 // 专业
-                                let edu_profs = vitaeSta.get("vitae_profs");
+                                edu_profs = vitaeSta.get("vitae_profs");
                                 let edu_prof_sum = vitaeSta.get("vitae_prof_sum");
                                 for (let i=0; i<edu_profs.length; i++) {
                                     addcase_prof(edu_profs[i], edu_prof_sum[i]);
                                 }
 
                                 // 工作经验
-                                let work_comps = vitaeSta.get("vitae_comps");
+                                work_comps = vitaeSta.get("vitae_comps");
                                 let work_comp_sum = vitaeSta.get("vitae_comp_sum");
                                 for (let i = 0; i < work_comps.length; i++) {
                                     addcase_work(work_comps[i], work_comp_sum[i]);
                                 }
 
                                 // 目标岗位
-                                let target_jobs = vitaeSta.get("vitae_first_targets");
+                                target_jobs = vitaeSta.get("vitae_first_targets");
                                 let target_sum = vitaeSta.get("vitae_first_target_sum");
                                 for (let i = 0; i < target_jobs.length; i++) {
                                     addcase_target(target_jobs[i], target_sum[i]);
                                 }
+
                             });
                         }
                         
@@ -204,7 +213,354 @@
         }
 
         function testFilterResult() {
-            
+            let person_age_cases = document.getElementsByClassName("person_age_case");
+            let person_scl_cases = document.getElementsByClassName("person_scl_case");
+            let person_graduate_cases = document.getElementsByClassName("person_graduate_case");
+            let person_sclrank_cases = document.getElementsByClassName("person_sclrank_case");
+            let person_prof_cases = document.getElementsByClassName("person_prof_case");
+            let person_work_cases = document.getElementsByClassName("person_work_case");
+            let person_target_cases = document.getElementsByClassName("person_target_case");
+
+            // 检查是否选中
+            let person_age_chosepos = new Array(), person_scl_chosepos = new Array(), person_graduate_chosepos = new Array(),
+                person_sclrank_chosepos = new Array(), person_prof_chosepos = new Array(),
+                person_work_chosepos = new Array(), person_target_chosepos = new Array();
+
+            // 年龄判断
+            for (let i=0; i< person_age_cases.length; i++) {
+                if (person_age_cases[i].classList.contains('select'))
+                    person_age_chosepos.push(vitaeAges.indexOf(person_age_cases[i].id));
+            }
+
+            // 学校判断
+            for (let i = 0; i < person_scl_cases.length; i++) {
+                if (person_scl_cases[i].classList.contains('select'))
+                    person_scl_chosepos.push(vitaeSchools.indexOf(person_scl_cases[i].id));
+            }
+
+            // 应届生判断
+            for (let i = 0; i < person_graduate_cases.length; i++) {
+                if (person_graduate_cases[i].classList.contains('select'))
+                    person_graduate_chosepos.push(vitae_graduates.indexOf(person_graduate_cases[i].id));
+            }
+
+            // 最高学历判断
+            for (let i = 0; i < person_sclrank_cases.length; i++) {
+                if (person_sclrank_cases[i].classList.contains('select'))
+                    person_sclrank_chosepos.push(maxranks.indexOf(person_sclrank_cases[i].id));
+            }
+
+            // 专业判断
+            for (let i = 0; i < person_prof_cases.length; i++) {
+                if (person_prof_cases[i].classList.contains('select'))
+                    person_prof_chosepos.push(edu_profs.indexOf(person_prof_cases[i].id));
+            }
+
+            // 工作判断
+            for (let i = 0; i < person_work_cases.length; i++) {
+                if (person_work_cases[i].classList.contains('select'))
+                    person_work_chosepos.push(work_comps.indexOf(person_work_cases[i].id));
+            }
+
+            // 第一志愿判断
+            for (let i = 0; i < person_target_cases.length; i++) {
+                if (person_target_cases[i].classList.contains('select'))
+                    person_target_chosepos.push(target_jobs.indexOf(person_target_cases[i].id));
+            }
+
+            // 统计信息
+            let person_age_chosename = new Array(), person_scl_chosename = new Array(), person_graduate_chosename = new Array(),
+                person_sclrank_chosename = new Array(), person_prof_chosename = new Array(),
+                person_work_chosename = new Array(), person_target_chosename = new Array();
+
+            // 查询统计信息
+            // 初始化内容
+            const vitaeStatQuery = new AV.Query('VitaeStatistic');
+            vitaeStatQuery.equalTo('group_name', group_name);
+            vitaeStatQuery.find().then((statistics) => {
+                let vitaeSta = statistics[0];
+
+                let vitae_age_sumname = vitaeSta.get("vitae_age_sumname");
+                let vitae_comp_sumname = vitaeSta.get("vitae_comp_sumname");
+                let vitae_first_target_sumname = vitaeSta.get("vitae_first_target_sumname");
+                let vitae_graduate_sumname = vitaeSta.get("vitae_graduate_sumname");
+                let vitae_maxrank_sumname = vitaeSta.get("vitae_maxrank_sumname");
+                let vitae_prof_sumname = vitaeSta.get("vitae_prof_sumname");
+                let vitae_school_sumname = vitaeSta.get("vitae_school_sumname");
+
+                // 统计数据
+                for (let i=0;i< person_age_chosepos.length; i++) {
+                    person_age_chosename =
+                        person_age_chosename.concat(vitae_age_sumname[person_age_chosepos[i]].filter(
+                            item => person_age_chosename.indexOf(item) === -1));
+                }
+                for (let i = 0; i < person_scl_chosepos.length; i++) {
+                    person_scl_chosename =
+                        person_scl_chosename.concat(vitae_school_sumname[person_scl_chosepos[i]].filter(
+                            item => person_scl_chosename.indexOf(item) === -1));
+                }
+                for (let i = 0; i < person_graduate_chosepos.length; i++) {
+                    person_graduate_chosename =
+                        person_graduate_chosename.concat(vitae_graduate_sumname[person_graduate_chosepos[i]].filter(
+                            item => person_graduate_chosename.indexOf(item) === -1));
+                }
+                for (let i = 0; i < person_sclrank_chosepos.length; i++) {
+                    person_sclrank_chosename =
+                        person_sclrank_chosename.concat(vitae_maxrank_sumname[person_sclrank_chosepos[i]].filter(
+                            item => person_sclrank_chosename.indexOf(item) === -1));
+                }
+                for (let i = 0; i < person_prof_chosepos.length; i++) {
+                    person_prof_chosename =
+                        person_prof_chosename.concat(vitae_prof_sumname[person_prof_chosepos[i]].filter(
+                            item => person_prof_chosename.indexOf(item) === -1));
+                }
+                for (let i = 0; i < person_work_chosepos.length; i++) {
+                    person_work_chosename =
+                        person_work_chosename.concat(vitae_comp_sumname[person_work_chosepos[i]].filter(
+                            item => person_work_chosename.indexOf(item) === -1));
+                }
+                for (let i = 0; i < person_target_chosepos.length; i++) {
+                    person_target_chosename =
+                        person_target_chosename.concat(vitae_first_target_sumname[person_target_chosepos[i]].filter(
+                            item => person_target_chosename.indexOf(item) === -1));
+                }
+
+                // 数据取总 交集
+                // person_last_name = new Array();
+                person_last_name = person_age_chosename;
+                person_last_name = person_last_name.filter(item => person_scl_chosename.indexOf(item) > -1);
+                person_last_name = person_last_name.filter(item => person_graduate_chosename.indexOf(item) > -1);
+                person_last_name = person_last_name.filter(item => person_sclrank_chosename.indexOf(item) > -1);
+                person_last_name = person_last_name.filter(item => person_prof_chosename.indexOf(item) > -1);
+                person_last_name = person_last_name.filter(item => person_work_chosename.indexOf(item) > -1);
+                person_last_name = person_last_name.filter(item => person_target_chosename.indexOf(item) > -1);
+                
+                document.getElementById("people_last_num").innerText = person_last_name.length;
+                document.getElementById("people_last_show_btn").onclick = ()=>{
+                    alert("入围的面试者有："+person_last_name.join(',')+"。");
+                }
+                onappear(checkevent);
+            });
+
+        }
+
+        // 提交过滤结果
+        function sendFilterVitae() {
+            let lastVitae1 = new AV.Query('Vitae');
+            lastVitae1.equalTo('workgroup_name', group_name);
+
+            let lastvitae2 = new AV.Query('Vitae');
+            lastvitae2.notContainedIn('person_name', person_last_name);
+
+            let lastVitae = AV.Query.and(lastVitae1, lastvitae2);
+            lastVitae.find().then((last_vitaes) => {
+                let del_name = new Array();
+                for (let i = 0; i < last_vitaes.length; i++) {
+                    del_name.push(last_vitaes[i].get("person_name"));
+                }
+                // alert("delname:" + del_name);
+                // return;
+                delStatistic(del_name);
+
+                // 批量删除
+                AV.Object.destroyAll(last_vitaes).then(
+                    function (deletedObjects) {
+                        alert("提交成功。");
+                        disappear(checkevent);
+                        // 成功删除所有对象时进入此 resolve 函数，deletedObjects 是包含所有的 AV.Object 的数组
+                    },
+                    function (error) {
+                        alert("提交出现意外，请稍后重试。");
+                        console.log("提交异常。", error);
+                        // 只要有一个对象删除错误就会进入此 reject 函数
+                    }
+                );
+            });
+
+            let del_vitaes = new AV.Query('Vitae');
+            del_vitaes.equalTo('workgroup_name', group_name);
+            del_vitaes
+        }
+
+        // 删除数据统计
+        function delStatistic(del_name) {
+            const vitaeStatQuery = new AV.Query('VitaeStatistic');
+            vitaeStatQuery.equalTo('group_name', group_name);
+            vitaeStatQuery.find().then((statistics) => {
+                let vitaeSta = statistics[0];
+
+                let vitae_age_sumname = vitaeSta.get("vitae_age_sumname");
+                let vitae_comp_sumname = vitaeSta.get("vitae_comp_sumname");
+                let vitae_first_target_sumname = vitaeSta.get("vitae_first_target_sumname");
+                let vitae_graduate_sumname = vitaeSta.get("vitae_graduate_sumname");
+                let vitae_maxrank_sumname = vitaeSta.get("vitae_maxrank_sumname");
+                let vitae_prof_sumname = vitaeSta.get("vitae_prof_sumname");
+                let vitae_school_sumname = vitaeSta.get("vitae_school_sumname");
+
+                // 拥有的数组统计
+                var vitaeAges = ["18-岁", "18~22岁", "22~28岁", "28~35岁", "35~40岁", "40~50岁", "50~60岁", "60+岁"],
+                    vitaeSchools = vitaeSta.get("vitae_schools"), vitae_graduates = ["应届生", "往届生"],
+                    maxranks = ["中专", "大专", "本科", "硕士研究生", "博士研究生"],
+                    edu_profs = vitaeSta.get("vitae_profs"), work_comps = vitaeSta.get("vitae_comps"),
+                    target_jobs = vitaeSta.get("vitae_first_targets");
+                // 删减多余姓名
+                var vitae_age_sumname1 = new Array(), vitae_comp_sumname1 = new Array(), vitae_first_target_sumname1 = new Array(),
+                    vitae_graduate_sumname1 = new Array(), vitae_maxrank_sumname1 = new Array(), vitae_prof_sumname1 = new Array(),
+                    vitae_school_sumname1 = new Array();
+                var vitae_age_sumname2 = new Array(), vitae_comp_sumname2 = new Array(), vitae_first_target_sumname2 = new Array(),
+                    vitae_graduate_sumname2 = new Array(), vitae_maxrank_sumname2 = new Array(), vitae_prof_sumname2 = new Array(),
+                    vitae_school_sumname2 = new Array();
+                var vitae_age_sum = new Array(), vitae_comp_sum = new Array(), vitae_first_target_sum = new Array(),
+                    vitae_graduate_sum = new Array(), vitae_maxrank_sum = new Array(), vitae_prof_sum = new Array(),
+                    vitae_school_sum = new Array();
+                var vitaeSchools2 = new Array(), edu_profs2 = new Array(), work_comps2 = new Array(), target_jobs2 = new Array();
+
+                // 计算剩余人总数
+                let last_people_sum = 0;
+                // 年龄
+                for (let i=0; i< vitae_age_sumname.length; i++) {
+                    vitae_age_sumname1.push(new Array());
+                    for (let j=0; j< vitae_age_sumname[i].length; j++) {
+                        if (del_name.indexOf(vitae_age_sumname[i][j]) == -1) {
+                            last_people_sum += 1;
+                            vitae_age_sumname1[i].push(vitae_age_sumname[i][j]);
+                        }
+                    }
+                }
+                // 学校
+                for (let i = 0; i < vitae_school_sumname.length; i++) {
+                    vitae_school_sumname1.push(new Array());
+                    for (let j = 0; j < vitae_school_sumname[i].length; j++) {
+                        if (del_name.indexOf(vitae_school_sumname[i][j]) == -1) {
+                            vitae_school_sumname1[i].push(vitae_school_sumname[i][j]);
+                        }
+                    }
+                }
+                // 是否应届生
+                for (let i = 0; i < vitae_graduate_sumname.length; i++) {
+                    vitae_graduate_sumname1.push(new Array());
+                    for (let j = 0; j < vitae_graduate_sumname[i].length; j++) {
+                        if (del_name.indexOf(vitae_graduate_sumname[i][j]) == -1) {
+                            vitae_graduate_sumname1[i].push(vitae_graduate_sumname[i][j]);
+                        }
+                    }
+                }
+                // 最高学位
+                for (let i = 0; i < vitae_maxrank_sumname.length; i++) {
+                    vitae_maxrank_sumname1.push(new Array());
+                    for (let j = 0; j < vitae_maxrank_sumname[i].length; j++) {
+                        if (del_name.indexOf(vitae_maxrank_sumname[i][j]) == -1) {
+                            vitae_maxrank_sumname1[i].push(vitae_maxrank_sumname[i][j]);
+                        }
+                    }
+                }
+                // 专业
+                for (let i = 0; i < vitae_prof_sumname.length; i++) {
+                    vitae_prof_sumname1.push(new Array());
+                    for (let j = 0; j < vitae_prof_sumname[i].length; j++) {
+                        if (del_name.indexOf(vitae_prof_sumname[i][j]) == -1) {
+                            vitae_prof_sumname1[i].push(vitae_prof_sumname[i][j]);
+                        }
+                    }
+                }
+                // 工作经历
+                for (let i = 0; i < vitae_comp_sumname.length; i++) {
+                    vitae_comp_sumname1.push(new Array());
+                    for (let j = 0; j < vitae_comp_sumname[i].length; j++) {
+                        if (del_name.indexOf(vitae_comp_sumname[i][j]) == -1) {
+                            vitae_comp_sumname1[i].push(vitae_comp_sumname[i][j]);
+                        }
+                    }
+                }
+                // 目标岗位
+                for (let i = 0; i < vitae_first_target_sumname.length; i++) {
+                    vitae_first_target_sumname1.push(new Array());
+                    for (let j = 0; j < vitae_first_target_sumname[i].length; j++) {
+                        if (del_name.indexOf(vitae_first_target_sumname[i][j]) == -1) {
+                            vitae_first_target_sumname1[i].push(vitae_first_target_sumname[i][j]);
+                        }
+                    }
+                }
+                
+                // 重新设置人数
+                // 年龄
+                for (let i = 0; i < vitae_age_sumname1.length; i++) {
+                    vitae_age_sum.push(vitae_age_sumname1[i].length);
+                }
+                // 学校
+                for (let i = 0; i < vitae_school_sumname1.length; i++) {
+                    if (vitae_school_sumname1[i].length > 0) {
+                        vitae_school_sumname2.push(vitae_school_sumname1[i]);
+                        vitae_school_sum.push(vitae_school_sumname1[i].length);
+                        vitaeSchools2.push(vitaeSchools[i]);
+                    }
+                }
+                // 是否应届生
+                for (let i = 0; i < vitae_graduate_sumname1.length; i++) {
+                    vitae_graduate_sum.push(vitae_graduate_sumname1[i].length);
+                }
+                // 最高学位
+                for (let i = 0; i < vitae_maxrank_sumname1.length; i++) {
+                    vitae_maxrank_sum.push(vitae_maxrank_sumname1[i].length);
+                }
+                // 专业
+                for (let i = 0; i < vitae_prof_sumname1.length; i++) {
+                    if (vitae_prof_sumname1[i].length > 0) {
+                        vitae_prof_sumname2.push(vitae_prof_sumname1[i]);
+                        vitae_prof_sum.push(vitae_prof_sumname1[i].length);
+                        edu_profs2.push(edu_profs[i]);
+                    }
+                }
+                // 工作经历
+                for (let i = 0; i < vitae_comp_sumname1.length; i++) {
+                    if (vitae_comp_sumname1[i].length > 0) {
+                        vitae_comp_sumname2.push(vitae_comp_sumname1[i]);
+                        vitae_comp_sum.push(vitae_comp_sumname1[i].length);
+                        work_comps2.push(work_comps[i]);
+                    }
+                }
+                // 目标岗位
+                for (let i = 0; i < vitae_first_target_sumname1.length; i++) {
+                    if (vitae_first_target_sumname1[i].length > 0) {
+                        vitae_first_target_sumname2.push(vitae_first_target_sumname1[i]);
+                        vitae_first_target_sum.push(vitae_first_target_sumname1[i].length);
+                        target_jobs2.push(target_jobs[i]);
+                    }
+                }
+                
+                
+                vitaeSta.set("vitae_sum", last_people_sum);
+
+                // 保存信息
+                vitaeSta.set('vitae_age_sum', vitae_age_sum);
+                vitaeSta.set('vitae_age_sumname', vitae_age_sumname1);
+
+                vitaeSta.set('vitae_school_sum', vitae_school_sum);
+                vitaeSta.set('vitae_schools', vitaeSchools2);
+                vitaeSta.set('vitae_school_sumname', vitae_school_sumname2);
+
+                vitaeSta.set('vitae_graduate_sum', vitae_graduate_sum[0]);
+                vitaeSta.set('vitae_graduate_sumname', vitae_graduate_sumname1);
+
+                vitaeSta.set('vitae_maxrank_sum', vitae_maxrank_sum);
+                vitaeSta.set('vitae_maxrank_sumname', vitae_maxrank_sumname1);
+                
+                vitaeSta.set('vitae_prof_sum', vitae_prof_sum);
+                vitaeSta.set('vitae_profs', edu_profs2);
+                vitaeSta.set('vitae_prof_sumname', vitae_prof_sumname2);
+
+                vitaeSta.set('vitae_comp_sum', vitae_comp_sum);
+                vitaeSta.set('vitae_comps', work_comps2);
+                vitaeSta.set('vitae_comp_sumname', vitae_comp_sumname2);
+
+                vitaeSta.set('vitae_first_target_sum', vitae_first_target_sum);
+                vitaeSta.set('vitae_first_targets', target_jobs2);
+                vitaeSta.set('vitae_first_target_sumname', vitae_first_target_sumname2);
+
+                vitaeSta.save().then(()=>{
+                    console.log("修改统计保存成功。");
+                });
+            });
         }
 
         // 关闭窗口
@@ -327,39 +683,71 @@
             position: fixed;
             width: 100%;
             height: 100%;
-            background-color: #fff;
-            opacity: 0.9;
+            background-color: rgba(200,200,200,0.8);
 
             display: none;
         }
         .window {
-            width: 400px;
+            width: 300px;
             /* height: 200px; */
             margin-top: 13%;
             margin-left: auto;
             margin-right: auto;
-            background-color: #ddd;
+            background-color: rgb(250, 250, 250);
 
             border-radius: 8px;
+            overflow: hidden;
+            text-align: center;
         }
 
         .windowtitle {
+            padding: 20px;
             padding-top: 30px;
-            margin-left: auto;
-            margin-right: auto;
-            width: 300px;
+
             text-align: center;
-            font-size: 26px;
+            font-size: 20px;
         }
         .btn_chois2 {
-            width: 300px;
+            width: 100%;
+            padding-top: 10px;
+            padding-bottom: 10px;
+
+            /* padding-right: 20px; */
             text-align: center;
-            margin-left: auto;
-            margin-right: auto;
-            /* margin-left: 35px; */
-            /* background-color: blue; */
-            padding-top: 20px;
-            padding-bottom: 40px;
+
+            background-color: #eee;
+        }
+
+        .checkevent_btn {
+            font-size: 15px;
+            text-align: center;
+
+            display: inline-block;
+            padding: 3px;
+            padding-left: 10px;
+            padding-right: 10px;
+            width: 110px;
+
+            margin-left: 5px;
+            margin-right: 5px;
+            border-radius: 8px;
+            background-color: #0178D4;
+            color: #fff;
+        }
+
+        #people_last_show_btn {
+            font-size: 15px;
+            color: #004377;
+        }
+        #people_last_show_btn:hover {
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        /* 新窗口按键 */
+        .checkevent_btn:hover {
+            cursor: pointer;
+            filter: brightness(0.8);
         }
 
         .casetitle:hover {
@@ -494,22 +882,23 @@
 
 
             <div class="btn_chois">
-                <span class="btn" onclick="onappear(checkevent)">提交筛选</span>
+                <span class="btn" onclick="testFilterResult();">提交筛选</span>
                 <span class="btn" onclick="location.replace('vitaefilter2.html?group_id='+group_name)">人工筛选</span>
             </div>
         </div>
     </span>
 
     <div class="window_event" id="checkevent">
-        <div class="window">
+        <div class="window" id="check_event_window">
             <div class="windowtitle">
                 经过筛选，得到入围的
                 <span id="people_last_num">30</span>
                 位应聘者。
+                <span id="people_last_show_btn">点击查看 ></span>
             </div>
             <div class="btn_chois2">
-                <span class="btn" onclick="disappear(checkevent); littletrick();">确定</span>
-                <span class="btn" onclick="disappear(checkevent)">取消</span>
+                <span class="checkevent_btn" onclick=" sendFilterVitae();">提交</span>
+                <span class="checkevent_btn" onclick="disappear(checkevent)">取消</span>
             </div>
         </div>
     </div>

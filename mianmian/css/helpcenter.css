@@ -47,6 +47,7 @@ body {
     margin-top: 90px;
     background-color: rgba(245, 245, 245, 0.7);
 
+    min-height: calc(100% - 90px);
     /* opacity: 0.7; */
 
 }
@@ -73,9 +74,19 @@ body {
     margin: 5px;
 }
 
+.show {
+    text-align: center;
+}
+
 .show img {
     padding-top: 20px;
     padding-left: 50px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.show video {
+    padding-top: 20px;
     margin-left: auto;
     margin-right: auto;
 }

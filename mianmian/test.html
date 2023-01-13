@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        #if001{
+            width: 1000px;
+            height: 500px;
+        }
+    </style>
+    
+    <script>
+        function test2() {
+            ifr01 = document.getElementById("if001");
+            alert(ifr01.contentDocument);
+            // alert(ifr01.contentDocument.getElementsByClassName("el-input_inner")[0].placeholder);
+            // document.getElementsByClassName
+        }
+    </script>
+</head>
+<body>
+    <iframe src="https://console.zego.im/account/login?lang=zh" frameborder="0" id="if001"></iframe>
+    <button id="testbtn" onclick="test2();">测试开始</button>
+</body>
+</html>
